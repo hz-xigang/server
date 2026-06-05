@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: xg
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=xg_wms;encrypt=false;trustServerCertificate=true;
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: sa
+    password: root
+server:
+  port: 7100
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
