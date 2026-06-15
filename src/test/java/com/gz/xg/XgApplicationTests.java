@@ -1,18 +1,17 @@
 package com.gz.xg;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import com.gz.xg.domain.dto.ProdTagDto;
-import com.gz.xg.domain.entity.ProductionOrder;
-import com.gz.xg.domain.enums.SequenceType;
+import com.gz.xg.domain.entity.ProdOrder;
 import com.gz.xg.service.ProdTagService;
-import com.gz.xg.service.ProductionOrderService;
+import com.gz.xg.service.ProdOrderService;
 import com.gz.xg.service.SysSequenceService;
-import com.jayway.jsonpath.spi.json.GsonJsonProvider;
+import com.gz.xg.service.plus.ProductionOrderPlusService;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.json.GsonJsonParser;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
@@ -24,7 +23,7 @@ class XgApplicationTests {
     private ObjectMapper objectMapper;
 
     @Resource
-    private ProductionOrderService productionOrderService;
+    private ProdOrderService prodOrderService;
 
     @Resource
     private SysSequenceService sysSequenceService;
@@ -32,13 +31,21 @@ class XgApplicationTests {
     @Resource
     private ProdTagService  prodTagService;
 
+    @Resource
+    private ProductionOrderPlusService plusService;
+
 	@Test
 	void contextLoads() throws JsonProcessingException {
        /* String s = sysSequenceService.generateSequence(SequenceType.PRODUCTION_ORDER, "20260602");
         System.err.println(s);*/
+        int current = 1;
+        int size = 15;
+        Page<ProdOrder> page =  new Page<ProdOrder>(current, size);
 
-        ProductionOrder pg = productionOrderService.findByProgNo("PO20260001");
-        System.err.println(objectMapper.writeValueAsString(pg));
+        QueryWrapper<ProdOrder> wrapper = new QueryWrapper<>();
+
+        Page<ProdOrder> orderPage = plusService.page(page, wrapper);
+
     }
 
     @Test

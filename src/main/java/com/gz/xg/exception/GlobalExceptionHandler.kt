@@ -14,7 +14,7 @@ import java.util.function.Consumer
  * 统一拦截控制层抛出的异常，并转换为标准响应结构。
  */
 @RestControllerAdvice
-class GlobalExceptionHandler {
+open class GlobalExceptionHandler {
     /**
      * 处理业务异常。
      *
@@ -22,7 +22,7 @@ class GlobalExceptionHandler {
      * @return 失败响应。
      */
     @ExceptionHandler(WebException::class)
-    fun webException(e: WebException?): ResponseResult {
+    fun webException(e: WebException): ResponseResult {
         return ResponseResult.fail(e)
     }
 
@@ -54,7 +54,8 @@ class GlobalExceptionHandler {
     @ExceptionHandler(Exception::class)
     fun finalException(e: Exception): ResponseResult {
         LOGGER.error("exception type==={}", e.javaClass)
-        logSysExceptionMsg(e)
+        //logSysExceptionMsg(e)
+        e.printStackTrace()
         return ResponseResult.fail(e)
     }
 

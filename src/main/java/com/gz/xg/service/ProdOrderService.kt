@@ -1,0 +1,43 @@
+package com.gz.xg.service
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page
+import com.github.yulichang.wrapper.MPJLambdaWrapper
+import com.gz.xg.domain.entity.ProdOrder
+import com.gz.xg.domain.search.ProdOrderSearch
+import com.gz.xg.service.plus.ProductionOrderPlusService
+import org.springframework.stereotype.Service
+
+@Service
+open class ProdOrderService(
+    private val plusService: ProductionOrderPlusService
+) : BaseService(){
+
+    fun findByProgNo(prodNo: String): ProdOrder {
+        return plusService.findByNo(prodNo)
+    }
+
+
+    fun page(current: Long, size: Long, search: ProdOrderSearch) : Map<String, Any> {
+        val page = Page<ProdOrder>(current, size)
+
+        val wrapper = MPJLambdaWrapper<ProdOrder>()
+            .between(ProdOrder::getCreateTime, search.startDate, search.endDate)
+            .and { w ->
+                run {
+                    w.like(ProdOrder::getProdNo, search.keyword)
+                        .or()
+                        .like(ProdOrder::getErpOrderNo, search.keyword)
+                }
+            }
+            .eq(search.status != null,ProdOrder::getDeleted,search.status)
+            .orderByDesc(ProdOrder::getCreateTime)
+
+
+        val orderPage = plusService.page(page, wrapper)
+        return getPage(orderPage)
+
+    }
+
+
+}

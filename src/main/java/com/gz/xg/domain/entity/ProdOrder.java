@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
  * 生产订单表(精简页面版)
  */
 @Data
-@TableName("productionOrder")
-public class ProductionOrder {
+@TableName("prodOrder")
+public class ProdOrder {
 
     /**
      * 全局唯一主键ID(字符串类型)
@@ -53,10 +53,6 @@ public class ProductionOrder {
      */
     private String spec;
 
-    /**
-     * 数据启用状态(1:启用, 0:停用)
-     */
-    private Boolean status;
 
     /**
      * 软删除
