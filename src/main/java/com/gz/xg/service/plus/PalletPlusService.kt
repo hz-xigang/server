@@ -6,4 +6,4 @@ import com.gz.xg.mapper.PalletMapper
 import org.springframework.stereotype.Service
 
 @Service
-open class PalletPlusService : ServiceImpl<PalletMapper, Pallet>()
+ class PalletPlusService : ServiceImpl<PalletMapper, Pallet>()

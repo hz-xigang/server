@@ -7,7 +7,10 @@ import com.gz.xg.service.plus.SysSequencePlusService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Date
+import kotlin.random.Random
 
 @Service
 open class SysSequenceService(
@@ -16,15 +19,15 @@ open class SysSequenceService(
 
 
     /**
-     * 生产纸箱标签
+     * 生成纸箱标签
      */
-    fun generateCarton() : String{
-        val sdf = SimpleDateFormat("yyMMdd")
-        val format = sdf.format(Date())
-        return generateSequence(SequenceType.CARTON_LABEL,format)
+    fun generateCarton() = generateByDate(SequenceType.CARTON_LABEL) +
+            Random.nextInt(0, 100).toString().padStart(2, '0')
 
-    }
-
+    /**
+     * 生成打托标签
+     */
+    fun generatePallet() = generateByDate(SequenceType.PALLET)
 
     fun generateSequence(sequenceType: SequenceType, value: String): String {
         return generateSequences(sequenceType, value, 1).first()
@@ -77,4 +80,16 @@ open class SysSequenceService(
             currentValue.toString()
         }
     }
+
+    private fun generateByDate(
+        type: SequenceType,
+        pattern: String = "yyMMdd"
+    ): String {
+
+        val prefix = LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern(pattern))
+
+        return generateSequence(type, prefix)
+    }
+
 }

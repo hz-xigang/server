@@ -8,7 +8,9 @@ import com.gz.xg.mapper.ProdOrderMapper
 import org.springframework.stereotype.Service
 
 @Service
-open class ProductionOrderPlusService : ServiceImpl<ProdOrderMapper, ProdOrder>(){
+open class ProductionOrderPlusService(
+
+) : ServiceImpl<ProdOrderMapper, ProdOrder>(){
 
     fun findByNo(prodNo : String) : ProdOrder {
         val wrapper = MPJLambdaWrapper<ProdOrder>()

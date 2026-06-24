@@ -16,6 +16,15 @@ abstract class BaseService {
         )
     }
 
+    protected fun <E, D> getDtoPage(page: Page<E>, converter: (List<E>) -> List<D>): Map<String, Any> {
+        val dtos = converter(page.records)
+
+        return mapOf(
+            "records" to dtos,
+            "total" to page.total,
+        )
+    }
+
     /**
      * 返回空分页结构。
      *

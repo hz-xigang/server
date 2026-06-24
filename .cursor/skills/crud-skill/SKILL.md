@@ -118,7 +118,7 @@ private String id;
 
 ---
 
-# 5. PlusService 生成规则 (Kotlin)
+# 6. PlusService 生成规则 (Kotlin)
 
 - **语言**：必须使用 **Kotlin**。
 - **类定义**：使用 `class`，标注 `@Service` 注解。
@@ -126,7 +126,7 @@ private String id;
 
 ---
 
-# 6. Service 生成规则 (Kotlin)
+# 7. Service 生成规则 (Kotlin)
 
 - **语言**：必须使用 **Kotlin**。
 - **重要限制**：不要生成 `IService` 接口和 `ServiceImpl` 实现类，只生成一个普通的单体 `Service` 类。
@@ -138,16 +138,16 @@ private String id;
 
 ---
 
-# 7. 禁用规则（绝对不要生成以下内容）
+# 8. 禁用规则（绝对不要生成以下内容）
 
 - 不生成 XML 映射文件
 - 不生成任何注释、JavaDoc、Swagger/OpenAPI 注解
-- 不生成 Controller、DTO、VO
+- 不生成 Controller、VO
 - 不生成 分页、Wrapper 或 QueryChain 等复杂查询代码
 
 ---
 
-# 8. 输出格式规则
+# 9. 输出格式规则
 
 请严格按照以下格式和顺序输出代码块：
 
@@ -157,10 +157,7 @@ private String id;
 === Dto ===
 (Java 代码)
 
-=== Dto ===
-(Java 代码)
-
-=== MapStruct  ===
+=== MapStruct ===
 (Java 代码)
 
 === Mapper ===
@@ -174,7 +171,7 @@ private String id;
 
 ---
 
-# 9. 正确示例
+# 10. 正确示例
 
 ### 示例输入 SQL
 ```sql
@@ -188,7 +185,7 @@ CREATE TABLE sys_user (
 ### 示例输出
 ```
 === Entity ===
-package com.xxx.modules.user.entity;
+package com.gz.xg.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -196,7 +193,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("sys_user")
+@TableName("sysUser")
 public class SysUser {
 
     @TableId
@@ -210,16 +207,14 @@ public class SysUser {
 }
 
 === Dto ===
-package com.xxx.modules.user.dto;
+package com.gz.xg.domain.dto;
 
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class SysUser {
-    
+public class SysUserDto {
+
     private String id;
 
     private String userName;
@@ -229,12 +224,11 @@ public class SysUser {
     private LocalDateTime createTime;
 }
 
-=== MapStruct  ===
+=== MapStruct ===
+package com.gz.xg.domain.mapstruct;
 
-package com.xxx.modules.user.mapstruct;
-
-com.xxx.modules.user.entity.SysUser;
-import com.xxx.modules.user.dto.SysUserDto;
+import com.gz.xg.domain.entity.SysUser;
+import com.gz.xg.domain.dto.SysUserDto;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -245,40 +239,37 @@ public interface SysUserMapStruct {
     SysUser toEntity(SysUserDto sysUserDto);
 }
 
-
 === Mapper ===
-package com.xxx.modules.user.mapper
+package com.gz.xg.mapper
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper
-import com.xxx.modules.user.entity.SysUser
+import com.gz.xg.domain.entity.SysUser
 import org.apache.ibatis.annotations.Mapper
 
 @Mapper
 interface SysUserMapper : BaseMapper<SysUser>
 
 === PlusService ===
-package com.xxx.modules.user.service.plus
+package com.gz.xg.service.plus
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
-import com.xxx.modules.user.entity.SysUser
-import com.xxx.modules.user.mapper.SysUserMapper
-import lombok.RequiredArgsConstructor
+import com.gz.xg.domain.entity.SysUser
+import com.gz.xg.mapper.SysUserMapper
 import org.springframework.stereotype.Service
 
 @Service
-@RequiredArgsConstructor
 open class SysUserPlusService : ServiceImpl<SysUserMapper, SysUser>()
 
 === Service ===
-package com.xxx.modules.user.service
+package com.gz.xg.service
 
-import com.xxx.modules.user.entity.SysUser
-import com.xxx.modules.user.service.plus.SysUserPlusService
+import com.gz.xg.domain.entity.SysUser
+import com.gz.xg.service.plus.SysUserPlusService
 import org.springframework.stereotype.Service
 
 @Service
 open class SysUserService(
-    private val sysUserPlusService: SysUserPlusService
+    private val plusService: SysUserPlusService
 ) {
 
     fun findById(id: String): SysUser? {

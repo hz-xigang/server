@@ -3,16 +3,14 @@ package com.gz.xg.domain.entity;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 打托单据主表(托盘档案表)
+ * 仓库物理库位档案配置表
  */
 @Data
-@TableName("pallet")
-public class Pallet {
+@TableName("locArchive")
+public class LocArchive {
 
     /**
      * 全局唯一主键ID(字符串类型)
@@ -21,27 +19,22 @@ public class Pallet {
     private String id;
 
     /**
-     * 系统唯一托盘号/大箱号(格式如TP-xxxx)
+     * 库位/货位唯一编码(如: A-02-05, Z01)
      */
-    private String palletNo;
+    private String locCode;
 
     /**
-     * 该托盘内包含的纸箱总件数
+     * 库位区域类型(如: 收料区、货架区、发货区、打包区)
      */
-    private Integer qty;
-
-    private BigDecimal grossWeight;
-
-    private BigDecimal netWeight;
-
+    private String locType;
 
     /**
-     * 执行打托/打印托盘标签的系统用户名
+     * 库位当前占用状态(空闲/占用/禁用)
      */
-    private String printUser;
+    private String status;
 
     /**
-     * 打托绑定/标签打印时间
+     * 库位档案创建录入时间
      */
     private LocalDateTime createTime;
 
@@ -51,27 +44,27 @@ public class Pallet {
     private Integer deleted;
 
     /**
-     * 自定义扩展备注字段
+     * 自定义扩展备注字段1
      */
     private String m1;
 
     /**
-     * 自定义扩展备注字段
+     * 自定义扩展备注字段2
      */
     private String m2;
 
     /**
-     * 自定义扩展备注字段
+     * 自定义扩展备注字段3
      */
     private String m3;
 
     /**
-     * 自定义扩展备注字段
+     * 自定义扩展备注字段4
      */
     private String m4;
 
     /**
-     * 自定义扩展备注字段
+     * 自定义扩展备注字段5
      */
     private String m5;
 }

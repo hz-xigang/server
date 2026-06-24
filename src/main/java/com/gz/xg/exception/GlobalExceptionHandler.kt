@@ -2,6 +2,7 @@ package com.gz.xg.exception
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.BindingResult
 import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -42,6 +43,20 @@ open class GlobalExceptionHandler {
 
         LOGGER.error(errMsg)
         return ResponseResult.fail(errMsg, 10003)
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleNotReadable(e: HttpMessageNotReadableException) : ResponseResult {
+        val msg = when (val cause = e.cause) {
+            is com.fasterxml.jackson.core.JsonParseException ->
+                "JSON格式错误"
+            is com.fasterxml.jackson.databind.exc.MismatchedInputException ->
+                "JSON字段类型不匹配"
+            else ->
+                "请求参数无法解析"
+        }
+        e.printStackTrace()
+        return ResponseResult.fail( msg, 10003)
     }
 
 
