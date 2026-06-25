@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/productionTag")
-open class ProdTagController(
+ class ProdTagController(
     private val prodTagService: ProdTagService
 )  : BaseController() {
 

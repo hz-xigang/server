@@ -1,6 +1,10 @@
 package com.gz.xg.service
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
+import com.gz.xg.domain.entity.SoftDeleted
 
 abstract class BaseService {
     /**
@@ -36,4 +40,18 @@ abstract class BaseService {
             "total" to 0,
         )
     }
+
+    protected fun <E > changeDel(
+        baseMapper: BaseMapper<E>,
+        deletedColumn: SFunction<E, Int>,
+        deleted: Int?,
+        builder: LambdaUpdateChainWrapper<E>.() -> Unit,
+        ) {
+        LambdaUpdateChainWrapper(baseMapper)
+            .set(deletedColumn, deleted)
+            .apply(builder)
+            .update()
+    }
+
+
 }

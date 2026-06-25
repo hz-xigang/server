@@ -3,6 +3,8 @@ package com.gz.xg.domain.entity;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.time.LocalDateTime;
 
 /**
@@ -10,7 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName("locArchive")
-public class LocArchive {
+public class LocArchive  {
 
     /**
      * 全局唯一主键ID(字符串类型)

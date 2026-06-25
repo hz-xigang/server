@@ -25,6 +25,7 @@ public class LocArchiveDto {
     /**
      * 库位区域类型(如: 收料区、货架区、发货区、打包区)
      */
+    @NotBlank(message = "类型不能为空")
     private String locType;
 
     /**
