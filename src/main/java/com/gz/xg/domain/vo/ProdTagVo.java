@@ -1,6 +1,7 @@
 package com.gz.xg.domain.vo;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -28,6 +29,13 @@ public class ProdTagVo {
 
     private String prodNo;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+
+    private String spec;
+
+    private String customerCode;
+
+    private String inventoryCode;
 
 }

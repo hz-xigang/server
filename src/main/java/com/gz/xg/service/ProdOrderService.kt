@@ -9,7 +9,7 @@ import com.gz.xg.service.plus.ProductionOrderPlusService
 import org.springframework.stereotype.Service
 
 @Service
-open class ProdOrderService(
+ class ProdOrderService(
     private val plusService: ProductionOrderPlusService
 ) : BaseService(){
 

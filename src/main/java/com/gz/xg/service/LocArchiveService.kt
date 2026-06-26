@@ -3,6 +3,7 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.core.toolkit.IdWorker
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
+import com.github.yulichang.query.MPJQueryWrapper
 import com.github.yulichang.toolkit.JoinWrappers
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.domain.dto.LocArchiveDto
@@ -72,5 +73,13 @@ class LocArchiveService(
         ) { `in`(LocArchive::getId, ids) }
     }
 
+    fun list() : List<LocArchiveDto>{
+        val wrapper = MPJLambdaWrapper<LocArchive>()
+            .select(LocArchive::getId, LocArchive::getLocCode)
+            .eq(LocArchive::getDeleted, 0)
+            .orderByDesc(LocArchive::getId)
+        val list = plusService.list(wrapper)
+        return locArchiveMapStruct.toDtoList(list)
+    }
 
 }
