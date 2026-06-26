@@ -1,8 +1,11 @@
 package com.gz.xg.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.gz.xg.domain.vo.ProdTagVo;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 扫描入库记录主表
@@ -33,6 +36,7 @@ public class StockInDto {
     /**
      * PDA端确认提交入库的时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime createTime;
 
     /**
@@ -79,4 +83,7 @@ public class StockInDto {
      * 自定义扩展备注字段5
      */
     private String m5;
+
+
+    private List<ProdTagVo>  tags;
 }

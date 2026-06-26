@@ -14,7 +14,7 @@ import java.math.BigDecimal
 abstract class AbstractBillService(
     private val prodTagPlusService: ProdTagPlusService,
     private val pmt: PlatformTransactionManager,
-) {
+) : BaseService(){
 
     /** 生成单据号 */
     protected abstract fun generateNo(): String

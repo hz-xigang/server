@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
-import com.gz.xg.domain.entity.SoftDeleted
 
 abstract class BaseService {
     /**

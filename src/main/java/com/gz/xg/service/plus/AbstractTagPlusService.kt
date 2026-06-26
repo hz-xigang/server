@@ -19,6 +19,11 @@ abstract class AbstractTagPlusService<M : TagBaseMapper<T>, T : TagEntity>
         return list(wrapper)
     }
 
+    fun listByPId(id: String): List<T> {
+        val wrapper = QueryWrapper<T>().`in`("pId", id)
+        return list(wrapper)
+    }
+
     fun assertNotExists(tagNo: String, message: String) {
         if (findByTagNo(tagNo) != null) throw WebException(message)
     }

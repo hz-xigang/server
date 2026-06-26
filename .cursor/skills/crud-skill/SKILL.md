@@ -237,6 +237,11 @@ public interface SysUserMapStruct {
     SysUserDto toDto(SysUser sysUser);
 
     SysUser toEntity(SysUserDto sysUserDto);
+    
+    List<SysUserDto> toDtoList(List<SysUser> list);
+
+    List<SysUser> toEntityList(List<SysUserDto> list);
+    
 }
 
 === Mapper ===
