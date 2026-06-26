@@ -29,6 +29,11 @@ open class SysSequenceService(
      */
     fun generatePallet() = generateByDate(SequenceType.PALLET)
 
+    /**
+     * 生成入库单号
+     */
+    fun generateStockIn() = generateByDate(SequenceType.STOCK_IN,"yyyyMMdd")
+
     fun generateSequence(sequenceType: SequenceType, value: String): String {
         return generateSequences(sequenceType, value, 1).first()
     }

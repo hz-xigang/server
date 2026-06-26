@@ -7,4 +7,5 @@ enum class SequenceType(
     PRODUCTION_ORDER(1, "Production Order"),
     CARTON_LABEL(2, "Carton Label"),
     PALLET(3,"Pallet"),
+    STOCK_IN(4,"Stock In"),
 }
