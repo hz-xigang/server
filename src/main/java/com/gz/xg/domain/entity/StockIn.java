@@ -55,6 +55,16 @@ public class StockIn {
     private BigDecimal netWeight;
 
     /**
+     * 库位Id
+     */
+    private String locId;
+
+    /**
+     * 库位编号
+     */
+    private String locCode;
+
+    /**
      * 自定义扩展备注字段1
      */
     private String m1;

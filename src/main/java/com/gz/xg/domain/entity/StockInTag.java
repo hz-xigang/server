@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("palletTag")
-public class PalletTag extends TagEntity {
+@TableName("stockInTag")
+public class StockInTag extends TagEntity {
 
 }

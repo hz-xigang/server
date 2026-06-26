@@ -1,14 +1,12 @@
 package com.gz.xg.service
 
-import com.baomidou.mybatisplus.core.toolkit.IdWorker
 import com.gz.xg.domain.dto.ProdTagDto
 import com.gz.xg.domain.mapstruct.ProdTagMapStruct
 import com.gz.xg.domain.vo.ProdTagVo
-import com.gz.xg.exception.WebException
-import com.gz.xg.mapper.PalletMapper
 import com.gz.xg.service.plus.PalletTagPlusService
 import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.ProductionOrderPlusService
+import com.gz.xg.service.plus.StockInTagPlusService
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 
@@ -18,7 +16,8 @@ import org.springframework.stereotype.Service
     private val productionOrderPlusService: ProductionOrderPlusService,
     private val sysSequenceService: SysSequenceService,
     private val prodTagMapStruct: ProdTagMapStruct,
-     private val palletTagPlusService: PalletTagPlusService
+     private val palletTagPlusService: PalletTagPlusService,
+     private val stockInTagPlusService: StockInTagPlusService
 ) : BaseService() {
 
     fun add(dto: ProdTagDto) {
@@ -36,22 +35,12 @@ import org.springframework.stereotype.Service
        return prodTagPlusService.listVo(prodNo)
     }
 
-    fun findVoByTagNo(tagNo : String,pallet : Int) : ProdTagVo {
-        if (pallet != 0){
-
-            val palletTag = palletTagPlusService.findByTagNo(tagNo)
-
-            if (palletTag != null){
-                throw WebException("【${tagNo}】纸箱标签已打包")
-            }
+    fun findVoByTagNo(tagNo: String, flag: Int): ProdTagVo {
+        when (flag) {
+            1 -> palletTagPlusService.assertNotExists(tagNo, "【${tagNo}】纸箱标签已打包")
+            2 -> stockInTagPlusService.assertNotExists(tagNo, "【${tagNo}】纸箱标签已入库")
         }
         return prodTagPlusService.findVoByTagNo(tagNo)
     }
-
-
-
-
-
-
 
 }
