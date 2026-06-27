@@ -1,7 +1,9 @@
 package com.gz.xg.service
 
 import com.gz.xg.domain.dto.ProdTagTotal
+import com.gz.xg.domain.entity.ProdTag
 import com.gz.xg.domain.entity.TagEntity
+import com.gz.xg.domain.vo.ProdTagVo
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.AbstractTagPlusService
 import com.gz.xg.service.plus.ProdTagPlusService
@@ -12,7 +14,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition
 import java.math.BigDecimal
 
 abstract class AbstractBillService(
-    private val prodTagPlusService: ProdTagPlusService,
+    val prodTagPlusService: ProdTagPlusService,
     private val pmt: PlatformTransactionManager,
 ) : BaseService(){
 
@@ -42,7 +44,10 @@ abstract class AbstractBillService(
         doAdd(tagNos, mutableMapOf())
     }
 
-    protected fun doAdd(tagNos: List<String>, context: MutableMap<String, Any>) {
+    protected fun doAdd(
+        tagNos: List<String>, context: MutableMap<String, Any>,
+        saveBusiness: (List<ProdTagVo>, ProdTagTotal) -> Unit = { _, _ -> }
+    ) {
         if (tagNos.isEmpty()) throw WebException("请扫描纸箱标签")
 
         val distinctTagNos = tagNos.distinct()
@@ -59,7 +64,7 @@ abstract class AbstractBillService(
 
         val occupiedTags = tagService().listByTagNos(distinctTagNos)
         if (occupiedTags.isNotEmpty()) {
-            errMsg += "【${occupiedTags.map { it.tagNo }.joinToString(",")}】 $tagOccupiedMessage"
+            errMsg += "【${occupiedTags.joinToString(",") { it.tagNo }}】 $tagOccupiedMessage"
         }
 
         if (errMsg.isNotEmpty()) throw WebException(errMsg)
@@ -84,6 +89,8 @@ abstract class AbstractBillService(
 
             val tagEntries = distinctTagNos.map { buildTagEntry(id, it) }
             saveTagBatch(tagEntries)
+
+            saveBusiness(prodTags,total)
 
             pmt.commit(status)
         } catch (e: Exception) {

@@ -12,6 +12,7 @@ import com.gz.xg.domain.entity.TagEntity
 import com.gz.xg.domain.mapstruct.StockInMapStruct
 import com.gz.xg.domain.req.AddStockIn
 import com.gz.xg.domain.search.StockInSearch
+import com.gz.xg.domain.vo.ProdTagVo
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.AbstractTagPlusService
 import com.gz.xg.service.plus.LocArchivePlusService
@@ -30,7 +31,8 @@ open class StockInService(
     prodTagPlusService: ProdTagPlusService,
     pmt: PlatformTransactionManager,
     private val sysSequenceService: SysSequenceService,
-    private val stockInMapStruct: StockInMapStruct
+    private val stockInMapStruct: StockInMapStruct,
+    private val stockInventoryService: StockInventoryService
 ) : AbstractBillService(prodTagPlusService, pmt) {
 
     override val tagOccupiedMessage = "已入库"
@@ -75,7 +77,11 @@ open class StockInService(
 
         if (tagNos.isEmpty()) throw WebException("请扫描纸箱标签")
         val locArchive = locArchivePlusService.getById(locId) ?: throw WebException("该库位不存在")
-        doAdd(tagNos, mutableMapOf("locId" to locArchive.id, "locCode" to locArchive.locCode))
+        doAdd(tagNos, mutableMapOf("locId" to locArchive.id, "locCode" to locArchive.locCode)) { prodTags, _ ->
+            run {
+                stockInventoryService.addBatch(prodTags, locArchive)
+            }
+        }
     }
 
     fun page(search: StockInSearch, current: Long, size: Long): Map<String, Any> {
@@ -91,19 +97,21 @@ open class StockInService(
 
         val dtoList = stockInMapStruct.toDtoList(pageObj.records)
 
-        dtoList.forEach {
-            val tags = stockInTagPlusService.listByPId(it.id)
+        val ids = dtoList.map { it.id }
+        val allStockInTags = stockInTagPlusService.listByPIds(ids)
+        val tagNosByPId = allStockInTags.groupBy({ it.pId }, { it.tagNo })
+        val allTagNos = allStockInTags.map { it.tagNo }
+        val prodTagMap = prodTagPlusService.listByTagNos(allTagNos).associateBy { it.tagNo }
 
-            prodTagPlusService.listByTagNos(tags.map { it -> it.tagNo })
-
+        dtoList.forEach { dtoIt ->
+            val tagNos = tagNosByPId[dtoIt.id] ?: emptyList()
+            dtoIt.tags = tagNos.mapNotNull { prodTagMap[it] }
         }
 
-
-
-
-        return getDtoPage<StockIn, StockInDto>(pageObj) {
-            stockInMapStruct.toDtoList(it)
-        }
+        return hashMapOf<String, Any>(
+            "total" to pageObj.total,
+            "records" to dtoList,
+        )
     }
 
 

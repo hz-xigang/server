@@ -31,8 +31,8 @@ import org.springframework.web.bind.annotation.RestController
 
     @GetMapping("/tag/{tagNo}")
      fun findByTagNo(@PathVariable tagNo: String,
-                     @RequestParam(value = "pallet", defaultValue = "0") pallet : Int ) : ResponseResult{
-        return success( prodTagService.findVoByTagNo(tagNo,pallet) )
+                     @RequestParam(value = "type", defaultValue = "0") type : Int ) : ResponseResult{
+        return success( prodTagService.findVoByTagNo(tagNo,type) )
     }
 
 }

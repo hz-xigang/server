@@ -3,6 +3,8 @@ package com.gz.xg.service
 import com.gz.xg.domain.dto.ProdTagDto
 import com.gz.xg.domain.mapstruct.ProdTagMapStruct
 import com.gz.xg.domain.vo.ProdTagVo
+import com.gz.xg.domain.vo.StockTagVo
+import com.gz.xg.mapper.VStockTagMapper
 import com.gz.xg.service.plus.PalletTagPlusService
 import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.ProductionOrderPlusService
@@ -17,7 +19,7 @@ import org.springframework.stereotype.Service
     private val sysSequenceService: SysSequenceService,
     private val prodTagMapStruct: ProdTagMapStruct,
      private val palletTagPlusService: PalletTagPlusService,
-     private val stockInTagPlusService: StockInTagPlusService
+     private val stockInTagPlusService: StockInTagPlusService,
 ) : BaseService() {
 
     fun add(dto: ProdTagDto) {
@@ -40,7 +42,11 @@ import org.springframework.stereotype.Service
             1 -> palletTagPlusService.assertNotExists(tagNo, "【${tagNo}】纸箱标签已打包")
             2 -> stockInTagPlusService.assertNotExists(tagNo, "【${tagNo}】纸箱标签已入库")
         }
-        return prodTagPlusService.findVoByTagNo(tagNo)
+
+        return when(flag) {
+            3-> stockInTagPlusService.findVoByTagNo(tagNo)
+            else -> prodTagPlusService.findVoByTagNo(tagNo)
+        }
     }
 
 }

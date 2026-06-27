@@ -38,4 +38,6 @@ public class ProdTagVo {
 
     private String inventoryCode;
 
+    private String inventoryName;
+
 }
