@@ -7,11 +7,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 核心业务-实时动态库存表
+ * 扫描移库记录主表
  */
 @Data
-@TableName("stockInventory")
-public class StockInventory  {
+@TableName("stockMove")
+public class StockMove extends TagEntity{
 
     /**
      * 全局唯一主键ID(字符串类型)
@@ -20,49 +20,39 @@ public class StockInventory  {
     private String id;
 
     /**
-     * 在库的唯一纸箱标签条码号
+     * WMS系统生成的唯一移库单号(通过流水号表派生)
      */
-    private String tagNo;
+    private String receiptNo;
 
     /**
-     * 货品当前存放的数字化库位编码(如:A-01-02)
-     */
-    private String locCode;
-
-    /**
-     * 当前库位ID
-     */
-    private String locId;
-
-    /**
-     * 当前库位该条码的在库实物数量
+     * 本次扫描移库的物料总数量
      */
     private Integer qty;
 
     /**
-     * 单箱货品毛重(kg)
+     * 手持PDA端执行扫描移库操作的工人姓名
      */
-    private BigDecimal grossWeight;
+    private String printUser;
 
     /**
-     * 单箱货品净重(kg)
-     */
-    private BigDecimal netWeight;
-
-    /**
-     * 该条码首次上架入库的物理时间
+     * PDA端确认提交移库的时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 该条码最后一次发生变动(如PDA移库完成)的时间
-     */
-    private LocalDateTime updateTime;
-
-    /**
-     * 软删除逻辑标记(0:正常在库, 1:已出库核销/删除)
+     * 软删除逻辑标记(0:正常, 1:已删除)
      */
     private Integer deleted;
+
+    /**
+     * 移库总货品毛重(kg)
+     */
+    private BigDecimal grossWeight;
+
+    /**
+     * 移库总货品净重(kg)
+     */
+    private BigDecimal netWeight;
 
     /**
      * 自定义扩展备注字段1
@@ -88,4 +78,14 @@ public class StockInventory  {
      * 自定义扩展备注字段5
      */
     private String m5;
+
+    /**
+     * 库位Id
+     */
+    private String locId;
+
+    /**
+     * 库位编号
+     */
+    private String locCode;
 }

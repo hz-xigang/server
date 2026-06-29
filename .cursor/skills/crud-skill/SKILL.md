@@ -247,23 +247,23 @@ public interface SysUserMapStruct {
 === Mapper ===
 package com.gz.xg.mapper
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper
+import com.github.yulichang.base.MPJBaseMapper
 import com.gz.xg.domain.entity.SysUser
 import org.apache.ibatis.annotations.Mapper
 
 @Mapper
-interface SysUserMapper : BaseMapper<SysUser>
+interface SysUserMapper : MPJBaseMapper<SysUser>
 
 === PlusService ===
 package com.gz.xg.service.plus
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
+import com.github.yulichang.base.MPJBaseServiceImpl
 import com.gz.xg.domain.entity.SysUser
 import com.gz.xg.mapper.SysUserMapper
 import org.springframework.stereotype.Service
 
 @Service
-open class SysUserPlusService : ServiceImpl<SysUserMapper, SysUser>()
+class SysUserPlusService : ServiceImpl<SysUserMapper, SysUser>()
 
 === Service ===
 package com.gz.xg.service
@@ -273,7 +273,7 @@ import com.gz.xg.service.plus.SysUserPlusService
 import org.springframework.stereotype.Service
 
 @Service
-open class SysUserService(
+class SysUserService(
     private val plusService: SysUserPlusService
 ) {
 

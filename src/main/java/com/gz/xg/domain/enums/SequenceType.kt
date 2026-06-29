@@ -8,4 +8,5 @@ enum class SequenceType(
     CARTON_LABEL(2, "Carton Label"),
     PALLET(3,"Pallet"),
     STOCK_IN(4,"Stock In"),
+    MOVE_STOCK(5,"Move Stock"),
 }

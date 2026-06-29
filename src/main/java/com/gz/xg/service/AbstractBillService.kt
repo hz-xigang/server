@@ -16,6 +16,7 @@ import java.math.BigDecimal
 abstract class AbstractBillService(
     val prodTagPlusService: ProdTagPlusService,
     private val pmt: PlatformTransactionManager,
+    val checkExits : Boolean = true
 ) : BaseService(){
 
     /** 生成单据号 */
@@ -62,10 +63,13 @@ abstract class AbstractBillService(
             errMsg += "【${missing.joinToString(",")}】 不存在 \r\n"
         }
 
-        val occupiedTags = tagService().listByTagNos(distinctTagNos)
-        if (occupiedTags.isNotEmpty()) {
-            errMsg += "【${occupiedTags.joinToString(",") { it.tagNo }}】 $tagOccupiedMessage"
+        if (checkExits) {
+            val occupiedTags = tagService().listByTagNos(distinctTagNos)
+            if (occupiedTags.isNotEmpty()) {
+                errMsg += "【${occupiedTags.joinToString(",") { it.tagNo }}】 $tagOccupiedMessage"
+            }
         }
+
 
         if (errMsg.isNotEmpty()) throw WebException(errMsg)
 

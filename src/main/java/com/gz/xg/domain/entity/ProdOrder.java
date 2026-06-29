@@ -3,6 +3,8 @@ package com.gz.xg.domain.entity;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -93,5 +95,15 @@ public class ProdOrder {
      * 类型
      */
     private Integer type;
+
+    /**
+     * 规格厚度
+     */
+    private BigDecimal specWidth;
+
+    /**
+     * 单位重量
+     */
+    private BigDecimal unitWeight;
 
 }

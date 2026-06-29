@@ -34,6 +34,8 @@ open class SysSequenceService(
      */
     fun generateStockIn() = generateByDate(SequenceType.STOCK_IN,"yyyyMMdd")
 
+    fun generateMoves() = generateByDate(SequenceType.MOVE_STOCK,"yyyyMMdd")
+
     fun generateSequence(sequenceType: SequenceType, value: String): String {
         return generateSequences(sequenceType, value, 1).first()
     }

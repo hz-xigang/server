@@ -1,6 +1,7 @@
 package com.gz.xg.service
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdTag
 import com.gz.xg.domain.entity.StockInventory
@@ -30,6 +31,15 @@ import org.springframework.stereotype.Service
             list.add(stock)
         }
         plusService.saveBatch(list)
-
     }
+
+    fun editLoc(prodTags: List<ProdTagVo>,loc : LocArchive){
+        val tagNos = prodTags.map { it.tagNo }
+        LambdaUpdateChainWrapper(plusService.baseMapper)
+            .set(StockInventory::getLocId,loc.id)
+            .set(StockInventory::getLocCode,loc.locCode)
+            .`in`(StockInventory::getTagNo,tagNos)
+            .update()
+    }
+
 }
