@@ -12,9 +12,9 @@ import org.springframework.stereotype.Service
 @Service
 class ShipOrderDetailPlusService : MPJBaseServiceImpl<ShipOrderDetailMapper, ShipOrderDetail>(){
 
-    fun listByPIds(ids : List<String>) : List<ShipOrderDetail>{
-        if (ids.isEmpty()) return emptyList()
-        val wrapper = LambdaQueryWrapper<ShipOrderDetail>().`in`(ShipOrderDetail::getPId, ids)
+    fun listByPIds(pIds : List<String>) : List<ShipOrderDetail>{
+        if (pIds.isEmpty()) return emptyList()
+        val wrapper = LambdaQueryWrapper<ShipOrderDetail>().`in`(ShipOrderDetail::getPId, pIds)
         return list(wrapper)
     }
 
