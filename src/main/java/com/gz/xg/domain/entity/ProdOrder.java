@@ -106,4 +106,9 @@ public class ProdOrder {
      */
     private BigDecimal unitWeight;
 
+    /**
+     * 材料
+     */
+    private String material;
+
 }
