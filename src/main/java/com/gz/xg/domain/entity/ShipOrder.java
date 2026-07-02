@@ -21,7 +21,7 @@ public class ShipOrder {
     /**
      * WMS系统唯一发货指令单号(可对应流水号表)
      */
-    private String no;
+    private String shipNo;
 
     /**
      * 发货类型说明
