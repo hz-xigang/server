@@ -15,15 +15,19 @@ import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 
+/**
+ * 库位档案服务，负责库位信息的新增、分页查询、更新和逻辑删除。
+ */
 @Service
 class LocArchiveService(
     private val plusService: LocArchivePlusService,
     private val locArchiveMapStruct: LocArchiveMapStruct
 ) : BaseService() {
 
+    /**
+     * 新增库位档案，并校验库位编码唯一性。
+     */
     fun add(dto: LocArchiveDto) {
-
-        // 1- 判断编号是否存在
         val archive = plusService.exitsByCode(dto.locCode)
         if (archive != null) {
             throw WebException("【${dto.locCode}】该编码已存在")
@@ -34,6 +38,9 @@ class LocArchiveService(
         plusService.save(entity)
     }
 
+    /**
+     * 分页查询库位档案，支持按编码和类型筛选。
+     */
     fun page(current: Long, size: Long, search: LocArchiveSearch): Map<String, Any> {
         val page = Page<LocArchive>(current, size)
 
@@ -46,6 +53,9 @@ class LocArchiveService(
         return getDtoPage(pageObj, locArchiveMapStruct::toDtoList)
     }
 
+    /**
+     * 根据主键更新库位信息。
+     */
     fun updateById(dto: LocArchiveDto) {
         plusService.byId(dto.id)
         LambdaUpdateChainWrapper(plusService.baseMapper)
@@ -53,9 +63,12 @@ class LocArchiveService(
             .set(LocArchive::getLocCode, dto.locCode)
             .set(LocArchive::getLocType, dto.locType)
             .eq(LocArchive::getId, dto.id)
-            .update() // 直接执行更新
+            .update()
     }
 
+    /**
+     * 逻辑删除单个库位。
+     */
     fun changeDeleteById(id: String) {
         plusService.byId(id)
         changeDel<LocArchive>(
@@ -65,6 +78,9 @@ class LocArchiveService(
         ) { eq(LocArchive::getId, id) }
     }
 
+    /**
+     * 批量逻辑删除库位。
+     */
     fun changeDeleteByIds(ids: List<String>) {
         changeDel<LocArchive>(
             plusService.baseMapper,
@@ -73,6 +89,9 @@ class LocArchiveService(
         ) { `in`(LocArchive::getId, ids) }
     }
 
+    /**
+     * 查询可选库位列表，通常用于下拉框场景。
+     */
     fun list() : List<LocArchiveDto>{
         val wrapper = MPJLambdaWrapper<LocArchive>()
             .select(LocArchive::getId, LocArchive::getLocCode)
@@ -81,5 +100,4 @@ class LocArchiveService(
         val list = plusService.list(wrapper)
         return locArchiveMapStruct.toDtoList(list)
     }
-
 }

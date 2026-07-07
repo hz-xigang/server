@@ -12,19 +12,27 @@ import com.gz.xg.util.IdUtil
 
 import org.springframework.stereotype.Service
 
+/**
+ * 备料单服务，负责主表及明细的新增和分页查询。
+ */
 @Service
 class PrepOrderService(
     private val plusService: PrepOrderPlusService,
     private val detailPlusService: PrepOrderDetailPlusService,
     private val mapStruct: PrepOrderMapStruct,
-    private val detailMapStruct: PrepOrderDetailMapStruct
+    private val detailMapStruct: PrepOrderDetailMapStruct,
+    private val sysSequenceService: SysSequenceService
 ) {
 
+    /**
+     * 新增备料单，并为主表和明细生成主键及单号。
+     */
     fun add(prepOrderDto: PrepOrderDto){
         val details = detailMapStruct.toEntityList(prepOrderDto.details)
 
         val prepOrder = mapStruct.toEntity(prepOrderDto)
         prepOrder.id = IdUtil.generateId()
+        prepOrder.prepNo = sysSequenceService.generatePrep()
 
         details.forEach {
             it.id = IdUtil.generateId()
@@ -36,6 +44,9 @@ class PrepOrderService(
         detailPlusService.saveBatch(details)
     }
 
+    /**
+     * 分页查询备料单，并回填每条主表记录对应的明细列表。
+     */
     fun page(current : Long, size : Long) : Map<String, Any>{
         val page = Page<PrepOrder>(current, size)
         val wrapper = LambdaQueryWrapper<PrepOrder>()
@@ -44,12 +55,16 @@ class PrepOrderService(
         val pageObj = plusService.page(page, wrapper)
         val dtoList = mapStruct.toDtoList(pageObj.records)
 
+        val ids = dtoList.map { it.id }
+        val details = detailPlusService.listByPIds(ids)
+        val detailMap = detailMapStruct.toDtoList(details).groupBy { it.orderId }
+        dtoList.forEach {
+            it.details  = detailMap[it.id].orEmpty()
+        }
+
         return hashMapOf<String, Any>(
             "total" to pageObj.total,
             "records" to dtoList,
         )
-
     }
-
-
 }

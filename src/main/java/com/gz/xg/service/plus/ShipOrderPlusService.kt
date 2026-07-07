@@ -6,5 +6,8 @@ import com.gz.xg.domain.entity.ShipOrder
 import com.gz.xg.mapper.ShipOrderMapper
 import org.springframework.stereotype.Service
 
+/**
+ * 发货单主表底层服务。
+ */
 @Service
 class ShipOrderPlusService : MPJBaseServiceImpl<ShipOrderMapper, ShipOrder>()

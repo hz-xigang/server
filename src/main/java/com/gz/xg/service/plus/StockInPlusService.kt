@@ -5,5 +5,8 @@ import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.mapper.StockInMapper
 import org.springframework.stereotype.Service
 
+/**
+ * 入库单主表底层服务。
+ */
 @Service
 open class StockInPlusService : ServiceImpl<StockInMapper, StockIn>()

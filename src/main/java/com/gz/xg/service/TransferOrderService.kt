@@ -3,10 +3,14 @@ package com.gz.xg.service
 
 import com.gz.xg.domain.mapstruct.TransferOrderDetailMapStruct
 import com.gz.xg.domain.mapstruct.TransferOrderMapStruct
+import com.gz.xg.domain.search.TransferOrderSearch
 import com.gz.xg.service.plus.TransferOrderDetailPlusService
 import com.gz.xg.service.plus.TransferOrderPlusService
 import org.springframework.stereotype.Service
 
+/**
+ * 调拨单服务，负责调拨单分页查询和明细组装。
+ */
 @Service
 class TransferOrderService(
     private val plusService: TransferOrderPlusService,
@@ -15,8 +19,11 @@ class TransferOrderService(
     private val detailMapStruct: TransferOrderDetailMapStruct
 )  {
 
-    fun page(current: Long, size: Long) : Map<String, Any>{
-        val pageObj = plusService.page(current, size)
+    /**
+     * 分页查询调拨单，并回填对应的明细记录。
+     */
+    fun page(current: Long, size: Long,search: TransferOrderSearch) : Map<String, Any>{
+        val pageObj = plusService.page(current, size,search)
 
         val dtoList = mapStruct.toDtoList(pageObj.records)
         val ids = dtoList.map { it.id }
@@ -32,5 +39,4 @@ class TransferOrderService(
             "records" to dtoList,
         )
     }
-
 }

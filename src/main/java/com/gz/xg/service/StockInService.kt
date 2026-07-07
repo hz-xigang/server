@@ -23,6 +23,9 @@ import com.gz.xg.util.DateUtil
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 
+/**
+ * 入库服务，负责入库单生成、标签关联保存以及库存落库。
+ */
 @Service
 open class StockInService(
     private val plusService: StockInPlusService,
@@ -41,6 +44,9 @@ open class StockInService(
 
     override fun tagService(): AbstractTagPlusService<*, *> = stockInTagPlusService
 
+    /**
+     * 构建入库单主表。
+     */
     override fun buildBill(id: String, no: String, total: ProdTagTotal, context: Map<String, Any>): StockIn {
         val stockIn = StockIn()
         stockIn.id = id
@@ -59,6 +65,9 @@ open class StockInService(
         plusService.save(entity as StockIn)
     }
 
+    /**
+     * 构建入库单和纸箱标签的关联记录。
+     */
     override fun buildTagEntry(pId: String, tagNo: String): TagEntity {
         val tag = StockInTag()
         tag.pId = pId
@@ -71,6 +80,9 @@ open class StockInService(
         stockInTagPlusService.saveBatch(tags as List<StockInTag>)
     }
 
+    /**
+     * 新增入库单，并同步写入库存表。
+     */
     fun add(req: AddStockIn) {
         val locId = req.locId
         val tagNos = req.tagNos
@@ -84,6 +96,9 @@ open class StockInService(
         }
     }
 
+    /**
+     * 分页查询入库单，并回填关联标签详情。
+     */
     fun page(search: StockInSearch, current: Long, size: Long): Map<String, Any> {
         val page = Page<StockIn>(current, size)
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
@@ -113,6 +128,4 @@ open class StockInService(
             "records" to dtoList,
         )
     }
-
-
 }

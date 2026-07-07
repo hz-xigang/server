@@ -9,4 +9,5 @@ enum class SequenceType(
     PALLET(3,"Pallet"),
     STOCK_IN(4,"Stock In"),
     MOVE_STOCK(5,"Move Stock"),
+    PREP_MATERIAL(6,"Perp Material"),
 }

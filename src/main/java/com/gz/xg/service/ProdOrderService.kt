@@ -8,16 +8,24 @@ import com.gz.xg.domain.search.ProdOrderSearch
 import com.gz.xg.service.plus.ProductionOrderPlusService
 import org.springframework.stereotype.Service
 
+/**
+ * 生产单服务，负责生产单查询及分页检索。
+ */
 @Service
  class ProdOrderService(
     private val plusService: ProductionOrderPlusService
 ) : BaseService(){
 
+    /**
+     * 根据生产单号查询生产单。
+     */
     fun findByProgNo(prodNo: String): ProdOrder {
         return plusService.findByNo(prodNo)
     }
 
-
+    /**
+     * 分页查询生产单，支持日期、关键字和状态过滤。
+     */
     fun page(current: Long, size: Long, search: ProdOrderSearch) : Map<String, Any> {
         val page = Page<ProdOrder>(current, size)
 
@@ -36,8 +44,5 @@ import org.springframework.stereotype.Service
 
         val orderPage = plusService.page(page, wrapper)
         return getPage(orderPage)
-
     }
-
-
 }

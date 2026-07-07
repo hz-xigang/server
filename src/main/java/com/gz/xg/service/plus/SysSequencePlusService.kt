@@ -5,5 +5,8 @@ import com.gz.xg.domain.entity.SysSequence
 import com.gz.xg.mapper.SysSequenceMapper
 import org.springframework.stereotype.Service
 
+/**
+ * 流水号配置底层服务。
+ */
 @Service
 open class SysSequencePlusService : ServiceImpl<SysSequenceMapper, SysSequence>()

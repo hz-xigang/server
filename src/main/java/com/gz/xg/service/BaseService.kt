@@ -5,12 +5,12 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 
+/**
+ * Service 层基础类，封装分页返回和逻辑删除更新等通用能力。
+ */
 abstract class BaseService {
     /**
-     * 将分页对象转换为统一返回结构。
-     *
-     * @param page 分页对象。
-     * @return 包含 `total` 与 `records` 的结果映射。
+     * 将分页对象转换为统一的返回结构。
      */
     protected fun <T> getPage(page: Page<T>): Map<String, Any> {
         return mutableMapOf(
@@ -19,6 +19,9 @@ abstract class BaseService {
         )
     }
 
+    /**
+     * 将实体分页结果转换为 DTO 分页结果。
+     */
     protected fun <E, D> getDtoPage(page: Page<E>, converter: (List<E>) -> List<D>): Map<String, Any> {
         val dtos = converter(page.records)
 
@@ -29,9 +32,7 @@ abstract class BaseService {
     }
 
     /**
-     * 返回空分页结构。
-     *
-     * @return 包含空 `records` 与 `total=0` 的结果映射。
+     * 返回空分页结构，便于上层统一处理。
      */
     protected fun emptyPage(): Map<String, Any> {
         return mutableMapOf(
@@ -40,6 +41,9 @@ abstract class BaseService {
         )
     }
 
+    /**
+     * 按条件更新逻辑删除标记字段。
+     */
     protected fun <E > changeDel(
         baseMapper: BaseMapper<E>,
         deletedColumn: SFunction<E, Int>,
@@ -51,6 +55,4 @@ abstract class BaseService {
             .apply(builder)
             .update()
     }
-
-
 }

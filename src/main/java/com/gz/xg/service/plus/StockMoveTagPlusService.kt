@@ -11,6 +11,9 @@ import com.gz.xg.mapper.StockMoveTagMapper
 import com.gz.xg.mapper.VStockTagMapper
 import org.springframework.stereotype.Service
 
+/**
+ * 移库标签关联底层服务。
+ */
 @Service
 class StockMoveTagPlusService(
    

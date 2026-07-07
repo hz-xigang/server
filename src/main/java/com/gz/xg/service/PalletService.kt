@@ -11,6 +11,9 @@ import com.gz.xg.service.plus.ProdTagPlusService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 
+/**
+ * 托盘服务，负责托盘主表和托盘标签关联的生成。
+ */
 @Service
 class PalletService(
     private val palletPlusService: PalletPlusService,
@@ -26,6 +29,9 @@ class PalletService(
 
     override fun tagService(): AbstractTagPlusService<*, *> = palletTagPlusService
 
+    /**
+     * 构建托盘主表数据。
+     */
     override fun buildBill(id: String, no: String, total: ProdTagTotal, context: Map<String, Any>): Pallet {
         val pallet = Pallet()
         pallet.id = id
@@ -40,6 +46,9 @@ class PalletService(
     @Suppress("UNCHECKED_CAST")
     override fun saveBill(entity: Any) { palletPlusService.save(entity as Pallet) }
 
+    /**
+     * 构建托盘与纸箱标签的关联记录。
+     */
     override fun buildTagEntry(pId: String, tagNo: String): TagEntity {
         val tag = PalletTag()
         tag.pId = pId
