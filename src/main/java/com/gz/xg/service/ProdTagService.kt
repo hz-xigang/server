@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service
         productionOrderPlusService.findById(dto.prodOrderId)
         val prodTag = prodTagMapStruct.toEntity(dto)
         prodTag.id = IdUtil.generateId()
-        prodTag.printUser = "001"
+
 
         val tagNo = sysSequenceService.generateCarton()
         prodTag.tagNo = tagNo

@@ -42,8 +42,8 @@ description: CRUD代码生成
 
 生成目录及包名对应关系：
 - Entity: `com.gz.xg.domain.entity`
-- Dto: `com.gz.domain.dto`
-- MapStruct : `com.gz.domain.mapstruct `
+- Dto: `com.gz.xg.domain.dto`
+- MapStruct : `com.gz.xg.domain.mapstruct`
 - Mapper: `com.gz.xg.mapper`
 - Service: `com.gz.xg.service`
 - PlusService: `com.gz.xg.service.plus`
@@ -96,6 +96,7 @@ private String id;
 - Swagger
 - XML
 - Wrapper / QueryChain
+- MyBatis-Plus-Join / MPJ
 - 额外方法
 
 
@@ -247,17 +248,17 @@ public interface SysUserMapStruct {
 === Mapper ===
 package com.gz.xg.mapper
 
-import com.github.yulichang.base.MPJBaseMapper
+import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import com.gz.xg.domain.entity.SysUser
 import org.apache.ibatis.annotations.Mapper
 
 @Mapper
-interface SysUserMapper : MPJBaseMapper<SysUser>
+interface SysUserMapper : BaseMapper<SysUser>
 
 === PlusService ===
 package com.gz.xg.service.plus
 
-import com.github.yulichang.base.MPJBaseServiceImpl
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.gz.xg.domain.entity.SysUser
 import com.gz.xg.mapper.SysUserMapper
 import org.springframework.stereotype.Service

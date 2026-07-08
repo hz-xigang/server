@@ -28,10 +28,6 @@ public class StockInDto {
      */
     private Integer qty;
 
-    /**
-     * 手持PDA端执行扫描入库操作的工人姓名
-     */
-    private String printUser;
 
     /**
      * PDA端确认提交入库的时间
@@ -86,4 +82,8 @@ public class StockInDto {
 
 
     private List<ProdTagVo>  tags;
+
+    private String username;
+
+    private String userId;
 }

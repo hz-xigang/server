@@ -39,7 +39,7 @@ class PalletService(
         pallet.qty = total.qty
         pallet.grossWeight = total.grossWeight
         pallet.netWeight = total.netWeight
-        pallet.printUser = "001"
+
         return pallet
     }
 

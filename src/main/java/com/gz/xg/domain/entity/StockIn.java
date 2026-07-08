@@ -29,10 +29,6 @@ public class StockIn {
      */
     private Integer qty;
 
-    /**
-     * 手持PDA端执行扫描入库操作的工人姓名
-     */
-    private String printUser;
 
     /**
      * PDA端确认提交入库的时间
@@ -88,4 +84,8 @@ public class StockIn {
      * 自定义扩展备注字段5
      */
     private String m5;
+
+    private String username;
+
+    private String userId;
 }

@@ -21,7 +21,6 @@ public class ProdTagVo {
 
     private BigDecimal netWeight;
 
-    private String printUser;
 
     private String productCategory;
 
@@ -39,5 +38,9 @@ public class ProdTagVo {
     private String inventoryCode;
 
     private String inventoryName;
+
+    private String username;
+
+    private String userId;
 
 }

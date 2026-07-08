@@ -41,10 +41,7 @@ public class ProdTagDto {
      */
     private BigDecimal netWeight;
 
-    /**
-     * 执行打印操作的系统登录用户名
-     */
-    private String printUser;
+
 
 
     /**
@@ -77,4 +74,8 @@ public class ProdTagDto {
      * 自定义扩展备注字段5
      */
     private String m5;
+
+    private String username;
+
+    private String userId;
 }

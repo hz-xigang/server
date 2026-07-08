@@ -5,12 +5,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gz.xg.domain.dto.ProdTagDto;
+import com.gz.xg.domain.dto.SysUserDto;
 import com.gz.xg.domain.entity.ProdOrder;
 import com.gz.xg.service.ProdTagService;
 import com.gz.xg.service.ProdOrderService;
 import com.gz.xg.service.SysSequenceService;
+import com.gz.xg.service.SysUserService;
 import com.gz.xg.service.plus.ProductionOrderPlusService;
 import jakarta.annotation.Resource;
+import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -48,15 +51,18 @@ class XgApplicationTests {
 
     }
 
+    @Resource
+    private SysUserService sysUserService;
+
     @Test
     void prodTagAdd(){
-        ProdTagDto dto = new ProdTagDto();
-        dto.setProdOrderId("ID20260009");
-        dto.setQty(20);
-        dto.setNetWeight(new BigDecimal("0.01"));
-        dto.setGrossWeight(new BigDecimal("0.02"));
-        prodTagService.add(dto);
-        System.err.println("插入完成");
+        val dto = new SysUserDto();
+        dto.setUsername("admin");
+        dto.setPwd("123456");
+        dto.setRealName("admin");
+
+        sysUserService.add(dto);
+        System.err.println("插入成功");
     }
 
 }

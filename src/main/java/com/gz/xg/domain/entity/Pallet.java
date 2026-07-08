@@ -35,10 +35,6 @@ public class Pallet {
     private BigDecimal netWeight;
 
 
-    /**
-     * 执行打托/打印托盘标签的系统用户名
-     */
-    private String printUser;
 
     /**
      * 打托绑定/标签打印时间
@@ -74,4 +70,9 @@ public class Pallet {
      * 自定义扩展备注字段
      */
     private String m5;
+
+    private String username;
+
+    private String userId;
+
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "View CRUD Skill"
+  short_description: "Generate code from SQL views"
+  default_prompt: "Use $view-crud-skill to generate a view class, dto, mapstruct, and mapper from a CREATE VIEW statement."

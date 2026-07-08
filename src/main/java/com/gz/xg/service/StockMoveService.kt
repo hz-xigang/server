@@ -45,7 +45,6 @@ class StockMoveService(
         move.qty = total.qty
         move.grossWeight = total.grossWeight
         move.netWeight = total.netWeight
-        move.printUser = "001"
         move.locId = context["locId"] as String
         move.locCode = context["locCode"] as String
         return move

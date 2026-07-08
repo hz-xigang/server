@@ -54,7 +54,7 @@ open class StockInService(
         stockIn.qty = total.qty
         stockIn.grossWeight = total.grossWeight
         stockIn.netWeight = total.netWeight
-        stockIn.printUser = "001"
+
         stockIn.locId = context["locId"] as String
         stockIn.locCode = context["locCode"] as String
         return stockIn
@@ -113,15 +113,19 @@ open class StockInService(
         val dtoList = stockInMapStruct.toDtoList(pageObj.records)
 
         val ids = dtoList.map { it.id }
-        val allStockInTags = stockInTagPlusService.listByPIds(ids)
-        val tagNosByPId = allStockInTags.groupBy({ it.pId }, { it.tagNo })
-        val allTagNos = allStockInTags.map { it.tagNo }
-        val prodTagMap = prodTagPlusService.listByTagNos(allTagNos).associateBy { it.tagNo }
+        if (ids.isNotEmpty()){
+            val allStockInTags = stockInTagPlusService.listByPIds(ids)
+            val tagNosByPId = allStockInTags.groupBy({ it.pId }, { it.tagNo })
+            val allTagNos = allStockInTags.map { it.tagNo }
+            val prodTagMap = prodTagPlusService.listByTagNos(allTagNos).associateBy { it.tagNo }
 
-        dtoList.forEach { dtoIt ->
-            val tagNos = tagNosByPId[dtoIt.id] ?: emptyList()
-            dtoIt.tags = tagNos.mapNotNull { prodTagMap[it] }
+            dtoList.forEach { dtoIt ->
+                val tagNos = tagNosByPId[dtoIt.id] ?: emptyList()
+                dtoIt.tags = tagNos.mapNotNull { prodTagMap[it] }
+            }
         }
+
+
 
         return hashMapOf<String, Any>(
             "total" to pageObj.total,

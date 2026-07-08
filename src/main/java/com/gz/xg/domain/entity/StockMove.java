@@ -29,10 +29,6 @@ public class StockMove extends TagEntity{
      */
     private Integer qty;
 
-    /**
-     * 手持PDA端执行扫描移库操作的工人姓名
-     */
-    private String printUser;
 
     /**
      * PDA端确认提交移库的时间
@@ -88,4 +84,9 @@ public class StockMove extends TagEntity{
      * 库位编号
      */
     private String locCode;
+
+    private String username;
+
+    private String userId;
+
 }
