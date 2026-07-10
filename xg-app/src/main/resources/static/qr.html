@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+
+    <style>
+        body{
+            font-family: Arial;
+            padding:20px;
+        }
+
+        .toolbar{
+            margin-bottom:20px;
+            display:flex;
+            gap:20px;
+            align-items:center;
+        }
+
+        .container{
+            display:flex;
+            gap:20px;
+        }
+
+        .column{
+            flex:1;
+        }
+
+        .item{
+            border:1px solid #ccc;
+            margin-bottom:15px;
+            padding:10px;
+        }
+
+        .code-box{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:10px;
+        }
+
+        .value{
+            word-break:break-all;
+            text-align:center;
+        }
+
+        canvas, svg{
+            max-width:100%;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <!-- 控制栏 -->
+    <div class="toolbar">
+
+        <!-- 二维码 / 条形码 -->
+        <label>
+            <input type="radio" value="qr" v-model="displayType">
+            二维码
+        </label>
+
+        <label>
+            <input type="radio" value="barcode" v-model="displayType">
+            条形码
+        </label>
+
+        <!-- 显示范围 -->
+        <select v-model="viewMode">
+            <option value="all">全部</option>
+            <option value="left">左侧</option>
+            <option value="right">右侧</option>
+        </select>
+
+    </div>
+
+    <div class="container">
+
+        <!-- 左侧 -->
+        <div class="column" v-if="viewMode === 'all' || viewMode === 'left'">
+
+            <div
+                    class="item"
+                    v-for="(text,index) in leftList"
+                    :key="'left-'+index">
+
+                <div class="code-box">
+
+                    <canvas
+                            v-if="displayType==='qr'"
+                            :id="'left-qr-'+index">
+                    </canvas>
+
+                    <svg
+                            v-else
+                            :id="'left-barcode-'+index">
+                    </svg>
+
+                    <div class="value">{{ text }}</div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 右侧 -->
+        <div class="column" v-if="viewMode === 'all' || viewMode === 'right'">
+
+            <div
+                    class="item"
+                    v-for="(text,index) in rightList"
+                    :key="'right-'+index">
+
+                <div class="code-box">
+
+                    <canvas
+                            v-if="displayType==='qr'"
+                            :id="'right-qr-'+index">
+                    </canvas>
+
+                    <svg
+                            v-else
+                            :id="'right-barcode-'+index">
+                    </svg>
+
+                    <div class="value">{{ text }}</div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    const { createApp, nextTick } = Vue;
+
+    createApp({
+
+        data() {
+            return {
+
+                displayType: 'qr',   // qr / barcode
+                viewMode: 'all',     // all / left / right
+
+                leftList: [
+                    "PO20260001",
+                    "PO20260002",
+                    "PO20260003",
+                    "PO20260004",
+                    "PO20260005",
+                ],
+
+                rightList: [
+                    "1260629001512",
+                    "1260629001677",
+                    "1260629001716",
+
+                    "1260629001872",
+                    "1260629001970",
+                    "1260629002076",
+                    "1260629002119",
+
+                ]
+            }
+        },
+
+        mounted() {
+            this.renderCodes();
+        },
+
+        watch: {
+            displayType() {
+                this.renderCodes();
+            },
+            viewMode() {
+                this.renderCodes();
+            }
+        },
+
+        methods: {
+
+            async renderCodes() {
+
+                await nextTick();
+
+                // 左侧
+                this.leftList.forEach(async (text,index)=>{
+
+                    if(this.displayType==='qr'){
+
+                        const canvas =
+                            document.getElementById(`left-qr-${index}`);
+
+                        if(canvas){
+                            await QRCode.toCanvas(canvas,text,{width:160});
+                        }
+
+                    }else{
+
+                        const svg =
+                            document.getElementById(`left-barcode-${index}`);
+
+                        if(svg){
+                            JsBarcode(svg,text,{
+                                format:"CODE128",
+                                width:2,
+                                height:70,
+                                displayValue:false
+                            });
+                        }
+                    }
+                });
+
+                // 右侧
+                this.rightList.forEach(async (text,index)=>{
+
+                    if(this.displayType==='qr'){
+
+                        const canvas =
+                            document.getElementById(`right-qr-${index}`);
+
+                        if(canvas){
+                            await QRCode.toCanvas(canvas,text,{width:160});
+                        }
+
+                    }else{
+
+                        const svg =
+                            document.getElementById(`right-barcode-${index}`);
+
+                        if(svg){
+                            JsBarcode(svg,text,{
+                                format:"CODE128",
+                                width:2,
+                                height:70,
+                                displayValue:false
+                            });
+                        }
+                    }
+                });
+            }
+        }
+
+    }).mount('#app');
+
+</script>
+
+</body>
+</html>
