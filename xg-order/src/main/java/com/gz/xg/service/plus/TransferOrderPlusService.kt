@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.gz.xg.domain.entity.ShipOrder
 import com.gz.xg.domain.entity.TransferOrder
 import com.gz.xg.domain.search.TransferOrderSearch
+import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.TransferOrderMapper
 import org.springframework.stereotype.Service
 
@@ -39,6 +40,14 @@ class TransferOrderPlusService : ServiceImpl<TransferOrderMapper, TransferOrder>
             .eq(TransferOrder::getStatus,0)
 
         return this.list(wrapper)
+    }
+
+    fun findByNo(no : String?) :TransferOrder {
+        val wrapper = LambdaQueryWrapper<TransferOrder>()
+            .eq(TransferOrder::getOrderNo, no)
+
+        return this.getOne(wrapper)
+            ?: throw WebException("【${no}】该调拨指令单不存在")
     }
 
 }

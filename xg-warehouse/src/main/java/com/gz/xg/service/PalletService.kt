@@ -53,7 +53,7 @@ class PalletService(
     /**
      * 构建托盘与纸箱标签的关联记录。
      */
-    override fun buildTagEntry(pId: String, tagNo: String): TagEntity {
+    override fun buildTagEntry(pId: String, tagNo: String,content: Map<String, Any>): TagEntity {
         val tag = PalletTag()
         tag.pId = pId
         tag.tagNo = tagNo

@@ -1,6 +1,7 @@
 package com.gz.xg.service
 
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.StockInventory
 import com.gz.xg.domain.view.VProdTag
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service
 @Service
  class StockInventoryService(
     private val plusService: StockInventoryPlusService
-)
+) : BaseService()
 {
 
     /**
@@ -48,4 +49,14 @@ import org.springframework.stereotype.Service
             .`in`(StockInventory::getTagNo,tagNos)
             .update()
     }
+
+    fun changeDelByTagNos(tagNos: List<String>){
+        super.changeDel(
+            plusService.baseMapper,
+            StockInventory::getDeleted,
+            1){
+            `in`(StockInventory::getTagNo,tagNos)
+        }
+    }
+
 }

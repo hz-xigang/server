@@ -21,4 +21,10 @@ class TransferOrderDetailPlusService : ServiceImpl<TransferOrderDetailMapper, Tr
         val wrapper = LambdaQueryWrapper<TransferOrderDetail>().`in`(TransferOrderDetail::getPId, pIds)
         return list(wrapper)
     }
+
+    fun listById(pId : String) : List<TransferOrderDetail> {
+        val wrapper = LambdaQueryWrapper<TransferOrderDetail>().eq(TransferOrderDetail::getPId, pId)
+        return list(wrapper)
+    }
+
 }

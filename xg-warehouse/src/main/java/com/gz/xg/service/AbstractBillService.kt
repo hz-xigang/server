@@ -36,13 +36,15 @@ abstract class AbstractBillService(
     protected abstract fun tagService(): AbstractTagPlusService<*, *>
 
     /** 构建一条标签关联记录。 */
-    protected abstract fun buildTagEntry(pId: String, tagNo: String): TagEntity
+    protected abstract fun buildTagEntry(pId: String, tagNo: String,context: Map<String, Any>): TagEntity
 
     /** 批量保存标签关联记录。 */
     protected abstract fun saveTagBatch(tags: List<TagEntity>)
 
     /** 标签已被占用时的提示文案，由子类自行定义。 */
     protected abstract val tagOccupiedMessage: String
+
+
 
     /**
      * 仅基于标签号生成单据的快捷入口。
@@ -57,7 +59,7 @@ abstract class AbstractBillService(
      */
     protected fun doAdd(
         tagNos: List<String>, context: MutableMap<String, Any>,
-        saveBusiness: (List<VProdTag>, ProdTagTotal) -> Unit = { _, _ -> }
+        saveBusiness: (List<VProdTag>, ProdTagTotal,) -> Unit = { _, _ -> }
     ) {
         if (tagNos.isEmpty()) throw WebException("请扫描纸箱标签")
 
@@ -100,11 +102,10 @@ abstract class AbstractBillService(
 
             saveBill(buildBill(id, no, total, context))
 
-            val tagEntries = distinctTagNos.map { buildTagEntry(id, it) }
+            val tagEntries = distinctTagNos.map { buildTagEntry(id, it,context) }
             saveTagBatch(tagEntries)
 
             saveBusiness(prodTags,total)
-
             pmt.commit(status)
         } catch (e: Exception) {
             pmt.rollback(status)

@@ -34,6 +34,11 @@ import kotlin.random.Random
     fun generateStockIn() = generateByDate(SequenceType.STOCK_IN,"yyyyMMdd")
 
     /**
+     * 生成出库单号。
+     */
+    fun generateStockOut() = generateByDate(SequenceType.STOCK_OUT,"yyyyMMdd")
+
+    /**
      * 生成移库单号。
      */
     fun generateMoves() = generateByDate(SequenceType.MOVE_STOCK,"yyyyMMdd")

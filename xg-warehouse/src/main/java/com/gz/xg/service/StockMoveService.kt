@@ -64,7 +64,7 @@ class StockMoveService(
     /**
      * 构建移库单与标签的关联记录。
      */
-    override fun buildTagEntry(pId: String, tagNo: String): TagEntity {
+    override fun buildTagEntry(pId: String, tagNo: String,content : Map<String, Any>): TagEntity {
         val tag = StockMoveTag()
         tag.pId = pId
         tag.tagNo = tagNo

@@ -23,4 +23,10 @@ class ShipOrderDetailPlusService : MPJBaseServiceImpl<ShipOrderDetailMapper, Shi
         val wrapper = LambdaQueryWrapper<ShipOrderDetail>().`in`(ShipOrderDetail::getPId, pIds)
         return list(wrapper)
     }
+
+    fun listByPId(pId : String) : List<ShipOrderDetail>{
+        val wrapper = LambdaQueryWrapper<ShipOrderDetail>().eq(ShipOrderDetail::getPId, pId)
+        return list(wrapper)
+    }
+
 }

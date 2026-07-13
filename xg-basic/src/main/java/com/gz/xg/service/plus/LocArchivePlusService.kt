@@ -28,4 +28,19 @@ class LocArchivePlusService : ServiceImpl<LocArchiveMapper, LocArchive>(){
     fun byId(id: String) : LocArchive {
         return getById(id) ?: throw WebException("该库位不存在")
     }
+
+    fun listByCode(codes: List<String>) : List<LocArchive> {
+        val wrapper = LambdaQueryWrapper<LocArchive>()
+            .`in`(LocArchive::getLocCode,codes)
+
+        return this.list(wrapper)
+    }
+
+    fun byCode(code: String) : LocArchive {
+        val wrapper = LambdaQueryWrapper<LocArchive>()
+            .`in`(LocArchive::getLocCode,code)
+
+        return this.getOne(wrapper)
+    }
+
  }

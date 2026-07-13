@@ -46,16 +46,6 @@ public class StockInDto {
     private BigDecimal netWeight;
 
     /**
-     * 库位Id
-     */
-    private String locId;
-
-    /**
-     * 库位编号
-     */
-    private String locCode;
-
-    /**
      * 自定义扩展备注字段1
      */
     private String m1;
@@ -86,4 +76,15 @@ public class StockInDto {
     private String username;
 
     private String userId;
+
+    /**
+     * 入库类型
+     */
+    private String type;
+
+    /**
+     * 仓库
+     */
+    private String loc;
+
 }

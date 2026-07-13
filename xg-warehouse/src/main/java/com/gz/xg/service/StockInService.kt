@@ -7,10 +7,14 @@ import com.gz.xg.UserContext
 
 import com.gz.xg.domain.dto.ProdTagTotal
 import com.gz.xg.domain.dto.StockInDto
+import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockInTag
+import com.gz.xg.domain.entity.StockOut
+import com.gz.xg.domain.entity.StockOutTag
 import com.gz.xg.domain.entity.TagEntity
+import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockInMapStruct
 import com.gz.xg.domain.req.AddStockIn
 import com.gz.xg.domain.search.StockInSearch
@@ -21,15 +25,17 @@ import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.StockInPlusService
 import com.gz.xg.service.plus.StockInTagPlusService
 import com.gz.xg.util.DateUtil
+import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
+import java.math.BigDecimal
 
 
 /**
  * 入库服务，负责入库单生成、标签关联保存以及库存落库。
  */
 @Service
-open class StockInService(
+ class StockInService(
     private val plusService: StockInPlusService,
     private val stockInTagPlusService: StockInTagPlusService,
     private val locArchivePlusService: LocArchivePlusService,
@@ -56,9 +62,8 @@ open class StockInService(
         stockIn.qty = total.qty
         stockIn.grossWeight = total.grossWeight
         stockIn.netWeight = total.netWeight
+        stockIn.loc = context["locCode"] as String
 
-        stockIn.locId = context["locId"] as String
-        stockIn.locCode = context["locCode"] as String
 
         val (userId, username) = UserContext.require()
         stockIn.userId = userId
@@ -75,10 +80,13 @@ open class StockInService(
     /**
      * 构建入库单和纸箱标签的关联记录。
      */
-    override fun buildTagEntry(pId: String, tagNo: String): TagEntity {
+    override fun buildTagEntry(pId: String, tagNo: String,context : Map<String, Any>): TagEntity {
         val tag = StockInTag()
         tag.pId = pId
         tag.tagNo = tagNo
+
+        tag.locId = context["locId"] as String
+        tag.locCode = context["locCode"] as String
         return tag
     }
 
@@ -111,7 +119,6 @@ open class StockInService(
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
         val wrapper = MPJLambdaWrapper<StockIn>()
             .like(!search.no.isNullOrBlank(), StockIn::getReceiptNo, search.no)
-            .eq(!search.locId.isNullOrBlank(), StockIn::getLocId, search.locId)
             .between(ProdOrder::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(StockIn::getId)
 
@@ -139,4 +146,66 @@ open class StockInService(
             "records" to dtoList,
         )
     }
+
+    fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive) {
+        val tagNos = records.map { it.tagNo }
+
+        val prodTags = prodTagPlusService.listByTagNos(tagNos)
+
+         val total  = prodTags.fold(ProdTagTotal(0, BigDecimal.ZERO, BigDecimal.ZERO)) { acc, item ->
+            ProdTagTotal(
+                acc.qty + item.qty,
+                acc.grossWeight + item.grossWeight,
+                acc.netWeight + item.netWeight
+            )
+        }
+
+        val id = IdUtil.generateId()
+
+        val stockOut = createStockIn(
+            id,
+            outNo,
+            total,
+            "调拨入库",
+            locArchive.locCode
+        )
+
+        val tags = records.map {
+            StockInTag().apply {
+                pId = id
+                tagNo = it.tagNo
+                locCode = locArchive.locCode
+                locId = locArchive.id
+            }
+        }
+        plusService.save(stockOut)
+        stockInTagPlusService.saveBatch(tags)
+        stockInventoryService.addBatch(prodTags, locArchive)
+    }
+
+
+
+    private fun createStockIn(
+        id: String,
+        outNo: String,
+        total: ProdTagTotal,
+        type: String,
+        loc: String
+    ): StockIn {
+
+        val (userId, username) = UserContext.require()
+
+        return StockIn().apply {
+            this.id = id
+            receiptNo = outNo
+            qty = total.qty
+            grossWeight = total.grossWeight
+            netWeight = total.netWeight
+            this.userId = userId
+            this.username = username
+            this.type = type
+            this.loc = loc
+        }
+    }
+
 }

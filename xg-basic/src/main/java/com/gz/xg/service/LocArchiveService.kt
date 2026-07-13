@@ -80,7 +80,7 @@ class LocArchiveService(
      * 批量逻辑删除库位。
      */
     fun changeDeleteByIds(ids: List<String>) {
-        changeDel<LocArchive>(
+        changeDel(
             plusService.baseMapper,
             LocArchive::getDeleted,
             1

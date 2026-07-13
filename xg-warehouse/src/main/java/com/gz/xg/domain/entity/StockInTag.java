@@ -9,4 +9,14 @@ import lombok.EqualsAndHashCode;
 @TableName("stockInTag")
 public class StockInTag extends TagEntity {
 
+    /**
+     * 库位Id
+     */
+    private String locId;
+
+    /**
+     * 库位编号
+     */
+    private String locCode;
+
 }

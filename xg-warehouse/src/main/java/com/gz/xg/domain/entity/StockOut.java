@@ -75,15 +75,7 @@ public class StockOut {
      */
     private String m5;
 
-    /**
-     * 库位Id
-     */
-    private String locId;
 
-    /**
-     * 库位编号
-     */
-    private String locCode;
 
     /**
      * 用户名
@@ -94,4 +86,15 @@ public class StockOut {
      * 用户id
      */
     private String userId;
+
+    /**
+     * 出库类型
+     */
+    private String type;
+
+    /**
+     * 仓库
+     */
+    private String loc;
+
 }

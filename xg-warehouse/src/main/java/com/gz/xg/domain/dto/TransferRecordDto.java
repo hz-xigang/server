@@ -6,17 +6,22 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 发货记录表
+ * 调拨记录
  */
 @Data
-public class ShipRecordDto {
+public class TransferRecordDto {
 
     private String id;
 
     /**
      * 指令单
      */
-    private String shipOrder;
+    private String transferOrderNo;
+
+    /**
+     * 调拨产品批号
+     */
+    private String batchNo;
 
     /**
      * 用友系统的存货编码
@@ -34,34 +39,19 @@ public class ShipRecordDto {
     private String spec;
 
     /**
-     * 产品材质属性
-     */
-    private String material;
-
-    /**
-     * 库存盘点与出库的库存计量单位
+     * 库存计量与调拨结算的单位
      */
     private String unit;
 
     /**
-     * 计划发货的物料数量
+     * 单项计划调拨的物料数量
      */
     private Integer qty;
 
     /**
-     * 计划发货的物料总重量
+     * 单项计划调拨的物料总重量
      */
     private BigDecimal weight;
-
-    /**
-     * 单件货品的单品单重
-     */
-    private BigDecimal unitWeight;
-
-    /**
-     * 用友系统同步或指定的包装方式
-     */
-    private String packingMethod;
 
     /**
      * 货品规格片宽尺寸说明
@@ -74,7 +64,17 @@ public class ShipRecordDto {
     private String customerCode;
 
     /**
-     * 明细单据记录的创建或同步时间
+     * 该批成品所追踪追溯的源头母材批号
+     */
+    private String pBatchNo;
+
+    /**
+     * 用友系统同步或指定的包装方式
+     */
+    private String packingMethod;
+
+    /**
+     * 创建或同步时间
      */
     private LocalDateTime createTime;
 
@@ -89,7 +89,7 @@ public class ShipRecordDto {
     private String m5;
 
     /**
-     * 出库单号
+     * 条码
      */
-    private String outNo;
+    private String tagNo;
 }

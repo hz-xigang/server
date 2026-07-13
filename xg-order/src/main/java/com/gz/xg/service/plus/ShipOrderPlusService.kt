@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.github.yulichang.base.MPJBaseServiceImpl
 import com.gz.xg.domain.entity.PrepOrder
 import com.gz.xg.domain.entity.ShipOrder
+import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.ShipOrderMapper
 import org.springframework.stereotype.Service
 
@@ -22,4 +23,12 @@ class ShipOrderPlusService : MPJBaseServiceImpl<ShipOrderMapper, ShipOrder>(){
         return this.list(wrapper)
     }
 
+
+    fun findByNo(no : String?) :ShipOrder{
+        val wrapper = LambdaQueryWrapper<ShipOrder>()
+            .eq(ShipOrder::getShipNo,no)
+
+        return this.getOne(wrapper)
+            ?: throw WebException("【${no}】该发货指令单不存在")
+    }
 }
