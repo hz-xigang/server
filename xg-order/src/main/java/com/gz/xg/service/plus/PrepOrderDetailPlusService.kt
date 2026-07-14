@@ -21,4 +21,11 @@ class PrepOrderDetailPlusService : ServiceImpl<PrepOrderDetailMapper, PrepOrderD
         val wrapper = LambdaQueryWrapper<PrepOrderDetail>().`in`(PrepOrderDetail::getOrderId, pIds)
         return list(wrapper)
     }
+
+    fun listByPId(pId: String): List<PrepOrderDetail> {
+        val wrapper = LambdaQueryWrapper<PrepOrderDetail>().eq(PrepOrderDetail::getOrderId, pId)
+        return list(wrapper)
+    }
+
+
 }

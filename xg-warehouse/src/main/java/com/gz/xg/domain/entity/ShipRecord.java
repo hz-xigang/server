@@ -112,4 +112,8 @@ public class ShipRecord {
      */
     private String tagNo;
 
+    private String username;
+
+    private String userId;
+
 }

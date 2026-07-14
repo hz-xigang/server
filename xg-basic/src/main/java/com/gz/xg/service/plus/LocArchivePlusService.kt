@@ -43,4 +43,12 @@ class LocArchivePlusService : ServiceImpl<LocArchiveMapper, LocArchive>(){
         return this.getOne(wrapper)
     }
 
+    /**
+     * 临时方法，获取打包库位
+     */
+    fun packLoc() : LocArchive{
+        return this.getById("2026071409485079466907279")
+    }
+
+
  }

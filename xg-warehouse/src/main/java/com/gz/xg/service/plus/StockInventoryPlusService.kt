@@ -19,4 +19,13 @@ import org.springframework.stereotype.Service
         val wrapper = QueryWrapper<StockInventory>().eq("tagNo", tagNo)
         return getOne(wrapper)
     }
+
+    /**
+     * 根据标签号批量查询库存记录。
+     */
+    fun listByTagNos(tagNos: List<String>): List<StockInventory> {
+        if (tagNos.isEmpty()) return emptyList()
+        val wrapper = QueryWrapper<StockInventory>().`in`("tagNo", tagNos)
+        return list(wrapper)
+    }
  }

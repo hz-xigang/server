@@ -89,4 +89,6 @@ public class StockMove extends TagEntity{
 
     private String userId;
 
+    private String type;
+
 }

@@ -41,6 +41,7 @@ import org.springframework.stereotype.Service
     /**
      * 按标签批量更新库存所在库位。
      */
+
     fun editLoc(prodTags: List<VProdTag>, loc : LocArchive){
         val tagNos = prodTags.map { it.tagNo }
         LambdaUpdateChainWrapper(plusService.baseMapper)
@@ -49,6 +50,15 @@ import org.springframework.stereotype.Service
             .`in`(StockInventory::getTagNo,tagNos)
             .update()
     }
+
+    fun editLocByTagNo(tagNos: List<String>, loc : LocArchive){
+        LambdaUpdateChainWrapper(plusService.baseMapper)
+            .set(StockInventory::getLocId,loc.id)
+            .set(StockInventory::getLocCode,loc.locCode)
+            .`in`(StockInventory::getTagNo,tagNos)
+            .update()
+    }
+
 
     fun changeDelByTagNos(tagNos: List<String>){
         super.changeDel(

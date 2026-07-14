@@ -36,7 +36,7 @@ abstract class AbstractBillService(
     protected abstract fun tagService(): AbstractTagPlusService<*, *>
 
     /** 构建一条标签关联记录。 */
-    protected abstract fun buildTagEntry(pId: String, tagNo: String,context: Map<String, Any>): TagEntity
+    protected abstract fun buildTagEntry(pId: String, tagNo: String,context: Map<String, Any>,): TagEntity
 
     /** 批量保存标签关联记录。 */
     protected abstract fun saveTagBatch(tags: List<TagEntity>)

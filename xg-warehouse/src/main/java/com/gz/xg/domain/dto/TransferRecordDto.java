@@ -92,4 +92,9 @@ public class TransferRecordDto {
      * 条码
      */
     private String tagNo;
+
+    private String username;
+
+    private String userId;
+
 }

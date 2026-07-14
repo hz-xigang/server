@@ -9,4 +9,8 @@ import lombok.EqualsAndHashCode;
 @TableName("stockMoveTag")
 public class StockMoveTag extends TagEntity {
 
+    private String oLocId;
+
+    private String oLocCode;
+
 }

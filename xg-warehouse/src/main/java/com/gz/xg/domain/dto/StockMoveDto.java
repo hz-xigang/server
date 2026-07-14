@@ -81,4 +81,7 @@ public class StockMoveDto {
     private String username;
 
     private String userId;
+
+    private String type;
+
 }

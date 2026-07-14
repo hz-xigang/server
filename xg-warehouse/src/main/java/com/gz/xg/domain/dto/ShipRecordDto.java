@@ -92,4 +92,9 @@ public class ShipRecordDto {
      * 出库单号
      */
     private String outNo;
+
+    private String username;
+
+    private String userId;
+
 }

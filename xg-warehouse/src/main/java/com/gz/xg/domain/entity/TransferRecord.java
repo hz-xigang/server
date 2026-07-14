@@ -101,4 +101,8 @@ public class TransferRecord {
      * 条码
      */
     private String tagNo;
+
+    private String username;
+
+    private String userId;
 }
