@@ -18,8 +18,16 @@ class StockInController(
 ) : BaseController()
 {
     @PostMapping("")
-    fun add (@RequestBody req : AddStockIn) : ResponseResult{
-        service.add(req)
+    fun add (@RequestBody req : AddStockIn,
+             @RequestParam(defaultValue = "0" )type : Int) : ResponseResult{
+
+        if (type == 1){
+            service.addReturn(req)
+        }else{
+            service.add(req)
+        }
+
+
         return success()
     }
 

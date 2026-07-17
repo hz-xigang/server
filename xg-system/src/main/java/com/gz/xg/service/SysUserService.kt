@@ -1,6 +1,11 @@
 package com.gz.xg.service
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.dto.SysUserDto
+import com.gz.xg.domain.entity.SysRole
+import com.gz.xg.domain.entity.SysUser
 import com.gz.xg.domain.mapstruct.SysUserMapStruct
 import com.gz.xg.domain.req.LoginReq
 import com.gz.xg.exception.WebException
@@ -15,7 +20,7 @@ class SysUserService(
     private val passwordEncoder : PasswordEncoder,
     private val sysUserMapStruct: SysUserMapStruct,
     private val jwtService: JwtService
-) {
+) : BaseService() {
 
     fun add(dto: SysUserDto){
         val user = sysUserMapStruct.toEntity(dto)
@@ -33,6 +38,24 @@ class SysUserService(
         }
 
         return jwtService.generateToken(user)
+    }
+
+
+    fun page( current : Long , size : Long,deleted : Int?) : Map<String, Any> {
+        val page = Page<SysUser>(current , size)
+        val wrapper = LambdaQueryWrapper<SysUser>()
+            .eq(deleted != null,SysUser::getDeleted,deleted)
+            .orderByDesc(SysUser::getId)
+
+        val pageObj = plusService.page(page, wrapper)
+
+        pageObj.records.forEach { it->
+            run {
+                it.pwd = ""
+            }
+        }
+
+        return getPage(pageObj)
     }
 
 }

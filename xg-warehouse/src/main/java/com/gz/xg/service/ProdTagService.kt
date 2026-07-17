@@ -10,6 +10,7 @@ import com.gz.xg.service.plus.PalletTagPlusService
 import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.ProductionOrderPlusService
 import com.gz.xg.service.plus.StockInTagPlusService
+import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service
     private val prodTagMapStruct: ProdTagMapStruct,
      private val palletTagPlusService: PalletTagPlusService,
      private val stockInTagPlusService: StockInTagPlusService,
+     private val stockInventoryPlusService: StockInventoryPlusService
 ) : BaseService() {
 
     /**
@@ -57,6 +59,7 @@ import org.springframework.stereotype.Service
         when (flag) {
             1 -> palletTagPlusService.assertNotExists(tagNo, "【${tagNo}】纸箱标签已打包")
             2 -> stockInTagPlusService.assertNotExists(tagNo, "【${tagNo}】纸箱标签已入库")
+            7-> stockInventoryPlusService.assertNotExists(tagNo)
         }
 
         return when(flag) {

@@ -17,6 +17,7 @@ abstract class AbstractTagPlusService<M : TagBaseMapper<T>, T : TagEntity>
      */
     fun findByTagNo(tagNo: String): T? {
         val wrapper = QueryWrapper<T>().eq("tagNo", tagNo)
+            .eq("deleted",0)
         return getOne(wrapper)
     }
 
@@ -25,6 +26,7 @@ abstract class AbstractTagPlusService<M : TagBaseMapper<T>, T : TagEntity>
      */
     fun listByTagNos(tagNos: List<String>): List<T> {
         val wrapper = QueryWrapper<T>().`in`("tagNo", tagNos)
+            .eq("deleted",0)
         return list(wrapper)
     }
 
@@ -33,6 +35,7 @@ abstract class AbstractTagPlusService<M : TagBaseMapper<T>, T : TagEntity>
      */
     fun listByPId(id: String): List<T> {
         val wrapper = QueryWrapper<T>().`in`("pId", id)
+            .eq("deleted",0)
         return list(wrapper)
     }
 
@@ -42,6 +45,7 @@ abstract class AbstractTagPlusService<M : TagBaseMapper<T>, T : TagEntity>
     fun listByPIds(ids: List<String>): List<T> {
         if (ids.isEmpty()) return emptyList()
         val wrapper = QueryWrapper<T>().`in`("pId", ids)
+            .eq("deleted",0)
         return list(wrapper)
     }
 

@@ -1,8 +1,11 @@
 package com.gz.xg.service.plus
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.gz.xg.domain.entity.StockInventory
+import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.StockInventoryMapper
 import org.springframework.stereotype.Service
 
@@ -15,8 +18,11 @@ import org.springframework.stereotype.Service
     /**
      * 根据标签号查询库存记录。
      */
-    fun findByTagNo(tagNo: String): StockInventory {
-        val wrapper = QueryWrapper<StockInventory>().eq("tagNo", tagNo)
+    fun findByTagNo(tagNo: String): StockInventory? {
+        val wrapper = LambdaQueryWrapper<StockInventory>()
+            .eq(StockInventory::getTagNo, tagNo)
+            .eq(StockInventory::getDeleted,0)
+
         return getOne(wrapper)
     }
 
@@ -25,7 +31,14 @@ import org.springframework.stereotype.Service
      */
     fun listByTagNos(tagNos: List<String>): List<StockInventory> {
         if (tagNos.isEmpty()) return emptyList()
-        val wrapper = QueryWrapper<StockInventory>().`in`("tagNo", tagNos)
+        val wrapper = LambdaQueryWrapper<StockInventory>()
+            .`in`(StockInventory::getTagNo, tagNos)
+            .eq(StockInventory::getDeleted,0)
         return list(wrapper)
     }
+
+    fun assertNotExists(tagNo: String) {
+        if (findByTagNo(tagNo) != null) throw WebException("【$tagNo】该条码未出库")
+    }
+
  }

@@ -22,7 +22,7 @@ public class SysRightDto {
     /**
      * 权限资源类型：1-目录，2-菜单/页面，3-按钮，4-PDA模块
      */
-    private Integer menuType;
+    private Integer type;
 
     private String path;
 

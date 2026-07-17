@@ -63,6 +63,7 @@ import java.math.BigDecimal
         stockIn.grossWeight = total.grossWeight
         stockIn.netWeight = total.netWeight
         stockIn.loc = context["locCode"] as String
+        stockIn.type = context["type"] as? String
 
 
         val (userId, username) = UserContext.require()
@@ -99,16 +100,14 @@ import java.math.BigDecimal
      * 新增入库单，并同步写入库存表。
      */
     fun add(req: AddStockIn) {
-        val locId = req.locId
-        val tagNos = req.tagNos
+        addByType(req)
+    }
 
-        if (tagNos.isEmpty()) throw WebException("请扫描纸箱标签")
-        val locArchive = locArchivePlusService.getById(locId) ?: throw WebException("该库位不存在")
-        doAdd(tagNos, mutableMapOf("locId" to locArchive.id, "locCode" to locArchive.locCode)) { prodTags, _ ->
-            run {
-                stockInventoryService.addBatch(prodTags, locArchive)
-            }
-        }
+    /**
+     * 新增退货入库单，并同步写入库存表。
+     */
+    fun addReturn(req: AddStockIn) {
+        addByType(req, "退货入库")
     }
 
     /**
@@ -183,6 +182,27 @@ import java.math.BigDecimal
         stockInventoryService.addBatch(prodTags, locArchive)
     }
 
+    private fun addByType(req: AddStockIn, type: String? = null) {
+        val locId = req.locId
+        val tagNos = req.tagNos
+
+        if (tagNos.isEmpty()) throw WebException("请扫描纸箱标签")
+        val locArchive = locArchivePlusService.getById(locId) ?: throw WebException("该库位不存在")
+        val context = mutableMapOf<String, Any>(
+            "locId" to locArchive.id,
+            "locCode" to locArchive.locCode
+        )
+        if (!type.isNullOrBlank()) {
+            context["type"] = type
+        }
+
+        doAdd(tagNos, context) { prodTags, _ ->
+            run {
+                stockInventoryService.addBatch(prodTags, locArchive)
+            }
+        }
+    }
+
 
 
     private fun createStockIn(
@@ -205,6 +225,7 @@ import java.math.BigDecimal
             this.username = username
             this.type = type
             this.loc = loc
+
         }
     }
 

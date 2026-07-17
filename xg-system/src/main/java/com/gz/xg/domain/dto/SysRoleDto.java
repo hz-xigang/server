@@ -1,5 +1,7 @@
 package com.gz.xg.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -15,6 +17,7 @@ public class SysRoleDto {
     /**
      * 角色名称(如：仓库主管、现场工人)
      */
+    @NotBlank(message = "角色名称不能为空")
     private String name;
 
     /**
@@ -22,6 +25,7 @@ public class SysRoleDto {
      */
     private String remark;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
 
     private String m1;
