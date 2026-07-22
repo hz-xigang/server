@@ -1,5 +1,6 @@
 package com.gz.xg.domain.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public class SysUserDto {
     /**
      * 用户名
      */
+    @NotBlank(message = "用户名不能为空")
     private String username;
 
     /**
@@ -28,6 +30,7 @@ public class SysUserDto {
     /**
      * 真实姓名
      */
+    @NotBlank(message = "真实姓名不能为空")
     private String realName;
 
     /**

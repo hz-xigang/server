@@ -15,7 +15,11 @@ class SysUserPlusService : ServiceImpl<SysUserMapper, SysUser>(){
             .eq(SysUser::getUsername, username)
 
         return this.getOne(wrapper) ?: throw WebException("用户或密码错误")
-
     }
+
+    fun byId(id: String): SysUser {
+        return this.getById(id) ?: throw WebException("用户不存在")
+    }
+
 
 }
