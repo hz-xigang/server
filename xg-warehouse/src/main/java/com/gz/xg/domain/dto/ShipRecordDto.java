@@ -97,4 +97,6 @@ public class ShipRecordDto {
 
     private String userId;
 
+    private String realName;
+
 }

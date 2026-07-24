@@ -35,10 +35,10 @@ class PrepOrderService(
         val prepOrder = mapStruct.toEntity(prepOrderDto)
         prepOrder.id = IdUtil.generateId()
         prepOrder.prepNo = sysSequenceService.generatePrep()
-        val (userId, username) = UserContext.require()
+        val (userId, username,realName) = UserContext.require()
         prepOrder.userId = userId
         prepOrder.username = username
-
+        prepOrder.realName = realName
 
         details.forEach {
             it.id = IdUtil.generateId()

@@ -1,5 +1,6 @@
 package com.gz.xg.util
 
+import com.gz.xg.domain.search.BaseSearch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -11,6 +12,24 @@ import java.time.format.DateTimeFormatter
 class DateUtil {
 
     companion object {
+
+        fun initBaseSearch(search: BaseSearch){
+            if (search.startDate.isNullOrBlank()){
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                search.startDate = LocalDate.now().format(formatter)
+            }else{
+                search.startDate = search.startDate!!.take(10)
+            }
+
+            if (search.endDate.isNullOrBlank()){
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                search.endDate = LocalDate.now().format(formatter)
+            }else{
+                search.endDate = search.endDate!!.take(10)
+            }
+
+        }
+
         /**
          * 将字符串按 `yyyy-MM-dd` 格式解析为日期。
          *

@@ -81,6 +81,8 @@ public class StockIn {
 
     private String userId;
 
+    private String realName;
+
     /**
      * 入库类型
      */

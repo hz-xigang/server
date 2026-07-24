@@ -55,9 +55,10 @@ class StockMoveService(
         move.locId = context["locId"] as String
         move.locCode = context["locCode"] as String
 
-        val (userId, username) = UserContext.require()
+        val (userId, username,realName) = UserContext.require()
         move.userId = userId
         move.username = username
+        move.realName = realName
 
         return move
     }
@@ -134,7 +135,7 @@ class StockMoveService(
         val originLocMap = originStocks.associateBy { it.tagNo }
 
         val moveNo = sysSequenceService.generateMoves()
-        val (userId, username) = UserContext.require()
+        val (userId, username,realName) = UserContext.require()
         val stockMove = StockMove().apply {
             this.id = id
             receiptNo = moveNo
@@ -143,6 +144,7 @@ class StockMoveService(
             netWeight = total.netWeight
             this.userId = userId
             this.username = username
+            this.realName = realName
             type = "备料移库"
             locCode = locArchive.locCode
             locId = locArchive.id

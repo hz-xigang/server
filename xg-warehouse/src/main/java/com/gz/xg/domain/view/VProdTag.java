@@ -43,4 +43,6 @@ public class VProdTag {
 
     private String userId;
 
+    private Integer deleted;
+
 }

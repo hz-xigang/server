@@ -97,4 +97,6 @@ public class TransferRecordDto {
 
     private String userId;
 
+    private String realName;
+
 }

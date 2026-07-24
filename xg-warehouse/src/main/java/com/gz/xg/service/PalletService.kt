@@ -40,9 +40,10 @@ class PalletService(
         pallet.qty = total.qty
         pallet.grossWeight = total.grossWeight
         pallet.netWeight = total.netWeight
-        val (userId, username) = UserContext.require()
+        val (userId, username,realName) = UserContext.require()
         pallet.userId = userId
         pallet.username = username
+        pallet.realName = realName
 
         return pallet
     }

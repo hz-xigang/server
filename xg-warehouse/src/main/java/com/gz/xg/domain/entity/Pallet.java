@@ -75,4 +75,6 @@ public class Pallet {
 
     private String userId;
 
+    private String realName;
+
 }

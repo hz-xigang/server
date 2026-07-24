@@ -13,6 +13,7 @@ import com.gz.xg.domain.entity.SysUserRole
 import com.gz.xg.domain.mapstruct.SysUserMapStruct
 import com.gz.xg.domain.req.BindUserRoleReq
 import com.gz.xg.domain.req.LoginReq
+import com.gz.xg.domain.req.UserSearch
 import com.gz.xg.domain.view.VSysUserRole
 import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.VSysUserRoleMapper
@@ -80,10 +81,13 @@ class SysUserService(
     /**
      * 分页
      */
-    fun page( current : Long , size : Long,deleted : Int?) : Map<String, Any> {
+    fun page( current : Long , size : Long,search: UserSearch) : Map<String, Any> {
         val page = Page<SysUser>(current , size)
         val wrapper = LambdaQueryWrapper<SysUser>()
-            .eq(deleted != null,SysUser::getDeleted,deleted)
+            .eq(SysUser::getDeleted,0)
+            .like(!search.username.isNullOrBlank() , SysUser::getUsername,search.username)
+            .like(!search.realName.isNullOrBlank() , SysUser::getRealName,search.realName)
+            .eq(search.type != null, SysUser::getType,search.type)
             .orderByDesc(SysUser::getId)
 
         val pageObj = plusService.page(page, wrapper)
@@ -131,6 +135,17 @@ class SysUserService(
             .select(VSysUserRole::getRoleId)
 
         return vSysUserRoleMapper.selectList(wrapper).map { it.roleId }
+    }
+
+    /**
+     * 软删除
+     */
+    fun softDel(id : String){
+        plusService.byId(id)
+        changeDel(plusService.baseMapper, SysUser::getDeleted,1){
+            eq(SysUser::getId,id)
+        }
+
     }
 
 

@@ -4,11 +4,13 @@ import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.SysUserDto
 import com.gz.xg.domain.req.BindUserRoleReq
 import com.gz.xg.domain.req.LoginReq
+import com.gz.xg.domain.req.UserSearch
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.SysUserService
 import jakarta.annotation.Resource
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -34,10 +36,12 @@ class SysUserController(
     fun page(
         @RequestParam(value = "page", defaultValue = "1") page: Long,
         @RequestParam(value = "size", defaultValue = "15") size: Long,
-        @RequestParam(value = "deleted", required = false) deleted: Int?
+        @RequestBody search: UserSearch
     ) : ResponseResult
     {
-        return success(service.page(page,size,deleted))
+        return success(
+            service.page(page,size,search)
+        )
     }
 
     @PostMapping
@@ -61,6 +65,12 @@ class SysUserController(
     @GetMapping("role-id/{id}")
     fun getRoleId(@PathVariable id: String) : ResponseResult {
         return success(service.getRoleId(id))
+    }
+
+    @DeleteMapping("{id}")
+    fun softDel(@PathVariable id: String) : ResponseResult{
+        service.softDel(id)
+        return success()
     }
 
 

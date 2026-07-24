@@ -77,6 +77,8 @@ public class StockInDto {
 
     private String userId;
 
+    private String realName;
+
     /**
      * 入库类型
      */

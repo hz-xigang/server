@@ -23,6 +23,7 @@ class StockInTagPlusService(
         val wrapper = MPJLambdaWrapper<VStockTag>()
         wrapper.eq(VStockTag::getTagNo, tagNo)
 
+
         return vStockTagMapper.selectOne(wrapper)
             ?: throw WebException("【${tagNo}】该纸箱标签不在库存中")
     }

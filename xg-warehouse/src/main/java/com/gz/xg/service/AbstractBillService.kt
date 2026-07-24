@@ -2,7 +2,6 @@ package com.gz.xg.service
 
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.dto.ProdTagTotal
-import com.gz.xg.domain.entity.ProdTag
 import com.gz.xg.domain.entity.TagEntity
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.exception.WebException

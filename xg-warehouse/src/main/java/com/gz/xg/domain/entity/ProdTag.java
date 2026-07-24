@@ -85,4 +85,6 @@ public class ProdTag {
 
     private String userId;
 
+    private String realName;
+
 }

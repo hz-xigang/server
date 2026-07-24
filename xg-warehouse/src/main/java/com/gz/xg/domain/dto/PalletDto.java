@@ -61,4 +61,6 @@ public class PalletDto {
 
     private String userId;
 
+    private String realName;
+
 }

@@ -44,7 +44,7 @@ public class SysUser {
     /**
      * 软删除
      */
-    private Boolean deleted;
+    private Integer deleted;
 
     /**
      * WMS系统单据创建时间

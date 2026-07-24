@@ -1,18 +1,16 @@
 package com.gz.xg.service
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
-import com.github.yulichang.query.MPJLambdaQueryWrapper
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
 
 import com.gz.xg.domain.dto.ProdTagTotal
-import com.gz.xg.domain.dto.StockInDto
+
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockInTag
-import com.gz.xg.domain.entity.StockOut
-import com.gz.xg.domain.entity.StockOutTag
+
 import com.gz.xg.domain.entity.TagEntity
 import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockInMapStruct
@@ -213,7 +211,7 @@ import java.math.BigDecimal
         loc: String
     ): StockIn {
 
-        val (userId, username) = UserContext.require()
+        val (userId, username,realName) = UserContext.require()
 
         return StockIn().apply {
             this.id = id
@@ -223,6 +221,7 @@ import java.math.BigDecimal
             netWeight = total.netWeight
             this.userId = userId
             this.username = username
+            this.realName = realName
             this.type = type
             this.loc = loc
 

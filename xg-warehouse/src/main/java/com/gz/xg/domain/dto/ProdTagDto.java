@@ -78,4 +78,6 @@ public class ProdTagDto {
     private String username;
 
     private String userId;
+
+    private String realName;
 }

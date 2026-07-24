@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * 生产订单表(精简页面版)
  */
 @Data
-public class ProductionOrderDto {
+public class ProdOrderDto {
 
     /**
      * 全局唯一主键ID(字符串类型)
@@ -91,4 +91,10 @@ public class ProductionOrderDto {
      * 自定义扩展备注字段5
      */
     private String m5;
+
+    /**
+     * 客户料号
+     */
+    private String custMaterialNo;
+
 }

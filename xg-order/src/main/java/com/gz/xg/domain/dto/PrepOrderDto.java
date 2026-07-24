@@ -95,4 +95,6 @@ public class PrepOrderDto {
     private String username;
 
     private String userId;
+
+    private String realName;
 }

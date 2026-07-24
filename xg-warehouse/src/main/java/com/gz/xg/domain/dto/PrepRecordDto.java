@@ -142,4 +142,6 @@ public class PrepRecordDto {
      * 用户id
      */
     private String userId;
+
+    private String realName;
 }

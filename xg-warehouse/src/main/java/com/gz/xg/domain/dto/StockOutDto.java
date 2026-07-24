@@ -1,9 +1,11 @@
 package com.gz.xg.domain.dto;
 
+import com.gz.xg.domain.view.VProdTag;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 出库记录主表
@@ -77,6 +79,8 @@ public class StockOutDto {
      */
     private String userId;
 
+    private String realName;
+
     /**
      * 出库类型
      */
@@ -86,5 +90,7 @@ public class StockOutDto {
      * 仓库
      */
     private String loc;
+
+    private List<VProdTag> tags;
 
 }

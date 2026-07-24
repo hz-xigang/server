@@ -111,4 +111,9 @@ public class ProdOrder {
      */
     private String material;
 
+    /**
+     * 客户料号
+     */
+    private String custMaterialNo;
+
 }

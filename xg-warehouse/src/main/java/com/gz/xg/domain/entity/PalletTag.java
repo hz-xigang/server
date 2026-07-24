@@ -9,4 +9,9 @@ import lombok.EqualsAndHashCode;
 @TableName("palletTag")
 public class PalletTag extends TagEntity {
 
+    /**
+     * 软删除逻辑标记(0:正常, 1:已删除)
+     */
+    private Integer deleted;
+
 }

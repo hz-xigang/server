@@ -2,6 +2,7 @@ package com.gz.xg.controller
 
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.ProdTagDto
+import com.gz.xg.domain.search.ProdTagSearch
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.ProdTagService
 import org.springframework.validation.annotation.Validated
@@ -26,8 +27,8 @@ import org.springframework.web.bind.annotation.RestController
     }
 
     @PostMapping(value = ["list"])
-     fun list(@RequestParam("po") po : String) : ResponseResult {
-        return success(prodTagService.listByProdNo(po))
+     fun list(@RequestBody search: ProdTagSearch) : ResponseResult {
+        return success(prodTagService.listByProdNo(search))
     }
 
     @GetMapping("/tag/{tagNo}")

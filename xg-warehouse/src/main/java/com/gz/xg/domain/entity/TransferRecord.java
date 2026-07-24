@@ -105,4 +105,6 @@ public class TransferRecord {
     private String username;
 
     private String userId;
+
+    private String realName;
 }

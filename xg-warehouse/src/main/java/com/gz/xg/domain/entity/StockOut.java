@@ -87,6 +87,8 @@ public class StockOut {
      */
     private String userId;
 
+    private String realName;
+
     /**
      * 出库类型
      */

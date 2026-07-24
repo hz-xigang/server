@@ -116,4 +116,6 @@ public class ShipRecord {
 
     private String userId;
 
+    private String realName;
+
 }

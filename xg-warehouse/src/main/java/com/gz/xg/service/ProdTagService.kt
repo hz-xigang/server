@@ -3,7 +3,9 @@ package com.gz.xg.service
 import com.gz.xg.UserContext
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.dto.ProdTagDto
+import com.gz.xg.domain.entity.ProdTag
 import com.gz.xg.domain.mapstruct.ProdTagMapStruct
+import com.gz.xg.domain.search.ProdTagSearch
 import com.gz.xg.domain.view.VProdTag
 
 import com.gz.xg.service.plus.PalletTagPlusService
@@ -35,10 +37,11 @@ import org.springframework.stereotype.Service
     fun add(dto: ProdTagDto) {
         productionOrderPlusService.findById(dto.prodOrderId)
         val prodTag = prodTagMapStruct.toEntity(dto)
-        val (userId, username) = UserContext.require()
+        val (userId, username,realName) = UserContext.require()
         prodTag.id = IdUtil.generateId()
         prodTag.userId = userId
         prodTag.username = username
+        prodTag.realName = realName
 
         val tagNo = sysSequenceService.generateCarton()
         prodTag.tagNo = tagNo
@@ -48,8 +51,8 @@ import org.springframework.stereotype.Service
     /**
      * 按生产单号查询标签视图列表。
      */
-    fun listByProdNo(prodNo : String?) : List<VProdTag> {
-       return prodTagPlusService.listVo(prodNo)
+    fun listByProdNo(search: ProdTagSearch) : List<VProdTag> {
+       return prodTagPlusService.listVo(search)
     }
 
     /**
@@ -67,4 +70,14 @@ import org.springframework.stereotype.Service
             else -> prodTagPlusService.findVoByTagNo(tagNo)
         }
     }
+
+    fun softDelById(id : String){
+        prodTagPlusService.findById(id)
+        changeDel(prodTagPlusService.baseMapper,
+            ProdTag::getDeleted,1)
+        {
+            eq(ProdTag::getId,id)
+        }
+    }
+
 }

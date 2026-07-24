@@ -102,6 +102,6 @@ public class PrepOrder {
 
     private String userId;
 
-
+    private String realName;
 
 }
