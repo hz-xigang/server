@@ -3,21 +3,15 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
-
-import com.gz.xg.domain.dto.ProdTagTotal
-
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockInTag
-
-import com.gz.xg.domain.entity.TagEntity
 import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockInMapStruct
 import com.gz.xg.domain.req.AddStockIn
 import com.gz.xg.domain.search.StockInSearch
 import com.gz.xg.exception.WebException
-import com.gz.xg.service.plus.AbstractTagPlusService
 import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.StockInPlusService
@@ -26,79 +20,30 @@ import com.gz.xg.util.DateUtil
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
-import java.math.BigDecimal
+import org.springframework.transaction.support.TransactionTemplate
 
 
 /**
  * 入库服务，负责入库单生成、标签关联保存以及库存落库。
  */
 @Service
- class StockInService(
+class StockInService(
     private val plusService: StockInPlusService,
     private val stockInTagPlusService: StockInTagPlusService,
     private val locArchivePlusService: LocArchivePlusService,
-    prodTagPlusService: ProdTagPlusService,
-    pmt: PlatformTransactionManager,
+    private val prodTagPlusService: ProdTagPlusService,
     private val sysSequenceService: SysSequenceService,
     private val stockInMapStruct: StockInMapStruct,
-    private val stockInventoryService: StockInventoryService
-) : AbstractBillService(prodTagPlusService, pmt) {
-
-    override val tagOccupiedMessage = "已入库"
-
-    override fun generateNo() = sysSequenceService.generateStockIn()
-
-    override fun tagService(): AbstractTagPlusService<*, *> = stockInTagPlusService
-
-    /**
-     * 构建入库单主表。
-     */
-    override fun buildBill(id: String, no: String, total: ProdTagTotal, context: Map<String, Any>): StockIn {
-        val stockIn = StockIn()
-        stockIn.id = id
-        stockIn.receiptNo = no
-        stockIn.qty = total.qty
-        stockIn.grossWeight = total.grossWeight
-        stockIn.netWeight = total.netWeight
-        stockIn.loc = context["locCode"] as String
-        stockIn.type = context["type"] as? String
-
-
-        val (userId, username) = UserContext.require()
-        stockIn.userId = userId
-        stockIn.username = username
-
-        return stockIn
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun saveBill(entity: Any) {
-        plusService.save(entity as StockIn)
-    }
-
-    /**
-     * 构建入库单和纸箱标签的关联记录。
-     */
-    override fun buildTagEntry(pId: String, tagNo: String,context : Map<String, Any>): TagEntity {
-        val tag = StockInTag()
-        tag.pId = pId
-        tag.tagNo = tagNo
-
-        tag.locId = context["locId"] as String
-        tag.locCode = context["locCode"] as String
-        return tag
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun saveTagBatch(tags: List<TagEntity>) {
-        stockInTagPlusService.saveBatch(tags as List<StockInTag>)
-    }
+    private val stockInventoryService: StockInventoryService,
+    private val billTagResolver: BillTagResolver,
+    private val transactionManager: PlatformTransactionManager,
+) {
 
     /**
      * 新增入库单，并同步写入库存表。
      */
     fun add(req: AddStockIn) {
-        addByType(req)
+        addByType(req, null)
     }
 
     /**
@@ -106,6 +51,45 @@ import java.math.BigDecimal
      */
     fun addReturn(req: AddStockIn) {
         addByType(req, "退货入库")
+    }
+
+    /**
+     * 调拨入库
+     */
+    fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive) {
+        TransactionTemplate(transactionManager).executeWithoutResult {
+            val tagNos = records.map { it.tagNo }
+            val resolved = billTagResolver.resolve(tagNos)
+
+            val id = IdUtil.generateId()
+            val (userId, username, realName) = UserContext.require()
+
+            val stockIn = StockIn().apply {
+                this.id = id
+                receiptNo = outNo
+                qty = resolved.total.qty
+                grossWeight = resolved.total.grossWeight
+                netWeight = resolved.total.netWeight
+                this.userId = userId
+                this.username = username
+                this.realName = realName
+                type = "调拨入库"
+                loc = locArchive.locCode
+            }
+
+            val tags = records.map {
+                StockInTag().apply {
+                    pId = id
+                    tagNo = it.tagNo
+                    locCode = locArchive.locCode
+                    locId = locArchive.id
+                }
+            }
+
+            plusService.save(stockIn)
+            stockInTagPlusService.saveBatch(tags)
+            stockInventoryService.addBatch(resolved.prodTags, locArchive)
+        }
     }
 
     /**
@@ -144,87 +128,47 @@ import java.math.BigDecimal
         )
     }
 
-    fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive) {
-        val tagNos = records.map { it.tagNo }
+    private fun addByType(req: AddStockIn, type: String?) {
+        TransactionTemplate(transactionManager).executeWithoutResult {
+            val locArchive = locArchivePlusService.getById(req.locId)
+                ?: throw WebException("该库位不存在")
 
-        val prodTags = prodTagPlusService.listByTagNos(tagNos)
+            val resolved = billTagResolver.resolve(req.tagNos)
 
-         val total  = prodTags.fold(ProdTagTotal(0, BigDecimal.ZERO, BigDecimal.ZERO)) { acc, item ->
-            ProdTagTotal(
-                acc.qty + item.qty,
-                acc.grossWeight + item.grossWeight,
-                acc.netWeight + item.netWeight
-            )
-        }
-
-        val id = IdUtil.generateId()
-
-        val stockOut = createStockIn(
-            id,
-            outNo,
-            total,
-            "调拨入库",
-            locArchive.locCode
-        )
-
-        val tags = records.map {
-            StockInTag().apply {
-                pId = id
-                tagNo = it.tagNo
-                locCode = locArchive.locCode
-                locId = locArchive.id
+            // 检查是否已入库
+            val occupied = stockInTagPlusService.listByTagNos(resolved.tagNos)
+            if (occupied.isNotEmpty()) {
+                throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已入库")
             }
-        }
-        plusService.save(stockOut)
-        stockInTagPlusService.saveBatch(tags)
-        stockInventoryService.addBatch(prodTags, locArchive)
-    }
 
-    private fun addByType(req: AddStockIn, type: String? = null) {
-        val locId = req.locId
-        val tagNos = req.tagNos
+            val id = IdUtil.generateId()
+            val (userId, username, realName) = UserContext.require()
 
-        if (tagNos.isEmpty()) throw WebException("请扫描纸箱标签")
-        val locArchive = locArchivePlusService.getById(locId) ?: throw WebException("该库位不存在")
-        val context = mutableMapOf<String, Any>(
-            "locId" to locArchive.id,
-            "locCode" to locArchive.locCode
-        )
-        if (!type.isNullOrBlank()) {
-            context["type"] = type
-        }
-
-        doAdd(tagNos, context) { prodTags, _ ->
-            run {
-                stockInventoryService.addBatch(prodTags, locArchive)
+            val stockIn = StockIn().apply {
+                this.id = id
+                receiptNo = sysSequenceService.generateStockIn()
+                qty = resolved.total.qty
+                grossWeight = resolved.total.grossWeight
+                netWeight = resolved.total.netWeight
+                loc = locArchive.locCode
+                this.type = type
+                this.userId = userId
+                this.username = username
+                this.realName = realName
             }
-        }
-    }
 
+            val tags = resolved.tagNos.map { tagNo ->
+                StockInTag().apply {
+                    pId = id
+                    this.tagNo = tagNo
+                    locId = locArchive.id
+                    locCode = locArchive.locCode
+                }
+            }
 
-
-    private fun createStockIn(
-        id: String,
-        outNo: String,
-        total: ProdTagTotal,
-        type: String,
-        loc: String
-    ): StockIn {
-
-        val (userId, username,realName) = UserContext.require()
-
-        return StockIn().apply {
-            this.id = id
-            receiptNo = outNo
-            qty = total.qty
-            grossWeight = total.grossWeight
-            netWeight = total.netWeight
-            this.userId = userId
-            this.username = username
-            this.realName = realName
-            this.type = type
-            this.loc = loc
-
+            plusService.save(stockIn)
+            stockInTagPlusService.saveBatch(tags)
+            stockInventoryService.addBatch(resolved.prodTags, locArchive)
         }
     }
 

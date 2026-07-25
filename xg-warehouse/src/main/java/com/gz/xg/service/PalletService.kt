@@ -1,16 +1,15 @@
 package com.gz.xg.service
 
 import com.gz.xg.UserContext
-import com.gz.xg.domain.dto.ProdTagTotal
 import com.gz.xg.domain.entity.Pallet
 import com.gz.xg.domain.entity.PalletTag
-import com.gz.xg.domain.entity.TagEntity
-import com.gz.xg.service.plus.AbstractTagPlusService
+import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.PalletPlusService
 import com.gz.xg.service.plus.PalletTagPlusService
-import com.gz.xg.service.plus.ProdTagPlusService
+import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 
 /**
  * 托盘服务，负责托盘主表和托盘标签关联的生成。
@@ -19,50 +18,53 @@ import org.springframework.transaction.PlatformTransactionManager
 class PalletService(
     private val palletPlusService: PalletPlusService,
     private val palletTagPlusService: PalletTagPlusService,
-    prodTagPlusService: ProdTagPlusService,
-    pmt: PlatformTransactionManager,
     private val sysSequenceService: SysSequenceService,
-) : AbstractBillService(prodTagPlusService, pmt) {
-
-    override val tagOccupiedMessage = "已打包"
-
-    override fun generateNo() = sysSequenceService.generatePallet()
-
-    override fun tagService(): AbstractTagPlusService<*, *> = palletTagPlusService
+    private val billTagResolver: BillTagResolver,
+    private val transactionManager: PlatformTransactionManager,
+) {
 
     /**
-     * 构建托盘主表数据。
+     * 新增托盘
+     *
+     * @param tagNos 纸箱标签号列表
+     * @throws WebException 标签为空、不存在或已打包时抛出
      */
-    override fun buildBill(id: String, no: String, total: ProdTagTotal, context: Map<String, Any>): Pallet {
-        val pallet = Pallet()
-        pallet.id = id
-        pallet.palletNo = no
-        pallet.qty = total.qty
-        pallet.grossWeight = total.grossWeight
-        pallet.netWeight = total.netWeight
-        val (userId, username,realName) = UserContext.require()
-        pallet.userId = userId
-        pallet.username = username
-        pallet.realName = realName
+    fun add(tagNos: List<String>) {
+        TransactionTemplate(transactionManager).executeWithoutResult {
+        // 1. 解析和校验标签
+        val resolved = billTagResolver.resolve(tagNos)
 
-        return pallet
-    }
+        // 2. 检查是否已打包
+        val occupied = palletTagPlusService.listByTagNos(resolved.tagNos)
+        if (occupied.isNotEmpty()) {
+            throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已打包")
+        }
 
-    @Suppress("UNCHECKED_CAST")
-    override fun saveBill(entity: Any) { palletPlusService.save(entity as Pallet) }
+        // 3. 构建托盘主表
+        val id = IdUtil.generateId()
+        val (userId, username, realName) = UserContext.require()
+        val pallet = Pallet().apply {
+            this.id = id
+            palletNo = sysSequenceService.generatePallet()
+            qty = resolved.total.qty
+            grossWeight = resolved.total.grossWeight
+            netWeight = resolved.total.netWeight
+            this.userId = userId
+            this.username = username
+            this.realName = realName
+        }
 
-    /**
-     * 构建托盘与纸箱标签的关联记录。
-     */
-    override fun buildTagEntry(pId: String, tagNo: String,content: Map<String, Any>): TagEntity {
-        val tag = PalletTag()
-        tag.pId = pId
-        tag.tagNo = tagNo
-        return tag
-    }
+        // 4. 构建托盘标签关联
+        val tags = resolved.tagNos.map { tagNo ->
+            PalletTag().apply {
+                pId = id
+                this.tagNo = tagNo
+            }
+        }
 
-    @Suppress("UNCHECKED_CAST")
-    override fun saveTagBatch(tags: List<TagEntity>) {
-        palletTagPlusService.saveBatch(tags as List<PalletTag>)
+            // 5. 保存
+            palletPlusService.save(pallet)
+            palletTagPlusService.saveBatch(tags)
+        }
     }
 }
