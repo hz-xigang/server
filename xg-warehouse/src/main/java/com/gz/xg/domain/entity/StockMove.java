@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName("stockMove")
-public class StockMove extends TagEntity{
+public class StockMove {
 
     /**
      * 全局唯一主键ID(字符串类型)
