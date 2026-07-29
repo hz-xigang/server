@@ -1,0 +1,50 @@
+# 生产环境配置说明
+# 本配置文件为生产环境模板，实际部署时通过环境变量注入敏感信息
+
+## Windows Server 环境变量配置示例
+
+### 1. 数据库配置
+# setx DB_HOST "生产数据库服务器IP或域名" /M
+# setx DB_PORT "1433" /M
+# setx DB_NAME "xg_wms" /M
+# setx DB_USERNAME "xg_app_user" /M
+# setx DB_PASSWORD "强密码!@#123" /M
+
+### 2. JWT 配置
+# 生成强随机密钥（PowerShell）:
+# $bytes = New-Object byte[] 32
+# [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($bytes)
+# $secret = [Convert]::ToBase64String($bytes)
+# setx JWT_SECRET "$secret" /M
+# setx JWT_EXPIRATION_MINUTES "480" /M
+
+### 3. 服务器配置
+# setx SERVER_PORT "8080" /M
+
+### 4. 文件存储路径
+# setx STATIC_BASE_PATH "E://AppData//xg//upload//" /M
+# 注意：确保该路径存在且应用有读写权限
+
+### 5. 数据库账号权限建议
+# 生产环境不要使用 sa 账号，创建专用应用账号：
+# CREATE LOGIN xg_app_user WITH PASSWORD = '强密码!@#123';
+# USE xg_wms;
+# CREATE USER xg_app_user FOR LOGIN xg_app_user;
+# GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::dbo TO xg_app_user;
+# -- 不要授予 DDL 权限（CREATE/ALTER/DROP）
+
+### 6. 启动命令
+# java -jar xg-app.jar --spring.profiles.active=prod
+
+### 7. Windows 服务安装（可选）
+# 使用 nssm 或 WinSW 将应用安装为 Windows 服务
+# nssm install XG-WMS "C:\Program Files\Java\jdk-17\bin\java.exe"
+# nssm set XG-WMS AppParameters "-jar E:\AppData\xg\xg-app.jar --spring.profiles.active=prod"
+# nssm set XG-WMS AppDirectory "E:\AppData\xg"
+# nssm set XG-WMS DisplayName "XG-WMS 仓库管理系统"
+# nssm set XG-WMS Description "西港仓库管理系统后端服务"
+# nssm set XG-WMS Start SERVICE_AUTO_START
+
+### 8. 日志配置
+# 在 logback-spring.xml 中配置日志路径：
+# <property name="LOG_PATH" value="${LOG_PATH:-E:/AppData/xg/logs}" />

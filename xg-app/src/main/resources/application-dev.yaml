@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=xg_wms;encrypt=false;trustServerCertificate=true;
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: sa
+    password: root
+
+server:
+  port: 7100
+
+jwt:
+  secret: dev-jwt-secret-key-for-development-only-minimum-32-bytes-required
+  expiration-minutes: 2880  # 2天，方便开发测试
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开发环境输出SQL到控制台
+
+static:
+  base: D://code//upload//xg//dev//

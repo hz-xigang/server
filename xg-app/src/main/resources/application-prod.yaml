@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1433};databaseName=${DB_NAME:xg_wms};encrypt=true;trustServerCertificate=false;
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: ${DB_USERNAME:xg_app_user}
+    password: ${DB_PASSWORD}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET}  # 必须通过环境变量设置，禁止硬编码
+  expiration-minutes: ${JWT_EXPIRATION_MINUTES:480}  # 默认8小时
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl  # 生产环境使用日志框架
+
+static:
+  base: ${STATIC_BASE_PATH:E://AppData//xg//upload//}  # Windows Server 路径
