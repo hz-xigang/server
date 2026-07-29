@@ -116,4 +116,9 @@ public class ProdOrder {
      */
     private String custMaterialNo;
 
+    /**
+     * 打印纸箱标签模板
+     */
+    private String tempId;
+
 }

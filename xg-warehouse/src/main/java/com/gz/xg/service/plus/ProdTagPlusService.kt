@@ -1,12 +1,16 @@
 package com.gz.xg.service.plus
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
+import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.domain.entity.ProdTag
 import com.gz.xg.domain.search.ProdTagSearch
+import com.gz.xg.domain.view.VMoveTag
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.ProdTagMapper
+import com.gz.xg.mapper.VMoveTagMapper
 import com.gz.xg.mapper.VProTagMapper
 import com.gz.xg.util.DateUtil
 import org.springframework.stereotype.Service
@@ -16,7 +20,8 @@ import org.springframework.stereotype.Service
  */
 @Service
  class ProdTagPlusService(
-      val vProTagMapper: VProTagMapper
+      val vProTagMapper: VProTagMapper,
+     val vMoveTagMapper: VMoveTagMapper
 ) : ServiceImpl<ProdTagMapper, ProdTag>()
 {
 
@@ -50,12 +55,24 @@ import org.springframework.stereotype.Service
     /**
      * 根据标签号集合批量查询标签视图。
      */
-    fun listByTagNos(tagNos : List<String>) : List<VProdTag>{
+    fun listByTagNos(tagNos: List<String>): List<VProdTag> =
+        listByTagNos(tagNos, vProTagMapper)
+
+    fun moveTagListByTagNos(tagNos: List<String>): List<VMoveTag> =
+        listByTagNos(tagNos, vMoveTagMapper)
+
+    private fun <T : VProdTag> listByTagNos(
+        tagNos: List<String>,
+        mapper: BaseMapper<T>
+    ): List<T> {
         if (tagNos.isEmpty()) return emptyList()
-        val wrapper = MPJLambdaWrapper<VProdTag>()
-            .`in`(VProdTag::getTagNo,tagNos)
-        return vProTagMapper.selectList(wrapper)
+
+        return mapper.selectList(
+            LambdaQueryWrapper<T>()
+                .`in`(VProdTag::getTagNo, tagNos)
+        )
     }
+
 
     fun findById(id : String) : VProdTag{
         val vProdTag = vProTagMapper.selectById(id)

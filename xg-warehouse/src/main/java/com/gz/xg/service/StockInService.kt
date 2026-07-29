@@ -10,7 +10,7 @@ import com.gz.xg.domain.entity.StockInTag
 import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockInMapStruct
 import com.gz.xg.domain.req.AddStockIn
-import com.gz.xg.domain.search.StockInSearch
+import com.gz.xg.domain.search.StockSearch
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.service.plus.ProdTagPlusService
@@ -95,7 +95,7 @@ class StockInService(
     /**
      * 分页查询入库单，并回填关联标签详情。
      */
-    fun page(search: StockInSearch, current: Long, size: Long): Map<String, Any> {
+    fun page(search: StockSearch, current: Long, size: Long): Map<String, Any> {
         val page = Page<StockIn>(current, size)
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
         val wrapper = MPJLambdaWrapper<StockIn>()
@@ -119,8 +119,6 @@ class StockInService(
                 dtoIt.tags = tagNos.mapNotNull { prodTagMap[it] }
             }
         }
-
-
 
         return hashMapOf<String, Any>(
             "total" to pageObj.total,

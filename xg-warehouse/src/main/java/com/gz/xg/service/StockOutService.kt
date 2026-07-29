@@ -11,7 +11,7 @@ import com.gz.xg.domain.entity.StockOut
 import com.gz.xg.domain.entity.StockOutTag
 import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockOutMapStruct
-import com.gz.xg.domain.search.StockInSearch
+import com.gz.xg.domain.search.StockSearch
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.service.plus.ProdTagPlusService
@@ -119,7 +119,7 @@ class StockOutService(
         }
     }
 
-    fun page(search: StockInSearch,current: Long, size: Long) : Map<String, Any>  {
+    fun page(search: StockSearch, current: Long, size: Long) : Map<String, Any>  {
         val page = Page<StockOut>(current, size)
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
 

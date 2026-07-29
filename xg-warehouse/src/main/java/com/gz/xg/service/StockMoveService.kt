@@ -1,16 +1,24 @@
 package com.gz.xg.service
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.gz.xg.UserContext
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.PrepRecord
+import com.gz.xg.domain.entity.ProdOrder
+import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockMove
 import com.gz.xg.domain.entity.StockMoveTag
+import com.gz.xg.domain.mapstruct.StockMoveMapStruct
 import com.gz.xg.domain.req.AddStockIn
+import com.gz.xg.domain.search.StockSearch
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
+import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.service.plus.StockMovePlusService
 import com.gz.xg.service.plus.StockMoveTagPlusService
+import com.gz.xg.util.DateUtil
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
@@ -29,6 +37,8 @@ class StockMoveService(
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
+    private val mapStruct: StockMoveMapStruct,
+    private val prodTagPlusService: ProdTagPlusService,
 ) {
 
     /**
@@ -130,6 +140,38 @@ class StockMoveService(
             stockMoveTagPlusService.saveBatch(tags)
             stockInventoryService.editLocByTagNo(tagNos, locArchive)
         }
+    }
+
+    fun page(search: StockSearch,current: Long, size: Long): Map<String, Any> {
+        val page = Page<StockMove>(current, size)
+        DateUtil.initBaseSearch(search)
+        search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
+        val wrapper = LambdaQueryWrapper<StockMove>()
+            .like(!search.no.isNullOrBlank(), StockMove::getReceiptNo, search.no)
+            .between(StockMove::getCreateTime, search.startDate, search.endDate)
+            .orderByDesc(StockMove::getId)
+
+        val pageObj = plusService.page(page, wrapper)
+        val dtoList = mapStruct.toDtoList(pageObj.records)
+        val ids = dtoList.map { it.id }
+        if (ids.isNotEmpty()){
+            val moveTags = stockMoveTagPlusService.listByPIds(ids)
+            val tagNosByPId = moveTags.groupBy({ it.pId }, { it.tagNo })
+            val allTagNos = moveTags.map { it.tagNo }
+            val prodTagMap = prodTagPlusService.moveTagListByTagNos(allTagNos).associateBy { it.tagNo }
+
+            dtoList.forEach { dtoIt ->
+                val tagNos = tagNosByPId[dtoIt.id] ?: emptyList()
+                dtoIt.tags = tagNos.mapNotNull { prodTagMap[it] }
+            }
+
+        }
+
+        return hashMapOf<String, Any>(
+            "total" to pageObj.total,
+            "records" to dtoList,
+        )
+
     }
 
 }

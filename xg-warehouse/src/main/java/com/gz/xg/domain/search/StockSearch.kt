@@ -1,6 +1,6 @@
 package com.gz.xg.domain.search
 
-data class StockInSearch (
+data class StockSearch (
     val no : String?,
     val locId : String?
 ) : BaseSearch()

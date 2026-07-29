@@ -1,9 +1,11 @@
 package com.gz.xg.domain.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.gz.xg.domain.view.VProdTag;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 扫描移库记录主表
@@ -85,5 +87,7 @@ public class StockMoveDto {
     private String realName;
 
     private String type;
+
+    private List<VProdTag> tags;
 
 }
