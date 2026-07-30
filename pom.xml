@@ -28,6 +28,7 @@
         <module>xg-basic</module>
         <module>xg-order</module>
         <module>xg-warehouse</module>
+        <module>xg-print</module>
     </modules>
     <scm>
 		<connection/>
@@ -73,6 +74,12 @@
                 <groupId>com.gz</groupId>
                 <artifactId>xg-warehouse</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.gz</groupId>
+                <artifactId>xg-print</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
             </dependency>
 
             <dependency>

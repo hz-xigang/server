@@ -17,4 +17,4 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开发环境输出SQL到控制台
 
 static:
-  base: D://code//upload//xg//dev//
+  base: D://code//upload//xg//

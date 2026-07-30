@@ -24,6 +24,12 @@
             <groupId>com.gz</groupId>
             <artifactId>xg-order</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.gz</groupId>
+            <artifactId>xg-print</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.gz</groupId>
             <artifactId>xg-basic</artifactId>
@@ -49,19 +55,15 @@
             <artifactId>mapstruct</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct-processor</artifactId>
-            <scope>provided</scope>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib-jdk8</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
-        </dependency>
+
+
     </dependencies>
 
 </project>

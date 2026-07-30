@@ -25,10 +25,7 @@ class StaticYmlConfig {
      */
     var base: String? = null
 
-    /**
-     * 上传目录子路径。
-     */
-    var upload: String? = null
+
 
     /**
      * 获取模板目录完整路径。

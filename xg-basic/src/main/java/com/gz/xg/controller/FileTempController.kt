@@ -7,6 +7,7 @@ import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.FileTempService
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("api/file-temp")
@@ -48,5 +49,14 @@ class FileTempController(
     @GetMapping("")
     fun list(): ResponseResult {
         return success(service.list())
+    }
+
+    @PostMapping("{id}/upload")
+    fun uploadFile(
+        @PathVariable id: String,
+        @RequestParam("file") file: MultipartFile
+    ): ResponseResult {
+        service.uploadFile(id, file)
+        return success()
     }
 }

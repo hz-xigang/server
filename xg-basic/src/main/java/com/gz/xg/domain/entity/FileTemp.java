@@ -44,4 +44,10 @@ public class FileTemp {
     private String userId;
 
     private String realName;
+
+    /**
+     * 文件路径
+     */
+    private String path;
+
 }

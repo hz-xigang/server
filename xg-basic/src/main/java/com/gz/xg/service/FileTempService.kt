@@ -3,7 +3,9 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
+import com.gz.xg.UserContext
 import com.gz.xg.base.BaseService
+import com.gz.xg.config.resource.StaticYmlConfig
 import com.gz.xg.domain.dto.FileTempDto
 import com.gz.xg.domain.entity.FileTemp
 import com.gz.xg.domain.mapstruct.FileTempMapStruct
@@ -12,19 +14,26 @@ import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.FileTempPlusService
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
+import java.io.File
 
 @Service
 class FileTempService(
     private val plusService: FileTempPlusService,
-    private val fileTempMapStruct: FileTempMapStruct
+    private val fileTempMapStruct: FileTempMapStruct,
+    private val staticYmlConfig: StaticYmlConfig
 ) : BaseService() {
 
     fun add(dto: FileTempDto) {
         if (plusService.existsByNameAndType(dto.name, dto.type) != null) {
             throw WebException("【${dto.name}】该模板名称已存在")
         }
+        val (userId, username,realName) = UserContext.require()
+
         val entity = fileTempMapStruct.toEntity(dto)
         entity.id = IdUtil.generateId()
+        entity.userId = userId
+        entity.realName = realName
         plusService.save(entity)
     }
 
@@ -55,7 +64,7 @@ class FileTempService(
     fun changeDeleteById(id: String) {
         plusService.byId(id)
 
-        changeDel<FileTemp>(
+        changeDel(
             plusService.baseMapper,
             FileTemp::getDeleted,
             1
@@ -80,4 +89,23 @@ class FileTempService(
         val list = plusService.listForSelect()
         return fileTempMapStruct.toDtoList(list)
     }
+
+    fun uploadFile(id: String, file: MultipartFile) {
+        plusService.byId(id)
+
+        val originalFilename = file.originalFilename ?: throw WebException("文件名不能为空")
+        val extension = originalFilename.substringAfterLast('.', "")
+        val fileName = if (extension.isNotEmpty()) "prodTag$id.$extension" else "prodTag$id"
+
+        val dir = File(staticYmlConfig.fullTemplate())
+        if (!dir.exists()) dir.mkdirs()
+
+        file.transferTo(File(dir, fileName))
+
+        LambdaUpdateChainWrapper(plusService.baseMapper)
+            .set(FileTemp::getPath, fileName)
+            .eq(FileTemp::getId, id)
+            .update()
+    }
+
 }
