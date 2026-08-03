@@ -91,6 +91,7 @@ public class ProdTagService extends BaseService {
             printLog.setId(IdUtil.INSTANCE.generateId());
             printLog.setNo(tagNo);
             printLog.setType(1);
+            printLog.setTempId(prodOrder.getTempId());
             printLog.setUserId(userInfo.getUserId());
             printLog.setUsername(userInfo.getUsername());
             printLog.setRealName(userInfo.getRealName());

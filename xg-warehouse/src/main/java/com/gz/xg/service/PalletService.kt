@@ -13,7 +13,9 @@ import com.gz.xg.service.plus.PalletTagPlusService
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
-import org.springframework.transaction.support.TransactionTemplate
+import org.springframework.transaction.TransactionDefinition
+import org.springframework.transaction.support.DefaultTransactionDefinition
+
 
 /**
  * 托盘服务，负责托盘主表和托盘标签关联的生成。
@@ -26,7 +28,7 @@ class PalletService(
     private val sysSequenceService: SysSequenceService,
     private val billTagResolver: BillTagResolver,
     private val printLogMapper: PrintLogMapper,
-    private val transactionManager: PlatformTransactionManager,
+    private val pmt: PlatformTransactionManager,
 ) {
 
     /**
@@ -35,60 +37,65 @@ class PalletService(
      * @param tagNos 纸箱标签号列表
      * @throws WebException 标签为空、不存在或已打包时抛出
      */
-    fun add(tagNos: List<String>) : String {
-       return runCatching {
-           TransactionTemplate(transactionManager).execute {
-               // 1. 解析和校验标签
-               val resolved = billTagResolver.resolve(tagNos)
+    fun add(tagNos: List<String>) : String{
 
-               // 2. 检查是否已打包
-               val occupied = palletTagPlusService.listByTagNos(resolved.tagNos)
-               if (occupied.isNotEmpty()) {
-                   throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已打包")
-               }
+        val definition = DefaultTransactionDefinition()
+        definition.propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRED
+        val status = pmt.getTransaction(definition)
 
-               // 3. 构建托盘主表
-               val genPalletNo =  sysSequenceService.generatePallet()
-               val id = IdUtil.generateId()
-               val (userId, username, realName) = UserContext.require()
+       try {
+           // 1. 解析和校验标签
+           val resolved = billTagResolver.resolve(tagNos)
 
-               val pallet = Pallet().apply {
-                   this.id = id
-                   palletNo = sysSequenceService.generatePallet()
-                   qty = resolved.total.qty
-                   grossWeight = resolved.total.grossWeight
-                   netWeight = resolved.total.netWeight
-                   this.userId = userId
-                   this.username = username
-                   this.realName = realName
-               }
-
-               // 4. 构建托盘标签关联
-               val tags = resolved.tagNos.map { tagNo ->
-                   PalletTag().apply {
-                       pId = id
-                       this.tagNo = tagNo
-                   }
-               }
-
-               // 5. 保存打印日志
-               val printLog = PrintLog().apply {
-                   this.id = IdUtil.generateId()
-                   no = pallet.palletNo
-                   type = 2
-                   this.userId = userId
-                   this.username = username
-                   this.realName = realName
-               }
-
-               // 6. 保存
-               palletPlusService.save(pallet)
-               palletTagPlusService.saveBatch(tags)
-               printLogMapper.insert(printLog)
-
-               pallet.palletNo
+           // 2. 检查是否已打包
+           val occupied = palletTagPlusService.listByTagNos(resolved.tagNos)
+           if (occupied.isNotEmpty()) {
+               throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已打包")
            }
-       }.getOrElse { "" }
+
+           // 3. 构建托盘主表
+           val id = IdUtil.generateId()
+           val (userId, username, realName) = UserContext.require()
+
+           val pallet = Pallet().apply {
+               this.id = id
+               palletNo = sysSequenceService.generatePallet()
+               qty = resolved.total.qty
+               grossWeight = resolved.total.grossWeight
+               netWeight = resolved.total.netWeight
+               this.userId = userId
+               this.username = username
+               this.realName = realName
+           }
+
+           // 4. 构建托盘标签关联
+           val tags = resolved.tagNos.map { tagNo ->
+               PalletTag().apply {
+                   pId = id
+                   this.tagNo = tagNo
+               }
+           }
+
+           // 5. 保存打印日志
+           val printLog = PrintLog().apply {
+               this.id = IdUtil.generateId()
+               no = pallet.palletNo
+               type = 2
+               this.userId = userId
+               this.username = username
+               this.realName = realName
+           }
+
+           // 6. 保存
+           palletPlusService.save(pallet)
+           palletTagPlusService.saveBatch(tags)
+           printLogMapper.insert(printLog)
+           pmt.commit(status)
+           return pallet.palletNo
+       }catch (e:Exception){
+           pmt.rollback(status)
+           throw WebException(e.message)
+       }
 
     }
 
