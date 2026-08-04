@@ -14,3 +14,6 @@ mybatis-plus:
 static:
   template: template
   tmp: tmp
+
+u8:
+  url: http://127.0.0.1:3001/U8_API/
