@@ -20,7 +20,6 @@ class AuthInterceptor(
         }
 
         val authHeader = request.getHeader("Authorization")
-        System.err.println(authHeader)
         if (authHeader.isNullOrBlank() || !authHeader.startsWith("Bearer ")) {
             throw WebException("未登录或token无效")
         }
