@@ -16,6 +16,7 @@ import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.StockInPlusService
 import com.gz.xg.service.plus.StockInTagPlusService
+import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.util.DateUtil
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
@@ -30,6 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate
 class StockInService(
     private val plusService: StockInPlusService,
     private val stockInTagPlusService: StockInTagPlusService,
+    private val stockInventoryPlusService: StockInventoryPlusService,
     private val locArchivePlusService: LocArchivePlusService,
     private val prodTagPlusService: ProdTagPlusService,
     private val sysSequenceService: SysSequenceService,
@@ -60,6 +62,12 @@ class StockInService(
         TransactionTemplate(transactionManager).executeWithoutResult {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
+
+            // TRN-4 / STK-2：调拨入库前校验是否已在库
+            val existing = stockInventoryPlusService.listByTagNos(resolved.tagNos)
+            if (existing.isNotEmpty()) {
+                throw WebException("【${existing.joinToString(",") { it.tagNo }}】已在库存中，不能重复入库")
+            }
 
             val id = IdUtil.generateId()
             val (userId, username, realName) = UserContext.require()

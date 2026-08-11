@@ -26,9 +26,17 @@ class PrepOrderPlusService : ServiceImpl<PrepOrderMapper, PrepOrder>(){
     fun findByNo(no : String?) : PrepOrder{
         val wrapper = LambdaQueryWrapper<PrepOrder>()
             .eq(PrepOrder::getPrepNo,no)
+            .eq(PrepOrder::getDeleted,0)
 
-        return this.getOne(wrapper)
-            ?: throw WebException("【${no}】该发货指令单不存在")
+        val prepOrder = this.getOne(wrapper)
+            ?: throw WebException("【${no}】该备料指令单不存在")
+
+        // PRE-5：只允许未开始(0)或备料中(1)的指令继续备料
+        if (prepOrder.status != 0 && prepOrder.status != 1) {
+            throw WebException("【${no}】该备料指令已备料完成，不能继续备料")
+        }
+
+        return prepOrder
     }
 
 

@@ -49,6 +49,10 @@ class StockMoveService(
             val locArchive = locArchivePlusService.getById(req.locId)
                 ?: throw WebException("该库位不存在")
 
+            if (locArchive.status == "禁用") {
+                throw WebException("该库位已禁用")
+            }
+
             val resolved = billTagResolver.resolve(req.tagNos)
 
             // 校验标签是否在库存中
@@ -71,6 +75,7 @@ class StockMoveService(
                 netWeight = resolved.total.netWeight
                 locId = locArchive.id
                 locCode = locArchive.locCode
+                type = "普通移库"
                 this.userId = userId
                 this.username = username
                 this.realName = realName

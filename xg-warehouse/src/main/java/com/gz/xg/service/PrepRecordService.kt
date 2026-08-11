@@ -45,6 +45,11 @@ class PrepRecordService(
             prodTags.forEach { it ->
                 run {
                     val detail = orderDetails.find { oIt -> oIt.inventoryCode == it.inventoryCode }
+                        ?: throw WebException("【${it.tagNo}】存货编码【${it.inventoryCode}】不在备料指令清单中")
+
+                    // PRE-4：当前不做超量备料硬拦截。
+                    // 原因：指令计划数量与实际备料数量可能存在差异（如指令备100箱，现场可能备150箱），
+                    // 业务上允许超出，后续如需控制可设定允许超出的比例或绝对值。
                     val record = prepRecordMapStruct.detailToEntity(detail)
                     record.id = IdUtil.generateId()
                     record.prepOrderNo = prepOrder.prepNo
@@ -57,9 +62,8 @@ class PrepRecordService(
             stockMoveService.addByPrep(records,packLoc)
             pmt.commit(status)
         }catch (e: Exception){
-            e.printStackTrace()
             pmt.rollback(status)
-            throw WebException(e.message)
+            throw WebException(e.message ?: "备料失败", e)
         }
 
     }

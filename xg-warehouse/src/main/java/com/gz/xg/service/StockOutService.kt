@@ -15,6 +15,7 @@ import com.gz.xg.domain.search.StockSearch
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.service.plus.ProdTagPlusService
+import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.service.plus.StockOutPlusService
 import com.gz.xg.service.plus.StockOutTagPlusService
 import com.gz.xg.util.DateUtil
@@ -29,6 +30,7 @@ class StockOutService(
     private val stockOutTagPlusService: StockOutTagPlusService,
     private val locArchivePlusService: LocArchivePlusService,
     private val prodTagPlusService: ProdTagPlusService,
+    private val stockInventoryPlusService: StockInventoryPlusService,
     private val stockOutMapStruct: StockOutMapStruct,
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
@@ -49,6 +51,15 @@ class StockOutService(
             }
 
             val resolved = billTagResolver.resolve(tagNos)
+
+            // SHP-2：校验所有标签是否在库（StockInventory.deleted=0）
+            val inventories = stockInventoryPlusService.listByTagNos(resolved.tagNos)
+            if (inventories.size != resolved.tagNos.size) {
+                val inStock = inventories.map { it.tagNo }.toSet()
+                val missing = resolved.tagNos - inStock
+                throw WebException("【${missing.joinToString(",")}】不在库存中，无法出库")
+            }
+
             val id = IdUtil.generateId()
             val (userId, username, realName) = UserContext.require()
 
@@ -88,6 +99,14 @@ class StockOutService(
         TransactionTemplate(transactionManager).executeWithoutResult {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
+
+            // SHP-2：校验所有标签是否在库（StockInventory.deleted=0）
+            val inventories = stockInventoryPlusService.listByTagNos(resolved.tagNos)
+            if (inventories.size != resolved.tagNos.size) {
+                val inStock = inventories.map { it.tagNo }.toSet()
+                val missing = resolved.tagNos - inStock
+                throw WebException("【${missing.joinToString(",")}】不在库存中，无法出库")
+            }
             val id = IdUtil.generateId()
             val (userId, username, realName) = UserContext.require()
 

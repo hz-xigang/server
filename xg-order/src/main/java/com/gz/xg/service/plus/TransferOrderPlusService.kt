@@ -45,9 +45,16 @@ class TransferOrderPlusService : ServiceImpl<TransferOrderMapper, TransferOrder>
     fun findByNo(no : String?) :TransferOrder {
         val wrapper = LambdaQueryWrapper<TransferOrder>()
             .eq(TransferOrder::getOrderNo, no)
+            .eq(TransferOrder::getDeleted, 0)
 
-        return this.getOne(wrapper)
+        val order = this.getOne(wrapper)
             ?: throw WebException("【${no}】该调拨指令单不存在")
+
+        if (order.status != 0) {
+            throw WebException("【${no}】该调拨指令已执行，不能重复调拨")
+        }
+
+        return order
     }
 
 }

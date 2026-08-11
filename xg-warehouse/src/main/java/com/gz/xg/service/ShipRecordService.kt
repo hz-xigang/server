@@ -51,17 +51,18 @@ class ShipRecordService(
                     record.id = IdUtil.generateId()
                     record.shipOrder = addStockOrder.no
                     val orderDetail = orderDetails.find { oIt -> oIt.inventoryCode == it.inventoryCode }
-                    record.loc = orderDetail?.warehouseName
+                        ?: throw WebException("【${it.tagNo}】存货编码【${it.inventoryCode}】不在发货指令清单中")
+                    record.loc = orderDetail.warehouseName
                     record.inventoryCode = it.inventoryCode
                     record.inventoryName = it.inventoryName
                     record.spec = it.spec
-                    record.material = orderDetail?.material
-                    record.unit = orderDetail?.unit
-                    record.weight = orderDetail?.weight
+                    record.material = orderDetail.material
+                    record.unit = orderDetail.unit
+                    record.weight = orderDetail.weight
                     record.qty = it.qty
-                    record.unitWeight = orderDetail?.unitWeight
-                    record.packingMethod = orderDetail?.packingMethod
-                    record.specWidth = orderDetail?.specWidth
+                    record.unitWeight = orderDetail.unitWeight
+                    record.packingMethod = orderDetail.packingMethod
+                    record.specWidth = orderDetail.specWidth
                     record.customerCode = it.customerCode
                     record.tagNo = it.tagNo
                     record.shipOrder = shipOrder.shipNo
@@ -74,9 +75,8 @@ class ShipRecordService(
             pmt.commit(status)
 
         }catch (e: Exception){
-            e.printStackTrace()
             pmt.rollback(status)
-            throw WebException(e.message)
+            throw WebException(e.message ?: "发货失败", e)
         }
 
 

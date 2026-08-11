@@ -61,6 +61,7 @@ class TransferRecordService(
             prodTags.forEach { it ->
                 run {
                     val detail = orderDetails.find { oIt -> oIt.inventoryCode == it.inventoryCode }
+                        ?: throw WebException("【${it.tagNo}】存货编码【${it.inventoryCode}】不在调拨指令清单中")
                     val record = transferRecordMapStruct.detailToEntity(detail)
                     record.id = IdUtil.generateId()
                     record.transferOrderNo = order.orderNo
@@ -78,9 +79,8 @@ class TransferRecordService(
             pmt.commit(status)
 
         }catch (e: Exception){
-            e.printStackTrace()
             pmt.rollback(status)
-            throw WebException(e.message)
+            throw WebException(e.message ?: "调拨失败", e)
         }
 
     }

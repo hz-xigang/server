@@ -27,8 +27,15 @@ class ShipOrderPlusService : MPJBaseServiceImpl<ShipOrderMapper, ShipOrder>(){
     fun findByNo(no : String?) :ShipOrder{
         val wrapper = LambdaQueryWrapper<ShipOrder>()
             .eq(ShipOrder::getShipNo,no)
+            .eq(ShipOrder::getDeleted,0)
 
-        return this.getOne(wrapper)
+        val shipOrder = this.getOne(wrapper)
             ?: throw WebException("【${no}】该发货指令单不存在")
+
+        if (shipOrder.status != 0) {
+            throw WebException("【${no}】该发货指令已发货，不能重复发货")
+        }
+
+        return shipOrder
     }
 }

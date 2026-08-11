@@ -77,6 +77,8 @@ class PalletService(
            }
 
            // 5. 保存打印日志
+           // 说明（PAL-7）：托盘标签打印暂不生成 PDF 文件，此处仅记录打印日志（type=2）。
+           // 若后续需要打印托盘标签，参照 ProdTagService.generateExcel 实现（需补充模板 tempId）。
            val printLog = PrintLog().apply {
                this.id = IdUtil.generateId()
                no = pallet.palletNo
@@ -94,7 +96,7 @@ class PalletService(
            return pallet.palletNo
        }catch (e:Exception){
            pmt.rollback(status)
-           throw WebException(e.message)
+           throw WebException(e.message ?: "打托失败", e)
        }
 
     }

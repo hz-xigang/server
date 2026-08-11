@@ -55,6 +55,7 @@ import org.springframework.stereotype.Service
         LambdaUpdateChainWrapper(plusService.baseMapper)
             .set(StockInventory::getLocId,loc.id)
             .set(StockInventory::getLocCode,loc.locCode)
+            .eq(StockInventory::getDeleted, 0)
             .`in`(StockInventory::getTagNo,tagNos)
             .update()
     }
@@ -63,6 +64,7 @@ import org.springframework.stereotype.Service
         LambdaUpdateChainWrapper(plusService.baseMapper)
             .set(StockInventory::getLocId,loc.id)
             .set(StockInventory::getLocCode,loc.locCode)
+            .eq(StockInventory::getDeleted, 0)
             .`in`(StockInventory::getTagNo,tagNos)
             .update()
     }
@@ -73,6 +75,7 @@ import org.springframework.stereotype.Service
             plusService.baseMapper,
             StockInventory::getDeleted,
             1){
+            eq(StockInventory::getDeleted, 0)
             `in`(StockInventory::getTagNo,tagNos)
         }
     }
