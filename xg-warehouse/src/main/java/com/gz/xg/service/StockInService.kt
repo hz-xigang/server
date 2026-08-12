@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
 import com.gz.xg.domain.entity.LocArchive
-import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockInTag
 import com.gz.xg.domain.entity.TransferRecord
@@ -45,7 +44,7 @@ class StockInService(
      * 新增入库单，并同步写入库存表。
      */
     fun add(req: AddStockIn) {
-        addByType(req, null)
+        addByType(req, "直接入库")
     }
 
     /**
@@ -69,34 +68,7 @@ class StockInService(
                 throw WebException("【${existing.joinToString(",") { it.tagNo }}】已在库存中，不能重复入库")
             }
 
-            val id = IdUtil.generateId()
-            val (userId, username, realName) = UserContext.require()
-
-            val stockIn = StockIn().apply {
-                this.id = id
-                receiptNo = outNo
-                qty = resolved.total.qty
-                grossWeight = resolved.total.grossWeight
-                netWeight = resolved.total.netWeight
-                this.userId = userId
-                this.username = username
-                this.realName = realName
-                type = "调拨入库"
-                loc = locArchive.locCode
-            }
-
-            val tags = records.map {
-                StockInTag().apply {
-                    pId = id
-                    tagNo = it.tagNo
-                    locCode = locArchive.locCode
-                    locId = locArchive.id
-                }
-            }
-
-            plusService.save(stockIn)
-            stockInTagPlusService.saveBatch(tags)
-            stockInventoryService.addBatch(resolved.prodTags, locArchive)
+            saveStockIn(resolved, "调拨入库", outNo, locArchive)
         }
     }
 
@@ -108,7 +80,7 @@ class StockInService(
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
         val wrapper = MPJLambdaWrapper<StockIn>()
             .like(!search.no.isNullOrBlank(), StockIn::getReceiptNo, search.no)
-            .between(ProdOrder::getCreateTime, search.startDate, search.endDate)
+            .between(StockIn::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(StockIn::getId)
 
         val pageObj = plusService.page(page, wrapper)
@@ -134,48 +106,62 @@ class StockInService(
         )
     }
 
-    private fun addByType(req: AddStockIn, type: String?) {
+    private fun addByType(req: AddStockIn, type: String) {
         TransactionTemplate(transactionManager).executeWithoutResult {
             val locArchive = locArchivePlusService.getById(req.locId)
                 ?: throw WebException("该库位不存在")
 
             val resolved = billTagResolver.resolve(req.tagNos)
 
-            // 检查是否已入库
-            val occupied = stockInTagPlusService.listByTagNos(resolved.tagNos)
+            // STK-1：防重复入库改为查库存表（StockInventory.deleted=0），而非入库流水表
+            // 流水表同一 tagNo 可有多条（首次+退货+调拨），历史上入过库即被误拦；
+            // 文档规则：当前在库（deleted=0）才拦截
+            val occupied = stockInventoryPlusService.listByTagNos(resolved.tagNos)
             if (occupied.isNotEmpty()) {
-                throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已入库")
+                throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已在库存中，不能重复入库")
             }
 
-            val id = IdUtil.generateId()
-            val (userId, username, realName) = UserContext.require()
-
-            val stockIn = StockIn().apply {
-                this.id = id
-                receiptNo = sysSequenceService.generateStockIn()
-                qty = resolved.total.qty
-                grossWeight = resolved.total.grossWeight
-                netWeight = resolved.total.netWeight
-                loc = locArchive.locCode
-                this.type = type
-                this.userId = userId
-                this.username = username
-                this.realName = realName
-            }
-
-            val tags = resolved.tagNos.map { tagNo ->
-                StockInTag().apply {
-                    pId = id
-                    this.tagNo = tagNo
-                    locId = locArchive.id
-                    locCode = locArchive.locCode
-                }
-            }
-
-            plusService.save(stockIn)
-            stockInTagPlusService.saveBatch(tags)
-            stockInventoryService.addBatch(resolved.prodTags, locArchive)
+            saveStockIn(resolved, type, sysSequenceService.generateStockIn(), locArchive)
         }
+    }
+
+    /**
+     * STK-6：入库单保存公共逻辑（普通/退货/调拨入库共用）。
+     */
+    private fun saveStockIn(
+        resolved: ResolvedTags,
+        type: String,
+        receiptNo: String,
+        locArchive: LocArchive
+    ) {
+        val id = IdUtil.generateId()
+        val (userId, username, realName) = UserContext.require()
+
+        val stockIn = StockIn().apply {
+            this.id = id
+            this.receiptNo = receiptNo
+            qty = resolved.total.qty
+            grossWeight = resolved.total.grossWeight
+            netWeight = resolved.total.netWeight
+            this.type = type
+            loc = locArchive.locCode
+            this.userId = userId
+            this.username = username
+            this.realName = realName
+        }
+
+        val tags = resolved.tagNos.map { tagNo ->
+            StockInTag().apply {
+                pId = id
+                this.tagNo = tagNo
+                locId = locArchive.id
+                locCode = locArchive.locCode
+            }
+        }
+
+        plusService.save(stockIn)
+        stockInTagPlusService.saveBatch(tags)
+        stockInventoryService.addBatch(resolved.prodTags, locArchive)
     }
 
 }

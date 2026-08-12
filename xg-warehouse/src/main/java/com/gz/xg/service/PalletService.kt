@@ -1,6 +1,7 @@
 package com.gz.xg.service
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.gz.xg.UserContext
 import com.gz.xg.domain.entity.Pallet
 import com.gz.xg.domain.entity.PalletTag
@@ -102,6 +103,73 @@ class PalletService(
     }
 
     /**
+     * 拆托：从托盘中移除指定纸箱标签。
+     *
+     * 1. 校验托盘存在
+     * 2. 校验所有待拆标签属于该托盘
+     * 3. 软删除 PalletTag 关联记录
+     * 4. 重新计算托盘汇总（数量/毛重/净重）；若全部拆完则软删除托盘
+     *
+     * @param palletNo 托盘号
+     * @param tagNos 待拆除的纸箱标签号列表
+     * @throws WebException 托盘不存在或标签不在托盘中时抛出
+     */
+    fun unbundle(palletNo: String, tagNos: List<String>) {
+        val definition = DefaultTransactionDefinition()
+        definition.propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRED
+        val status = pmt.getTransaction(definition)
+
+        try {
+            // 1. 查询托盘
+            val pallet = palletPlusService.getOne(
+                QueryWrapper<Pallet>()
+                    .eq("palletNo", palletNo)
+                    .eq("deleted", 0)
+            ) ?: throw WebException("【${palletNo}】该托盘不存在")
+
+            // 2. 查询该托盘关联的所有标签
+            val allTags = palletTagPlusService.listByPId(pallet.id)
+            val existingTagNos = allTags.map { it.tagNo }.toSet()
+
+            // 3. 校验：待拆标签必须全部属于该托盘
+            val missing = tagNos.filter { it !in existingTagNos }
+            if (missing.isNotEmpty()) {
+                throw WebException("【${missing.joinToString(",")}】不在托盘${palletNo}中")
+            }
+
+            // 4. 软删除对应 PalletTag 记录
+            LambdaUpdateChainWrapper(palletTagPlusService.baseMapper)
+                .set(PalletTag::getDeleted, 1)
+                .eq(PalletTag::getDeleted, 0)
+                .eq(PalletTag::getPId, pallet.id)
+                .`in`(PalletTag::getTagNo, tagNos)
+                .update()
+
+            // 5. 更新托盘汇总或软删除托盘
+            val remainingTagNos = existingTagNos - tagNos.toSet()
+            if (remainingTagNos.isEmpty()) {
+                // 全部拆完 → 软删除托盘
+                LambdaUpdateChainWrapper(palletPlusService.baseMapper)
+                    .set(Pallet::getDeleted, 1)
+                    .eq(Pallet::getId, pallet.id)
+                    .update()
+            } else {
+                // 重新计算托盘汇总
+                val resolved = billTagResolver.resolve(remainingTagNos.toList())
+                pallet.qty = resolved.total.qty
+                pallet.grossWeight = resolved.total.grossWeight
+                pallet.netWeight = resolved.total.netWeight
+                palletPlusService.updateById(pallet)
+            }
+
+            pmt.commit(status)
+        } catch (e: Exception) {
+            pmt.rollback(status)
+            throw WebException(e.message ?: "拆托失败", e)
+        }
+    }
+
+    /**
      * 根据托盘号查询关联的纸箱标签详情，并执行占用校验
      *
      * @param palletNo 托盘号
@@ -126,8 +194,10 @@ class PalletService(
         val tagNos = palletTags.map { it.tagNo }
 
         // 3. 逐个查询纸箱标签详情，并执行占用校验
+        // PAL-3：托盘展开场景下 flag=1（已打包校验）不适用——托盘内标签必然已打包，
+        // 透传 flag=1 会导致全量误报"已打包"、整托操作永远失败；此处降级为 flag=0（仅查视图）。
         return tagNos.map { tagNo ->
-            prodTagService.findVoByTagNo(tagNo, flag)
+            prodTagService.findVoByTagNo(tagNo, if (flag == 1) 0 else flag)
         }
     }
 }

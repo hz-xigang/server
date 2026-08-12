@@ -41,4 +41,11 @@ import org.springframework.stereotype.Service
         if (findByTagNo(tagNo) != null) throw WebException("【$tagNo】该条码未出库")
     }
 
+    /**
+     * 断言标签当前不在库（deleted=0 不存在），否则抛出指定消息的业务异常。
+     */
+    fun assertNotExists(tagNo: String, message: String) {
+        if (findByTagNo(tagNo) != null) throw WebException(message)
+    }
+
  }

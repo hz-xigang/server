@@ -30,4 +30,12 @@ class PalletController(
         return success(service.findTagsByPalletNo(palletNo, type))
     }
 
+    @PostMapping("/unbundle/{palletNo}")
+    fun unbundle(@PathVariable palletNo: String,
+                 @RequestBody tagNos: List<String>) : ResponseResult
+    {
+        service.unbundle(palletNo, tagNos)
+        return success()
+    }
+
 }

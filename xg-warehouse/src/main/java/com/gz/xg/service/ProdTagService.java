@@ -84,6 +84,8 @@ public class ProdTagService extends BaseService {
 
             String tagNo = sysSequenceService.generateCarton();
             prodTag.setTagNo(tagNo);
+            prodTag.setCreateTime(LocalDateTime.now());
+            prodTag.setDeleted(0);
             prodTagPlusService.save(prodTag);
 
 
@@ -162,7 +164,7 @@ public class ProdTagService extends BaseService {
                 palletTagPlusService.assertNotExists(tagNo, "【" + tagNo + "】纸箱标签已打包");
                 break;
             case 2:
-                stockInTagPlusService.assertNotExists(tagNo, "【" + tagNo + "】纸箱标签已入库");
+                stockInventoryPlusService.assertNotExists(tagNo, "【" + tagNo + "】纸箱标签已入库");
                 break;
             case 7:
                 stockInventoryPlusService.assertNotExists(tagNo);
@@ -177,7 +179,16 @@ public class ProdTagService extends BaseService {
     }
 
     public void softDelById(String id) {
-        prodTagPlusService.findById(id);
+        com.gz.xg.domain.view.VProdTag tag = prodTagPlusService.findById(id);
+
+        // TAG-7：删除前检查是否已打托或已入库，被引用时拒绝删除
+        if (palletTagPlusService.findByTagNo(tag.getTagNo()) != null) {
+            throw new WebException("【" + tag.getTagNo() + "】已打托，不能删除");
+        }
+        if (stockInTagPlusService.findByTagNo(tag.getTagNo()) != null) {
+            throw new WebException("【" + tag.getTagNo() + "】已入库，不能删除");
+        }
+
         changeDel(prodTagPlusService.getBaseMapper(), ProdTag::getDeleted, 1,
                 wrapper -> {
                     wrapper.eq(ProdTag::getId, id);

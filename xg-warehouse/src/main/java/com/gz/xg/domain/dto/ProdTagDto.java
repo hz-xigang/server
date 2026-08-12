@@ -1,6 +1,8 @@
 package com.gz.xg.domain.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,16 +31,22 @@ public class ProdTagDto {
     /**
      * 单箱物料数量
      */
+    @NotNull(message = "数量不能为空")
+    @Positive(message = "数量必须大于0")
     private Integer qty;
 
     /**
      * 货品毛重(kg)，保留两位小数
      */
+    @NotNull(message = "毛重不能为空")
+    @Positive(message = "毛重必须大于0")
     private BigDecimal grossWeight;
 
     /**
      * 货品净重(kg)，保留两位小数
      */
+    @NotNull(message = "净重不能为空")
+    @Positive(message = "净重必须大于0")
     private BigDecimal netWeight;
 
 

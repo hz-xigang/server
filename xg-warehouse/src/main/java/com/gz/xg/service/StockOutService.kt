@@ -4,9 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
 import com.gz.xg.domain.entity.LocArchive
-import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.ShipRecord
-import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockOut
 import com.gz.xg.domain.entity.StockOutTag
 import com.gz.xg.domain.entity.TransferRecord
@@ -143,9 +141,9 @@ class StockOutService(
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
 
         val wrapper = MPJLambdaWrapper<StockOut>()
-            .like(!search.no.isNullOrBlank(), StockIn::getReceiptNo, search.no)
-            .between(ProdOrder::getCreateTime, search.startDate, search.endDate)
-            .orderByDesc(StockIn::getId)
+            .like(!search.no.isNullOrBlank(), StockOut::getReceiptNo, search.no)
+            .between(StockOut::getCreateTime, search.startDate, search.endDate)
+            .orderByDesc(StockOut::getId)
 
         val pageObj = plusService.page(page, wrapper)
         val dtoList = stockOutMapStruct.toDtoList(pageObj.records)
