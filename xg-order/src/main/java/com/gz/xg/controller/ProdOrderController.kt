@@ -1,12 +1,15 @@
 package com.gz.xg.controller
 
 import com.gz.xg.base.BaseController
+import com.gz.xg.domain.dto.ProdOrderDto
 import com.gz.xg.domain.search.ProdOrderSearch
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.ProdOrderService
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -33,8 +36,16 @@ open class ProdOrderController(
         return success(service.page(page,size,search))
     }
 
+    @PutMapping("")
+    fun edit(@RequestBody dto: ProdOrderDto) : ResponseResult {
+        service.edit(dto)
+        return success()
+    }
 
-
-
+    @DeleteMapping("{id}")
+    fun softDel(@PathVariable id: String) : ResponseResult {
+        service.softDel(id)
+        return success()
+    }
 
 }

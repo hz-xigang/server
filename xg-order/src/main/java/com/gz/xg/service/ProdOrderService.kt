@@ -1,9 +1,10 @@
 package com.gz.xg.service
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.base.BaseService
+import com.gz.xg.domain.dto.ProdOrderDto
 import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.search.ProdOrderSearch
 import com.gz.xg.service.plus.ProductionOrderPlusService
@@ -45,5 +46,35 @@ import org.springframework.stereotype.Service
 
         val orderPage = plusService.page(page, wrapper)
         return getPage(orderPage)
+    }
+
+    /**
+     * 编辑生产单（仅更新页面可编辑字段，不影响单号与创建时间）。
+     */
+    fun edit(dto: ProdOrderDto) {
+        plusService.findById(dto.id)
+
+        LambdaUpdateChainWrapper(plusService.baseMapper)
+            .eq(ProdOrder::getId, dto.id)
+            .set(dto.erpOrderNo != null, ProdOrder::getErpOrderNo, dto.erpOrderNo)
+            .set(dto.inventoryCode != null, ProdOrder::getInventoryCode, dto.inventoryCode)
+            .set(dto.inventoryName != null, ProdOrder::getInventoryName, dto.inventoryName)
+            .set(dto.customerCode != null, ProdOrder::getCustomerCode, dto.customerCode)
+            .set(dto.productCategory != null, ProdOrder::getProductCategory, dto.productCategory)
+            .set(dto.spec != null, ProdOrder::getSpec, dto.spec)
+            .set(dto.status != null, ProdOrder::getDeleted, !dto.status)
+            .update()
+    }
+
+    /**
+     * 软删除生产单（deleted=1）。
+     */
+    fun softDel(id: String) {
+        plusService.findById(id)
+
+        LambdaUpdateChainWrapper(plusService.baseMapper)
+            .eq(ProdOrder::getId, id)
+            .set(ProdOrder::getDeleted, true)
+            .update()
     }
 }
