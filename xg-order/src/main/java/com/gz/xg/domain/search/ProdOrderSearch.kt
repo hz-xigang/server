@@ -4,6 +4,6 @@ class ProdOrderSearch : BaseSearch() {
 
     var category: String? = null
 
-    var status : Int? = null
+    var status : Boolean? = null
 
 }

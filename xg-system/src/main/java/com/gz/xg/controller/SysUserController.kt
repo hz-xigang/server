@@ -3,6 +3,7 @@ package com.gz.xg.controller
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.SysUserDto
 import com.gz.xg.domain.req.BindUserRoleReq
+import com.gz.xg.domain.req.ChangePwdReq
 import com.gz.xg.domain.req.LoginReq
 import com.gz.xg.domain.req.UserSearch
 import com.gz.xg.exception.ResponseResult
@@ -30,6 +31,12 @@ class SysUserController(
     @PostMapping("login")
     fun login(@RequestBody @Validated loginReq: LoginReq): ResponseResult {
         return success(service.login(loginReq))
+    }
+
+    @PostMapping("change-pwd")
+    fun changePwd(@RequestBody @Validated req: ChangePwdReq): ResponseResult {
+        service.changePwd(req)
+        return success()
     }
 
     @PostMapping("page")

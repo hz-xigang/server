@@ -142,6 +142,7 @@ class StockOutService(
 
         val wrapper = MPJLambdaWrapper<StockOut>()
             .like(!search.no.isNullOrBlank(), StockOut::getReceiptNo, search.no)
+            .like(!search.locCode.isNullOrBlank(), StockOut::getLoc, search.locCode)
             .between(StockOut::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(StockOut::getId)
 

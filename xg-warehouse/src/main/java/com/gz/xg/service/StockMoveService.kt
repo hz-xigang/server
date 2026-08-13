@@ -153,6 +153,7 @@ class StockMoveService(
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
         val wrapper = LambdaQueryWrapper<StockMove>()
             .like(!search.no.isNullOrBlank(), StockMove::getReceiptNo, search.no)
+            .like(!search.locCode.isNullOrBlank(), StockMove::getLocCode, search.locCode)
             .between(StockMove::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(StockMove::getId)
 

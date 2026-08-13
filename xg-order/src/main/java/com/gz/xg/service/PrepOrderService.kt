@@ -8,8 +8,10 @@ import com.gz.xg.domain.dto.TransferOrderDto
 import com.gz.xg.domain.entity.PrepOrder
 import com.gz.xg.domain.mapstruct.PrepOrderDetailMapStruct
 import com.gz.xg.domain.mapstruct.PrepOrderMapStruct
+import com.gz.xg.domain.search.PrepOrderSearch
 import com.gz.xg.service.plus.PrepOrderDetailPlusService
 import com.gz.xg.service.plus.PrepOrderPlusService
+import com.gz.xg.util.DateUtil
 import com.gz.xg.util.IdUtil
 
 import org.springframework.stereotype.Service
@@ -53,9 +55,14 @@ class PrepOrderService(
     /**
      * 分页查询备料单，并回填每条主表记录对应的明细列表。
      */
-    fun page(current : Long, size : Long) : Map<String, Any>{
+    fun page(current : Long, size : Long, search: PrepOrderSearch) : Map<String, Any>{
         val page = Page<PrepOrder>(current, size)
+        search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
         val wrapper = LambdaQueryWrapper<PrepOrder>()
+            .like(!search.prepNo.isNullOrBlank(), PrepOrder::getPrepNo, search.prepNo)
+            .like(!search.customerCode.isNullOrBlank(), PrepOrder::getCustomerCode, search.customerCode)
+            .eq(search.status != null, PrepOrder::getStatus, search.status)
+            .between(!search.startDate.isNullOrBlank() && !search.endDate.isNullOrBlank(), PrepOrder::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(PrepOrder::getId)
 
         val pageObj = plusService.page(page, wrapper)

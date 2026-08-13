@@ -41,6 +41,7 @@ import org.springframework.stereotype.Service
                 }
             }
             .eq(search.status != null,ProdOrder::getDeleted,search.status)
+            .eq(!search.category.isNullOrBlank(), ProdOrder::getProductCategory, search.category)
             .orderByDesc(ProdOrder::getCreateTime)
 
 

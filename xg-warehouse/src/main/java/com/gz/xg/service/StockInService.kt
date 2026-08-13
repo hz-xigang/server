@@ -80,6 +80,7 @@ class StockInService(
         search.endDate = search.endDate?.let { DateUtil.strAddDays(it) }
         val wrapper = MPJLambdaWrapper<StockIn>()
             .like(!search.no.isNullOrBlank(), StockIn::getReceiptNo, search.no)
+            .like(!search.locCode.isNullOrBlank(), StockIn::getLoc, search.locCode)
             .between(StockIn::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(StockIn::getId)
 

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapp
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
+import com.gz.xg.UserContext
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.dto.SysUserDto
 import com.gz.xg.domain.entity.SysRole
@@ -12,6 +13,7 @@ import com.gz.xg.domain.entity.SysUser
 import com.gz.xg.domain.entity.SysUserRole
 import com.gz.xg.domain.mapstruct.SysUserMapStruct
 import com.gz.xg.domain.req.BindUserRoleReq
+import com.gz.xg.domain.req.ChangePwdReq
 import com.gz.xg.domain.req.LoginReq
 import com.gz.xg.domain.req.UserSearch
 import com.gz.xg.domain.view.VSysUserRole
@@ -75,6 +77,21 @@ class SysUserService(
         }
 
         return jwtService.generateToken(user)
+    }
+
+    /**
+     * 修改当前登录用户密码（校验原密码后加密新密码）。
+     */
+    fun changePwd(req: ChangePwdReq) {
+        val loginUser = UserContext.require()
+        val user = plusService.byId(loginUser.userId)
+
+        if (!passwordEncoder.matches(req.oldPwd, user.pwd)) {
+            throw WebException("原密码错误")
+        }
+
+        user.pwd = passwordEncoder.encode(req.newPwd)
+        plusService.updateById(user)
     }
 
 
