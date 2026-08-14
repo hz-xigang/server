@@ -32,11 +32,10 @@ class SysRoleController(
     fun add(@RequestBody @Validated dto : SysRoleDto,request: HttpServletRequest) : ResponseResult{
 
         if (request.method.uppercase() == RequestMethod.POST.name){
-            service.add(dto)
-        }else{
-            service.editById(dto)
+            return success(service.add(dto))
         }
 
+        service.editById(dto)
         return success()
     }
 

@@ -40,9 +40,9 @@ class SysRoleService(
     }
 
     /**
-     * 新增
+     * 新增，返回新角色 id。
      */
-    fun add(dto: SysRoleDto) {
+    fun add(dto: SysRoleDto): String {
         val role = plusService.byName(dto.name,null)
         if (role != null) {
             throw WebException("【${dto.name}】 该角色名已存在 ")
@@ -50,6 +50,7 @@ class SysRoleService(
         val entity = roleMapStruct.toEntity(dto)
         entity.id = IdUtil.generateId()
         plusService.save(entity)
+        return entity.id
     }
 
     /**
