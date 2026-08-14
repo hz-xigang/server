@@ -1,5 +1,6 @@
 package com.gz.xg.controller
 
+import com.gz.xg.UserContext
 import com.gz.xg.base.BaseController
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.SysRightService
@@ -18,6 +19,10 @@ class SysRightController(
         return success(service.menuTree())
     }
 
-
+    @GetMapping("/menu/tree/current")
+    fun currentUserMenuTree() : ResponseResult {
+        val loginUser = UserContext.require()
+        return success(service.menuTreeByUserId(loginUser.userId))
+    }
 
 }
