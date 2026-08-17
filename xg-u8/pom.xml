@@ -38,6 +38,10 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.gz</groupId>
+            <artifactId>xg-shared</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

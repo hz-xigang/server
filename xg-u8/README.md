@@ -36,28 +36,61 @@ U8Response<U8PurchaseOrderMain> response = u8PurchaseOrderService.queryPurchaseO
 U8Response<U8PurchaseOrderMain> response = u8PurchaseOrderService.queryPurchaseOrderMain("002");
 ```
 
-**响应字段**:
-- `code`: "0"-失败, "1"-成功
-- `returnMessage`: 返回信息
-- `data`: 采购订单列表
-  - `voustate`: 单据状态 (add/update/delete)
-  - `poid`: 订单主键
-  - `ccode`: 单据号
-  - `ddate`: 单据日期
-  - `cvencode/cvenname`: 供应商编码/名称
-  - `cptcode`: 采购类型
-  - `cdepcode/cdepname`: 部门编码/名称
-  - `cmemo`: 单据备注
-  - `cmaker/cverifier`: 制单人/审核人
-  - `cauditdate`: 审核日期
-  - `details`: 订单明细列表
-    - `iposid`: 明细主键（用于生成入库单）
-    - `cinvcode/cinvname`: 存货编码/名称
-    - `cinvstd`: 规格型号
-    - `inum`: 辅计量数量
-    - `iquantity`: 数量
-    - `cbmemo`: 行备注
-    - `darrivedate`: 计划到货日期
+**Java 字段说明**（已通过 @SerializedName 优化命名）:
+- `voucherState`: 单据状态 (add/update/delete)
+- `purchaseOrderId`: 订单主键
+- `orderCode`: 单据号
+- `orderDate`: 单据日期
+- `vendorCode/vendorName`: 供应商编码/名称
+- `purchaseTypeCode`: 采购类型
+- `departmentCode/departmentName`: 部门编码/名称
+- `memo`: 单据备注
+- `maker/verifier`: 制单人/审核人
+- `auditDate`: 审核日期
+- `details`: 订单明细列表
+  - `detailId`: 明细主键（用于生成入库单）
+  - `inventoryCode/inventoryName`: 存货编码/名称
+  - `specification`: 规格型号
+  - `auxiliaryQuantity`: 辅计量数量
+  - `quantity`: 数量
+  - `rowMemo`: 行备注
+  - `arriveDate`: 计划到货日期
+
+### 2. 查询销售订单主表 (UAP_SO_main_query)
+
+**接口路径**: `/UAP_SO_main_query`
+
+**请求示例**:
+```java
+@Autowired
+private U8SalesOrderService u8SalesOrderService;
+
+// 使用默认账套
+U8Response<U8SalesOrderMain> response = u8SalesOrderService.querySalesOrderMain(null);
+
+// 指定账套
+U8Response<U8SalesOrderMain> response = u8SalesOrderService.querySalesOrderMain("002");
+```
+
+**Java 字段说明**（已通过 @SerializedName 优化命名）:
+- `voucherState`: 单据状态 (add/update/delete)
+- `salesOrderId`: 订单主键
+- `orderCode`: 单据号
+- `orderDate`: 单据日期
+- `customerCode/customerName`: 客户编码/名称
+- `salesTypeCode`: 销售类型
+- `departmentCode/departmentName`: 部门编码/名称
+- `memo`: 单据备注
+- `maker/verifier`: 制单人/审核人
+- `auditDate`: 审核日期
+- `details`: 订单明细列表
+  - `detailId`: 子表主键（用于与发货单关联）
+  - `inventoryCode/inventoryName`: 存货编码/名称
+  - `specification`: 规格型号
+  - `auxiliaryQuantity`: 辅计量数量
+  - `quantity`: 数量
+  - `rowMemo`: 行备注
+  - `deliveryDate`: 计划发货日期
 
 ## 🧪 测试
 
