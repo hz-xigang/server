@@ -20,7 +20,7 @@ public class U8Config {
     /**
      * 账套编号（默认值）
      */
-    private String caccId = "001";
+    private String caccId = "108";
 
     /**
      * 连接超时时间（毫秒）

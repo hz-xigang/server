@@ -29,6 +29,7 @@ public class U8PurchaseOrderService extends U8BaseService {
         U8PoMainQueryRequest request = new U8PoMainQueryRequest();
         request.setCacc_id(caccId != null ? caccId : u8Config.getCaccId());
 
-        return callU8Api("/UAP_Po_main_query", request, new TypeToken<U8Response<U8PurchaseOrderMain>>(){});
+        return callU8Api("UAP_Pomain_query", request, new TypeToken<>() {
+        });
     }
 }
