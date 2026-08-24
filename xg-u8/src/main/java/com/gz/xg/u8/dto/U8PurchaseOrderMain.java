@@ -54,6 +54,60 @@ public class U8PurchaseOrderMain {
     private String purchaseTypeCode;
 
     /**
+     * 采购类型名称
+     */
+    @SerializedName("cptname")
+    private String purchaseTypeName;
+
+    /**
+     * 客户编码
+     */
+    @SerializedName("ccuscode")
+    private String customerCode;
+
+    /**
+     * 客户名称
+     */
+    @SerializedName("ccusname")
+    private String customerName;
+
+    /**
+     * 销售类型编码
+     */
+    @SerializedName("cstcode")
+    private String salesTypeCode;
+
+    /**
+     * 销售类型名称
+     */
+    @SerializedName("cstname")
+    private String salesTypeName;
+
+    /**
+     * 客户订单号
+     */
+    @SerializedName("cdefine10")
+    private String customerOrderNo;
+
+    /**
+     * 订单类型
+     */
+    @SerializedName("cdefine3")
+    private String orderTypeName;
+
+    /**
+     * 业务员编码
+     */
+    @SerializedName("cpersoncode")
+    private String salespersonCode;
+
+    /**
+     * 业务员名称
+     */
+    @SerializedName("cpersonname")
+    private String salesperson;
+
+    /**
      * 部门编码
      */
     @SerializedName("cdepcode")

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -31,6 +32,26 @@ public class ProdOrder {
     private String erpOrderNo;
 
     /**
+     * 客户订单号
+     */
+    private String customerOrderNo;
+
+    /**
+     * 订单类型
+     */
+    private String orderTypeName;
+
+    /**
+     * 销售类型
+     */
+    private String saleType;
+
+    /**
+     * 业务员
+     */
+    private String salesperson;
+
+    /**
      * 用友系统的存货编码
      */
     private String inventoryCode;
@@ -50,16 +71,52 @@ public class ProdOrder {
      */
     private String productCategory;
 
-    /**
-     * 规格型号
-     */
-    private String spec;
 
 
     /**
-     * 软删除
+     * BOM
      */
-    private Boolean deleted;
+    private String bom;
+
+    /**
+     * 包装要求
+     */
+    private String packingRequirement;
+
+    /**
+     * 退火方式
+     */
+    private String annealingMethod;
+
+    /**
+     * 喷涂切割
+     */
+    private String sprayCutting;
+
+    /**
+     * 技术要求
+     */
+    private String technicalRequirement;
+
+    /**
+     * PO
+     */
+    private String po;
+
+    /**
+     * 工艺路线
+     */
+    private String processRoute;
+
+    /**
+     * 预完工日期
+     */
+    private LocalDate plannedCompletionDate;
+
+    /**
+     * 预发货日期
+     */
+    private LocalDate plannedDeliveryDate;
 
     /**
      * WMS系统单据创建时间
@@ -92,7 +149,7 @@ public class ProdOrder {
     private String m5;
 
     /**
-     * 类型
+     * 类型：0-销售订单，1-采购订单
      */
     private Integer type;
 
@@ -121,4 +178,8 @@ public class ProdOrder {
      */
     private String tempId;
 
+
+    private Integer deleted;
+
+    private String spec;
 }
