@@ -18,6 +18,7 @@ class SysRolePlusService : ServiceImpl<SysRoleMapper, SysRole>(){
         val wrapper = LambdaQueryWrapper<SysRole>()
             .eq(SysRole::getName, name)
             .ne(!roleId.isNullOrBlank(), SysRole::getId,roleId)
+            .eq(SysRole::getDeleted,0)
         return this.getOne(wrapper)
     }
 
