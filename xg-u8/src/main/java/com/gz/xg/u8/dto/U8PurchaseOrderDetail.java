@@ -30,16 +30,12 @@ public class U8PurchaseOrderDetail {
     private String inventoryName;
 
     /**
-     * 规格型号 / 客户料号
-     */
-    @SerializedName("cinvstd")
-    private String specification;
-
-    /**
-     * 客户料号（对齐销售订单明细字段名）
+     * 客户料号
      */
     @SerializedName("cinvstd")
     private String customerMaterialNo;
+
+
 
     /**
      * 辅计量数量

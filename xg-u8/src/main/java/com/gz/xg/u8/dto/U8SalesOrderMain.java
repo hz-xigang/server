@@ -122,6 +122,6 @@ public class U8SalesOrderMain {
     /**
      * 订单明细数据
      */
-    @SerializedName("details")
+    @SerializedName("DataDetail")
     private List<U8SalesOrderDetail> details;
 }

@@ -60,30 +60,6 @@ public class U8PurchaseOrderMain {
     private String purchaseTypeName;
 
     /**
-     * 客户编码
-     */
-    @SerializedName("ccuscode")
-    private String customerCode;
-
-    /**
-     * 客户名称
-     */
-    @SerializedName("ccusname")
-    private String customerName;
-
-    /**
-     * 销售类型编码
-     */
-    @SerializedName("cstcode")
-    private String salesTypeCode;
-
-    /**
-     * 销售类型名称
-     */
-    @SerializedName("cstname")
-    private String salesTypeName;
-
-    /**
      * 客户订单号
      */
     @SerializedName("cdefine10")
@@ -146,6 +122,6 @@ public class U8PurchaseOrderMain {
     /**
      * 订单明细数据
      */
-    @SerializedName("details")
+    @SerializedName("DataDetail")
     private List<U8PurchaseOrderDetail> details;
 }
