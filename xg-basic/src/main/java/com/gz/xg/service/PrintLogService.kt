@@ -5,12 +5,15 @@ import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.PrintLog
 import com.gz.xg.domain.search.PrintLogSearch
 import com.gz.xg.service.plus.PrintLogPlusService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class PrintLogService(
     private val plusService: PrintLogPlusService
 ) : BaseService() {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     fun page(current: Long, size: Long, search: PrintLogSearch): Map<String, Any> {
         val page = Page<PrintLog>(current, size)

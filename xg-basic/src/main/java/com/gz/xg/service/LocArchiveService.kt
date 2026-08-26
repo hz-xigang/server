@@ -11,6 +11,7 @@ import com.gz.xg.domain.search.LocArchiveSearch
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.util.IdUtil
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
@@ -22,18 +23,22 @@ class LocArchiveService(
     private val locArchiveMapStruct: LocArchiveMapStruct
 ) : BaseService() {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
     /**
      * 新增库位档案，并校验库位编码唯一性。
      */
     fun add(dto: LocArchiveDto) {
         val archive = plusService.exitsByCode(dto.locCode)
         if (archive != null) {
+            log.warn("新增库位失败: 库位编码已存在 locCode={}", dto.locCode)
             throw WebException("【${dto.locCode}】该编码已存在")
         }
         val entity = locArchiveMapStruct.toEntity(dto)
         entity.id = IdUtil.generateId()
 
         plusService.save(entity)
+        log.info("新增库位成功: id={}, locCode={}, locType={}, status={}", entity.id, entity.locCode, entity.locType, entity.status)
     }
 
     /**
@@ -45,7 +50,7 @@ class LocArchiveService(
         val wrapper = MPJLambdaWrapper<LocArchive>()
             .like(!search.code.isNullOrBlank(), LocArchive::getLocCode, search.code)
             .eq(!search.type.isNullOrBlank(), LocArchive::getLocType, search.type)
-            .eq(LocArchive::getDeleted,0)
+            .eq(LocArchive::getDeleted, 0)
             .orderByDesc(LocArchive::getId)
         val pageObj = plusService.page(page, wrapper)
         return getDtoPage(pageObj, locArchiveMapStruct::toDtoList)
@@ -62,6 +67,7 @@ class LocArchiveService(
             .set(LocArchive::getLocType, dto.locType)
             .eq(LocArchive::getId, dto.id)
             .update()
+        log.info("更新库位成功: id={}, locCode={}, locType={}, status={}", dto.id, dto.locCode, dto.locType, dto.status)
     }
 
     /**
@@ -74,6 +80,7 @@ class LocArchiveService(
             LocArchive::getDeleted,
             1
         ) { eq(LocArchive::getId, id) }
+        log.info("删除库位成功: id={}", id)
     }
 
     /**
@@ -85,12 +92,13 @@ class LocArchiveService(
             LocArchive::getDeleted,
             1
         ) { `in`(LocArchive::getId, ids) }
+        log.info("批量删除库位成功: ids={}", ids)
     }
 
     /**
      * 查询可选库位列表，通常用于下拉框场景。
      */
-    fun list() : List<LocArchiveDto>{
+    fun list(): List<LocArchiveDto> {
         val wrapper = MPJLambdaWrapper<LocArchive>()
             .select(LocArchive::getId, LocArchive::getLocCode)
             .eq(LocArchive::getDeleted, 0)
