@@ -1,8 +1,10 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.entity.ShipRecord
 import com.gz.xg.domain.req.AddStockOrder
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.ShipRecordService
 import org.springframework.web.bind.annotation.PostMapping
@@ -17,6 +19,7 @@ class ShipRecordController(
 ) : BaseController(){
 
     @PostMapping("")
+    @OpLog(title = "发货作业", opName = "发货扫码确认", businessType = BusinessType.INSERT)
     fun add(@RequestBody order: AddStockOrder) : ResponseResult{
         shipRecordService.add(order)
         return success()

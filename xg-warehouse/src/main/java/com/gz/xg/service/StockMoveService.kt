@@ -3,6 +3,7 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.gz.xg.UserContext
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.PrepRecord
 import com.gz.xg.domain.entity.ProdOrder
@@ -33,13 +34,13 @@ class StockMoveService(
     private val sysSequenceService: SysSequenceService,
     private val stockMoveTagPlusService: StockMoveTagPlusService,
     private val locArchivePlusService: LocArchivePlusService,
+    private val prodTagPlusService: ProdTagPlusService,
     private val stockInventoryPlusService: StockInventoryPlusService,
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
     private val mapStruct: StockMoveMapStruct,
-    private val prodTagPlusService: ProdTagPlusService,
-) {
+) : BaseService() {
 
     /**
      * 新增移库单，并同步修改库存库位。
@@ -94,6 +95,7 @@ class StockMoveService(
             plusService.save(stockMove)
             stockMoveTagPlusService.saveBatch(tags)
             stockInventoryService.editLoc(resolved.prodTags, locArchive)
+            log.info("普通移库完成: receiptNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, locArchive.locCode, tags.size)
         }
     }
 
@@ -144,6 +146,7 @@ class StockMoveService(
             plusService.save(stockMove)
             stockMoveTagPlusService.saveBatch(tags)
             stockInventoryService.editLocByTagNo(tagNos, locArchive)
+            log.info("备料移库完成: receiptNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, locArchive.locCode, tags.size)
         }
     }
 

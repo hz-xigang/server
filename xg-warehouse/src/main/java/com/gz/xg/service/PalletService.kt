@@ -3,6 +3,7 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
 import com.gz.xg.UserContext
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.Pallet
 import com.gz.xg.domain.entity.PalletTag
 import com.gz.xg.domain.entity.PrintLog
@@ -29,8 +30,8 @@ class PalletService(
     private val sysSequenceService: SysSequenceService,
     private val billTagResolver: BillTagResolver,
     private val printLogMapper: PrintLogMapper,
-    private val pmt: PlatformTransactionManager,
-) {
+    private val pmt: PlatformTransactionManager
+) : BaseService() {
 
     /**
      * 新增托盘
@@ -94,6 +95,7 @@ class PalletService(
            palletTagPlusService.saveBatch(tags)
            printLogMapper.insert(printLog)
            pmt.commit(status)
+           log.info("托盘组托完成: palletNo={}, 标签数量={}, 净重={}, 毛重={}", pallet.palletNo, tags.size, pallet.netWeight, pallet.grossWeight)
            return pallet.palletNo
        }catch (e:Exception){
            pmt.rollback(status)
@@ -163,6 +165,7 @@ class PalletService(
             }
 
             pmt.commit(status)
+            log.info("托盘拆托/解绑完成: palletNo={}, 待拆标签数={}, 剩余标签数={}", palletNo, tagNos.size, remainingTagNos.size)
         } catch (e: Exception) {
             pmt.rollback(status)
             throw WebException(e.message ?: "拆托失败", e)

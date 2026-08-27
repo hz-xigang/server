@@ -1,6 +1,7 @@
 package com.gz.xg.service
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.ShipRecord
 import com.gz.xg.domain.req.AddStockOrder
 import com.gz.xg.exception.WebException
@@ -24,7 +25,7 @@ class ShipRecordService(
     private val sysSequenceService: SysSequenceService,
     private val  pmt: PlatformTransactionManager,
     private val stockOutService: StockOutService
-) {
+) : BaseService() {
 
     fun add(addStockOrder: AddStockOrder){
 
@@ -73,7 +74,7 @@ class ShipRecordService(
             plusService.saveBatch(shipRecords)
             stockOutService.addByShip(shipRecords  , outNo)
             pmt.commit(status)
-
+            log.info("发货确认成功: shipNo={}, 出库单号={}, 发货条数={}", shipOrder.shipNo, outNo, shipRecords.size)
         }catch (e: Exception){
             pmt.rollback(status)
             throw WebException(e.message ?: "发货失败", e)

@@ -1,11 +1,13 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.SysUserDto
 import com.gz.xg.domain.req.BindUserRoleReq
 import com.gz.xg.domain.req.ChangePwdReq
 import com.gz.xg.domain.req.LoginReq
 import com.gz.xg.domain.req.UserSearch
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.SysUserService
 import jakarta.annotation.Resource
@@ -28,11 +30,13 @@ class SysUserController(
     private val service: SysUserService
 ) : BaseController() {
 
+    @OpLog(title = "用户中心", opName = "用户登录", businessType = BusinessType.OTHER)
     @PostMapping("login")
     fun login(@RequestBody @Validated loginReq: LoginReq): ResponseResult {
         return success(service.login(loginReq))
     }
 
+    @OpLog(title = "用户中心", opName = "修改密码", businessType = BusinessType.UPDATE)
     @PostMapping("change-pwd")
     fun changePwd(@RequestBody @Validated req: ChangePwdReq): ResponseResult {
         service.changePwd(req)
@@ -51,18 +55,21 @@ class SysUserController(
         )
     }
 
+    @OpLog(title = "用户管理", opName = "新增用户", businessType = BusinessType.INSERT)
     @PostMapping
     fun add(@Validated @RequestBody dto: SysUserDto): ResponseResult {
         service.add(dto)
         return success()
     }
 
+    @OpLog(title = "用户管理", opName = "修改用户", businessType = BusinessType.UPDATE)
     @PutMapping
     fun edit(@Validated @RequestBody dto: SysUserDto): ResponseResult {
         service.edit(dto)
         return success()
     }
 
+    @OpLog(title = "用户管理", opName = "用户分配角色", businessType = BusinessType.UPDATE)
     @PostMapping("bind-role")
     fun bindRole(@RequestBody @Validated req : BindUserRoleReq) : ResponseResult {
         service.bindRole(req)
@@ -74,6 +81,7 @@ class SysUserController(
         return success(service.getRoleId(id))
     }
 
+    @OpLog(title = "用户管理", opName = "删除用户", businessType = BusinessType.DELETE)
     @DeleteMapping("{id}")
     fun softDel(@PathVariable id: String) : ResponseResult{
         service.softDel(id)

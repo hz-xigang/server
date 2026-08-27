@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service
  class ProdOrderService(
     private val plusService: ProductionOrderPlusService
 ) : BaseService(){
-    private val log = LoggerFactory.getLogger(ProdOrderService::class.java)
 
     /**
      * 根据生产单号查询生产单。

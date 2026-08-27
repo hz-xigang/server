@@ -23,8 +23,6 @@ class LocArchiveService(
     private val locArchiveMapStruct: LocArchiveMapStruct
 ) : BaseService() {
 
-    private val log = LoggerFactory.getLogger(javaClass)
-
     /**
      * 新增库位档案，并校验库位编码唯一性。
      */

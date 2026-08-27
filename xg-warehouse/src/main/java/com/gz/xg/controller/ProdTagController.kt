@@ -1,8 +1,10 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.ProdTagDto
 import com.gz.xg.domain.search.ProdTagSearch
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.ProdTagService
 import org.springframework.http.HttpHeaders
@@ -26,6 +28,7 @@ import java.time.format.DateTimeFormatter
     private val prodTagService: ProdTagService
 )  : BaseController() {
 
+    @OpLog(title = "标签管理", opName = "生成纸箱标签", businessType = BusinessType.INSERT)
     @PostMapping(value = [""])
     fun add(@RequestBody @Validated dto: ProdTagDto): Any {
         val pdfBytes = prodTagService.add(dto)
@@ -54,6 +57,7 @@ import java.time.format.DateTimeFormatter
         return success( prodTagService.findVoByTagNo(tagNo,type) )
     }
 
+    @OpLog(title = "标签管理", opName = "删除纸箱标签", businessType = BusinessType.DELETE)
     @DeleteMapping("{id}")
     fun softDelById(@PathVariable id: String) : ResponseResult{
         prodTagService.softDelById(id)

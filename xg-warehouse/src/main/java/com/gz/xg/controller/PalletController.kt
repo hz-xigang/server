@@ -1,6 +1,8 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.PalletService
 import org.springframework.web.bind.annotation.GetMapping
@@ -18,6 +20,7 @@ class PalletController(
 ) : BaseController()
 {
 
+    @OpLog(title = "托盘管理", opName = "托盘组托", businessType = BusinessType.INSERT)
     @PostMapping("")
     fun add (@RequestBody tagNos : List<String>) : ResponseResult{
         return success(service.add(tagNos))
@@ -30,6 +33,7 @@ class PalletController(
         return success(service.findTagsByPalletNo(palletNo, type))
     }
 
+    @OpLog(title = "托盘管理", opName = "托盘拆托", businessType = BusinessType.DELETE)
     @PostMapping("/unbundle/{palletNo}")
     fun unbundle(@PathVariable palletNo: String,
                  @RequestBody tagNos: List<String>) : ResponseResult

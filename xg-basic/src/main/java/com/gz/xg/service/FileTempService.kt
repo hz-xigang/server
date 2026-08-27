@@ -24,8 +24,6 @@ class FileTempService(
     private val staticYmlConfig: StaticYmlConfig
 ) : BaseService() {
 
-    private val log = LoggerFactory.getLogger(javaClass)
-
     fun add(dto: FileTempDto) {
         if (plusService.existsByNameAndType(dto.name, dto.type) != null) {
             log.warn("新增模板失败: 模板名称已存在 name={}, type={}", dto.name, dto.type)

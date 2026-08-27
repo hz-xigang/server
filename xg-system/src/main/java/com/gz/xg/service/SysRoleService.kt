@@ -50,6 +50,7 @@ class SysRoleService(
         val entity = roleMapStruct.toEntity(dto)
         entity.id = IdUtil.generateId()
         plusService.save(entity)
+        log.info("新增系统角色: roleId={}, name={}, remark={}", entity.id, entity.name, entity.remark)
         return entity.id
     }
 
@@ -66,6 +67,7 @@ class SysRoleService(
             .set(SysRole::getName, dto.name).set(SysRole::getRemark, dto.remark)
             .eq(SysRole::getId,dto.id)
             .update()
+        log.info("修改系统角色: roleId={}, name={}, remark={}", dto.id, dto.name, dto.remark)
     }
 
 
@@ -91,8 +93,10 @@ class SysRoleService(
 
             sysRoleRightPlusService.saveBatch(list)
             pmt.commit(status)
+            log.info("角色分配权限成功: roleId={}, menuCount={}", req.roleId, req.menuIds.size)
         } catch (e: Exception) {
             pmt.rollback(status)
+            log.error("角色分配权限失败: roleId={}, menuCount={}, error={}", req.roleId, req.menuIds.size, e.message)
             throw WebException(e.message)
         }
     }
@@ -118,6 +122,7 @@ class SysRoleService(
         changeDel(plusService.baseMapper, SysRole::getDeleted,1){
             eq(SysRole::getId,id)
         }
+        log.info("删除系统角色: roleId={}", id)
     }
 
 }

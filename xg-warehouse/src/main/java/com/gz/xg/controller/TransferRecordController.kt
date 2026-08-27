@@ -1,7 +1,9 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.req.AddStockOrder
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.TransferRecordService
 import org.springframework.web.bind.annotation.PostMapping
@@ -16,6 +18,7 @@ class TransferRecordController(
 ) : BaseController() {
 
     @PostMapping("")
+    @OpLog(title = "调拨作业", opName = "调拨扫码确认", businessType = BusinessType.INSERT)
     fun add(@RequestBody order: AddStockOrder) : ResponseResult{
         service.add(order)
         return success()

@@ -3,6 +3,7 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ShipRecord
 import com.gz.xg.domain.entity.StockOut
@@ -33,7 +34,7 @@ class StockOutService(
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
-) {
+) : BaseService() {
 
     /**
      * 发货出库
@@ -87,6 +88,7 @@ class StockOutService(
             plusService.save(stockOut)
             stockOutTagPlusService.saveBatch(tags)
             stockInventoryService.changeDelByTagNos(tagNos)
+            log.info("发货生成出库单完成: receiptNo={}, 库位={}, 标签数量={}", outNo, stockOut.loc, tags.size)
         }
     }
 
@@ -133,6 +135,7 @@ class StockOutService(
             plusService.save(stockOut)
             stockOutTagPlusService.saveBatch(tags)
             stockInventoryService.changeDelByTagNos(tagNos)
+            log.info("调拨生成出库单完成: receiptNo={}, 库位={}, 标签数量={}", outNo, locArchive.locCode, tags.size)
         }
     }
 

@@ -1,5 +1,6 @@
 package com.gz.xg.service
 
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.PrepRecord
 import com.gz.xg.domain.mapstruct.PrepRecordMapStruct
 import com.gz.xg.domain.req.AddStockOrder
@@ -25,7 +26,7 @@ class PrepRecordService(
     private val stockMoveService: StockMoveService,
     private val locArchivePlusService: LocArchivePlusService,
     private val prepRecordMapStruct: PrepRecordMapStruct
-) {
+) : BaseService() {
 
     fun add(addStockOrder: AddStockOrder){
         val prepOrder = prepOrderPlusService.findByNo(addStockOrder.no)
@@ -61,6 +62,7 @@ class PrepRecordService(
             plusService.saveBatch(records)
             stockMoveService.addByPrep(records,packLoc)
             pmt.commit(status)
+            log.info("备料确认成功: prepNo={}, 备料条数={}", prepOrder.prepNo, records.size)
         }catch (e: Exception){
             pmt.rollback(status)
             throw WebException(e.message ?: "备料失败", e)

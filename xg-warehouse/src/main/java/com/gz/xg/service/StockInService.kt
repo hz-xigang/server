@@ -3,6 +3,7 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockInTag
@@ -38,7 +39,8 @@ class StockInService(
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
-) {
+    private val prepRecordService: PrepRecordService
+) : BaseService() {
 
     /**
      * 新增入库单，并同步写入库存表。
@@ -163,6 +165,8 @@ class StockInService(
         plusService.save(stockIn)
         stockInTagPlusService.saveBatch(tags)
         stockInventoryService.addBatch(resolved.prodTags, locArchive)
+        log.info("入库单保存完成: receiptNo={}, type={}, loc={}, 标签数量={}, 总重量={}", 
+            receiptNo, type, locArchive.locCode, tags.size, resolved.total.grossWeight)
     }
 
 }

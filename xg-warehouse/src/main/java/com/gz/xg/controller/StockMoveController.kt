@@ -1,8 +1,10 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.req.AddStockIn
 import com.gz.xg.domain.search.StockSearch
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.StockMoveService
 import org.springframework.web.bind.annotation.PostMapping
@@ -18,6 +20,7 @@ class StockMoveController(
 ) : BaseController(){
 
     @PostMapping("")
+    @OpLog(title = "移库管理", opName = "库位移库", businessType = BusinessType.INSERT)
     fun add (@RequestBody req : AddStockIn) : ResponseResult{
         service.add(req)
         return success()

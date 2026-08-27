@@ -1,5 +1,6 @@
 package com.gz.xg.service
 
+import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.TransferOrder
 import com.gz.xg.domain.entity.TransferRecord
@@ -30,7 +31,7 @@ class TransferRecordService(
     private val locArchivePlusService: LocArchivePlusService,
     private val stockOutService: StockOutService,
     private val stockInService: StockInService,
-) {
+) : BaseService() {
 
     fun add(addStockOrder: AddStockOrder){
         val order = transferOrderPlusService.findByNo(addStockOrder.no)
@@ -77,7 +78,7 @@ class TransferRecordService(
                 stockOutService.addByTransfer(records,no,loc)
             }
             pmt.commit(status)
-
+            log.info("调拨确认成功: orderNo={}, orderType={}, 出入库单号={}, 条数={}", order.orderNo, order.orderType, no, records.size)
         }catch (e: Exception){
             pmt.rollback(status)
             throw WebException(e.message ?: "调拨失败", e)

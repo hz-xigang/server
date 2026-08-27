@@ -13,8 +13,6 @@ class PrintLogService(
     private val plusService: PrintLogPlusService
 ) : BaseService() {
 
-    private val log = LoggerFactory.getLogger(javaClass)
-
     fun page(current: Long, size: Long, search: PrintLogSearch): Map<String, Any> {
         val page = Page<PrintLog>(current, size)
         val pageObj = plusService.pageBySearch(page, search)

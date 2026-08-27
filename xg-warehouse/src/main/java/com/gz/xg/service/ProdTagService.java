@@ -100,6 +100,7 @@ public class ProdTagService extends BaseService {
             printLogMapper.insert(printLog);
 
             pmt.commit(status);
+            log.info("生成纸箱标签成功: prodNo={}, tagNo={}, qty={}, userId={}", prodOrder.getProdNo(), tagNo, dto.getQty(), userInfo.getUserId());
 
             if (prodOrder.getTempId() != null) {
                 return generateExcel(prodTag, prodOrder);
@@ -195,5 +196,6 @@ public class ProdTagService extends BaseService {
                     return kotlin.Unit.INSTANCE;
                 }
         );
+        log.info("删除/作废纸箱标签: id={}, tagNo={}", id, tag.getTagNo());
     }
 }

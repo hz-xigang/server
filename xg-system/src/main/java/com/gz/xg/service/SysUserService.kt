@@ -50,6 +50,7 @@ class SysUserService(
         user.pwd = passwordEncoder.encode(user.pwd)
         user.id = IdUtil.generateId()
         plusService.save(user)
+        log.info("新增系统用户成功: userId={}, username={}, realName={}, type={}", user.id, user.username, user.realName, user.type)
     }
 
     /**
@@ -63,6 +64,7 @@ class SysUserService(
             .set(SysUser::getRealName, dto.realName)
             .eq(SysUser::getId, dto.id)
             .update()
+        log.info("修改系统用户信息: userId={}, username={}, realName={}, type={}", dto.id, dto.username, dto.realName, dto.type)
     }
 
     /**
@@ -73,10 +75,13 @@ class SysUserService(
 
         val matches = passwordEncoder.matches(req.pwd, user.pwd)
         if (!matches) {
-             throw WebException("用户或密码错误")
+            log.warn("用户登录失败(密码错误): username={}", req.username)
+            throw WebException("用户或密码错误")
         }
 
-        return jwtService.generateToken(user)
+        val token = jwtService.generateToken(user)
+        log.info("用户登录成功: userId={}, username={}", user.id, user.username)
+        return token
     }
 
     /**
@@ -87,11 +92,13 @@ class SysUserService(
         val user = plusService.byId(loginUser.userId)
 
         if (!passwordEncoder.matches(req.oldPwd, user.pwd)) {
+            log.warn("用户修改密码失败(原密码错误): userId={}, username={}", loginUser.userId, loginUser.username)
             throw WebException("原密码错误")
         }
 
         user.pwd = passwordEncoder.encode(req.newPwd)
         plusService.updateById(user)
+        log.info("用户修改密码成功: userId={}, username={}", loginUser.userId, loginUser.username)
     }
 
 
@@ -136,8 +143,10 @@ class SysUserService(
 
             sysUserRolePlusService.saveBatch(list)
             pmt.commit(status)
+            log.info("用户分配角色成功: userId={}, roleIds={}", req.userId, req.roleIds)
         }catch (e: Exception){
             pmt.rollback(status)
+            log.error("用户分配角色失败: userId={}, roleIds={}, error={}", req.userId, req.roleIds, e.message)
             throw WebException(e.message)
         }
     }
@@ -162,7 +171,7 @@ class SysUserService(
         changeDel(plusService.baseMapper, SysUser::getDeleted,1){
             eq(SysUser::getId,id)
         }
-
+        log.info("删除系统用户: userId={}", id)
     }
 
 
