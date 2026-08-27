@@ -1,8 +1,10 @@
-package com.gz.xg.controller
+﻿package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.FileTempDto
 import com.gz.xg.domain.search.FileTempSearch
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.FileTempService
 import jakarta.servlet.http.HttpServletRequest
@@ -16,6 +18,7 @@ class FileTempController(
 ) : BaseController() {
 
     @RequestMapping("", method = [RequestMethod.POST, RequestMethod.PUT])
+    @OpLog(title = "文件模板", businessType = BusinessType.OTHER)
     fun save(@RequestBody dto: FileTempDto, request: HttpServletRequest): ResponseResult {
         if (request.method == RequestMethod.POST.name) {
             service.add(dto)
@@ -26,12 +29,14 @@ class FileTempController(
     }
 
     @DeleteMapping("batch")
+    @OpLog(title = "文件模板", businessType = BusinessType.DELETE)
     fun dropByIds(@RequestBody ids: List<String>): ResponseResult {
         service.changeDeleteByIds(ids)
         return success()
     }
 
     @DeleteMapping("{id}")
+    @OpLog(title = "文件模板", businessType = BusinessType.DELETE)
     fun dropById(@PathVariable id: String): ResponseResult {
         service.changeDeleteById(id)
         return success()
@@ -52,6 +57,7 @@ class FileTempController(
     }
 
     @PostMapping("{id}/upload")
+    @OpLog(title = "文件模板", businessType = BusinessType.UPLOAD)
     fun uploadFile(
         @PathVariable id: String,
         @RequestParam("file") file: MultipartFile

@@ -35,6 +35,7 @@ build/
 
 ### Custom ###
 /chat
+/.m2repository/
 
 ### Spring Boot 配置 - 敏感信息 ###
 # 本地开发者个人配置（不提交）
