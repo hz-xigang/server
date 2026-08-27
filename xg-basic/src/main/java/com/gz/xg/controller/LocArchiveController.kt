@@ -18,7 +18,7 @@ class LocArchiveController(
 ) : BaseController() {
 
     @RequestMapping("", method = [RequestMethod.POST, RequestMethod.PUT])
-    @OpLog(title = "库位档案", businessType = BusinessType.OTHER)
+    @OpLog(title = "库位档案", opName = "保存库位", businessType = BusinessType.OTHER)
     fun save(@RequestBody @Validated dto: LocArchiveDto, request: HttpServletRequest): ResponseResult {
         if (request.method == RequestMethod.POST.name) {
             service.add(dto)
@@ -29,14 +29,14 @@ class LocArchiveController(
     }
 
     @DeleteMapping("batch")
-    @OpLog(title = "库位档案", businessType = BusinessType.DELETE)
+    @OpLog(title = "库位档案", opName = "批量删除库位", businessType = BusinessType.DELETE)
     fun dropByIds(@RequestBody ids: List<String>): ResponseResult {
         service.changeDeleteByIds(ids)
         return success()
     }
 
     @DeleteMapping("{id}")
-    @OpLog(title = "库位档案", businessType = BusinessType.DELETE)
+    @OpLog(title = "库位档案", opName = "删除库位", businessType = BusinessType.DELETE)
     fun dropById(@PathVariable id: String): ResponseResult {
         service.changeDeleteById(id)
         return success()

@@ -8,5 +8,6 @@ enum class BusinessType(val value: Int) {
     IMPORT(4),
     EXPORT(5),
     UPLOAD(6),
-    SELECT(7)
+    SELECT(7),
+    SYNC(8)
 }

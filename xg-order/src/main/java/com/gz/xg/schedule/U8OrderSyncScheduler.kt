@@ -1,6 +1,7 @@
 package com.gz.xg.schedule
 
 import com.gz.xg.service.ProdOrderSyncService
+import com.gz.xg.service.TransferOrderSyncService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.scheduling.annotation.Scheduled
@@ -8,11 +9,12 @@ import org.springframework.stereotype.Component
 
 /**
  * U8 订单同步定时任务
- * 每小时的 00 和 30 分自动从 U8 系统同步订单至 WMS
+ * 定时自动从 U8 系统同步各类单据至 WMS
  */
 @Component
-open class U8OrderSyncScheduler(
-    private val prodOrderSyncService: ProdOrderSyncService
+class U8OrderSyncScheduler(
+    private val prodOrderSyncService: ProdOrderSyncService,
+    private val transferOrderSyncService: TransferOrderSyncService
 ) {
     private val log = LoggerFactory.getLogger(U8OrderSyncScheduler::class.java)
 
@@ -21,7 +23,7 @@ open class U8OrderSyncScheduler(
      * 每小时的 00 和 30 分执行（异步）
      */
     @Scheduled(cron = "0 0,30 * * * ?")
-    open fun syncU8Orders() {
+     fun syncU8Orders() {
         log.info("开始执行 U8 订单同步任务")
 
         // 异步同步销售订单
@@ -34,10 +36,21 @@ open class U8OrderSyncScheduler(
     }
 
     /**
+     * 定时同步调拨单
+     * 每小时的 00, 20, 40 分执行（异步）
+     */
+    @Scheduled(cron = "0 0,20,40 * * * ?")
+    open fun syncU8TransferOrders() {
+        log.info("开始执行 U8 调拨单同步任务")
+        syncTransferOrdersAsync()
+        log.info("U8 调拨单同步任务已提交（异步执行）")
+    }
+
+    /**
      * 异步同步销售订单
      */
     @Async
-    open fun syncSalesOrdersAsync() {
+     fun syncSalesOrdersAsync() {
         try {
             log.info("开始同步 U8 销售订单")
             val count = prodOrderSyncService.syncSalesOrders(null)
@@ -51,13 +64,27 @@ open class U8OrderSyncScheduler(
      * 异步同步采购订单
      */
     @Async
-    open fun syncPurchaseOrdersAsync() {
+     fun syncPurchaseOrdersAsync() {
         try {
             log.info("开始同步 U8 采购订单")
             val count = prodOrderSyncService.syncPurchaseOrders(null)
             log.info("U8 采购订单同步完成，共同步 {} 条", count)
         } catch (e: Exception) {
             log.error("U8 采购订单同步失败", e)
+        }
+    }
+
+    /**
+     * 异步同步调拨单
+     */
+    @Async
+     fun syncTransferOrdersAsync() {
+        try {
+            log.info("开始同步 U8 调拨单")
+            val count = transferOrderSyncService.syncTransferOrders(null)
+            log.info("U8 调拨单同步完成，共同步 {} 条", count)
+        } catch (e: Exception) {
+            log.error("U8 调拨单同步失败", e)
         }
     }
 }

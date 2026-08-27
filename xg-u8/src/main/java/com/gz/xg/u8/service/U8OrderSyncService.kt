@@ -10,7 +10,7 @@ import java.math.BigDecimal
  * 将用友 U8 销售订单和采购订单同步至 WMS 生产订单表
  */
 @Service
-open class U8OrderSyncService(
+class U8OrderSyncService(
     private val u8SalesOrderService: U8SalesOrderService,
     private val u8PurchaseOrderService: U8PurchaseOrderService
 ) {
@@ -21,7 +21,7 @@ open class U8OrderSyncService(
      * @param accId 账套编号
      * @return 生产订单DTO列表
      */
-    open fun convertSalesOrders(accId: String?): List<U8SalesOrderConvertResult> {
+     fun convertSalesOrders(accId: String?): List<U8SalesOrderConvertResult> {
         val response = u8SalesOrderService.querySalesOrderMain(accId)
 
         if (!response.isSuccess || response.data == null || response.data.isEmpty()) {
@@ -73,7 +73,7 @@ open class U8OrderSyncService(
      * @param accId 账套编号
      * @return 生产订单DTO列表
      */
-    open fun convertPurchaseOrders(accId: String?): List<U8PurchaseOrderConvertResult> {
+     fun convertPurchaseOrders(accId: String?): List<U8PurchaseOrderConvertResult> {
         val response = u8PurchaseOrderService.queryPurchaseOrderMain(accId)
 
         if (!response.isSuccess || response.data == null || response.data.isEmpty()) {
