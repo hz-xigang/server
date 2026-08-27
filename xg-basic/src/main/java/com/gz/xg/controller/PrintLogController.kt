@@ -14,14 +14,8 @@ class PrintLogController(
     private val service: PrintLogService
 ) : BaseController() {
 
-    @DeleteMapping("{id}")
-    @OpLog(title = "打印日志", businessType = BusinessType.DELETE)
-    fun dropById(@PathVariable id: String): ResponseResult {
-        service.changeDeleteById(id)
-        return success()
-    }
-
     @PostMapping("page")
+    @OpLog(title = "打印日志", businessType = BusinessType.SELECT)
     fun page(
         @RequestBody search: PrintLogSearch,
         @RequestParam(value = "page", defaultValue = "1") current: Long,
@@ -31,9 +25,5 @@ class PrintLogController(
             service.page(current, size, search)
         )
     }
-
-    @GetMapping("")
-    fun list(): ResponseResult {
-        return success(service.list())
-    }
 }
+

@@ -1,4 +1,4 @@
-﻿package com.gz.xg.domain.entity;
+package com.gz.xg.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;

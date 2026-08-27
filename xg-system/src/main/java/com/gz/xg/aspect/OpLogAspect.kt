@@ -89,7 +89,7 @@ class OpLogAspect(
 
     private fun getIpAddress(request: HttpServletRequest): String {
         val ip = request.getHeader("X-Forwarded-For")
-        if (!ip.isNullOrEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+        if (!ip.isNullOrEmpty() && !"unknown".equals(ip, ignoreCase = true)) {
             return ip.split(",")[0].trim()
         }
         return request.remoteAddr ?: ""

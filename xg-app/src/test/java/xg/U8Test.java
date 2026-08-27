@@ -5,9 +5,12 @@ import com.gz.xg.XgApplication;
 import com.gz.xg.u8.dto.U8PurchaseOrderMain;
 import com.gz.xg.u8.dto.U8Response;
 import com.gz.xg.u8.dto.U8SalesOrderMain;
+import com.gz.xg.u8.dto.U8TransferOrderMain;
 import com.gz.xg.u8.service.U8PurchaseOrderService;
 import com.gz.xg.u8.service.U8SalesOrderService;
+import com.gz.xg.u8.service.U8TransferOrderService;
 import jakarta.annotation.Resource;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,6 +30,9 @@ public class U8Test {
     @Resource
     private U8SalesOrderService salesOrderService;
 
+    @Resource
+    private U8TransferOrderService  u8TransferOrderService;
+
     @Test
     void poTest(){
         U8Response<U8PurchaseOrderMain> response = purchaseOrderService.queryPurchaseOrderMain("108");
@@ -38,8 +44,14 @@ public class U8Test {
     void soTest(){
         U8Response<U8SalesOrderMain> res = salesOrderService.querySalesOrderMain("108");
         res.getData().forEach(System.out::println);
-
     }
+
+    @Test
+    void toTest(){
+        U8Response< U8TransferOrderMain> res = u8TransferOrderService.queryTransferOrderMain("108");
+        res.getData().forEach(System.out::println);
+    }
+
 
 
 }

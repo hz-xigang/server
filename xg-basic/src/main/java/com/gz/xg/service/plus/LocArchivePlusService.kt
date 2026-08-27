@@ -19,6 +19,7 @@ class LocArchivePlusService : ServiceImpl<LocArchiveMapper, LocArchive>(){
     fun exitsByCode(code: String) : LocArchive? {
         val wrapper = LambdaQueryWrapper<LocArchive>()
             .eq(LocArchive::getLocCode,code)
+            .eq(LocArchive::getDeleted,0)
         return this.getOne(wrapper)
     }
 
