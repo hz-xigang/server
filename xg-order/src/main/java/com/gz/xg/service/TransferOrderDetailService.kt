@@ -2,6 +2,7 @@ package com.gz.xg.service
 
 import com.gz.xg.domain.entity.TransferOrderDetail
 import com.gz.xg.service.plus.TransferOrderDetailPlusService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service
 open class TransferOrderDetailService(
     private val plusService: TransferOrderDetailPlusService
 ) {
+    private val log = LoggerFactory.getLogger(TransferOrderDetailService::class.java)
 
     /**
      * 根据主键查询调拨单明细。
@@ -23,6 +25,7 @@ open class TransferOrderDetailService(
      * 根据主键删除调拨单明细。
      */
     fun deleteById(id: String): Boolean {
+        log.info("删除调拨单明细: id={}", id)
         return plusService.removeById(id)
     }
 
@@ -30,6 +33,7 @@ open class TransferOrderDetailService(
      * 根据主键更新调拨单明细。
      */
     fun updateById(entity: TransferOrderDetail): Boolean {
+        log.info("更新调拨单明细: id={}", entity.id)
         return plusService.updateById(entity)
     }
 }

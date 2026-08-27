@@ -1,8 +1,10 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.ProdOrderDto
 import com.gz.xg.domain.search.ProdOrderSearch
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.ProdOrderService
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -37,12 +39,14 @@ open class ProdOrderController(
     }
 
     @PutMapping("")
+    @OpLog(title = "生产单管理", opName = "修改生产单", businessType = BusinessType.UPDATE)
     fun edit(@RequestBody dto: ProdOrderDto) : ResponseResult {
         service.edit(dto)
         return success()
     }
 
     @DeleteMapping("{id}")
+    @OpLog(title = "生产单管理", opName = "删除生产单", businessType = BusinessType.DELETE)
     fun softDel(@PathVariable id: String) : ResponseResult {
         service.softDel(id)
         return success()

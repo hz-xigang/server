@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.gz.xg.UserContext
 import com.gz.xg.annotation.OpLog
 import com.gz.xg.domain.entity.SysOpLog
-import com.gz.xg.enums.BusinessType
+import com.gz.xg.filter.TraceFilter
 import com.gz.xg.mapper.SysOpLogMapper
 import com.gz.xg.util.IdUtil
 import jakarta.servlet.ServletRequest
@@ -14,6 +14,7 @@ import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.stereotype.Component
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
@@ -32,8 +33,9 @@ class OpLogAspect(
         val startTime = System.currentTimeMillis()
         val sysOpLog = SysOpLog().apply {
             id = IdUtil.generateId()
+            requestId = MDC.get(TraceFilter.MDC_KEY) ?: IdUtil.generateId()
             title = opLog.title
-            opName = opLog.opName.ifBlank { getDefaultOpName(opLog.businessType) }
+            opName = if (opLog.opName.isNotBlank()) opLog.opName else getDefaultOpName(opLog)
             businessType = opLog.businessType.value
             method = "${joinPoint.signature.declaringTypeName}.${joinPoint.signature.name}"
             operTime = LocalDateTime.now()
@@ -42,26 +44,17 @@ class OpLogAspect(
         runCatching {
             val requestAttributes = RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes
             val request: HttpServletRequest? = requestAttributes?.request
-            if (request != null) {
-                sysOpLog.requestMethod = request.method
-                sysOpLog.operUrl = request.requestURI
-                sysOpLog.operIp = getIpAddress(request)
-            } else {
-                sysOpLog.requestMethod = "SCHEDULE"
-                sysOpLog.operUrl = "INTERNAL"
-                sysOpLog.operIp = "127.0.0.1"
+            request?.let {
+                sysOpLog.requestMethod = it.method
+                sysOpLog.operUrl = it.requestURI
+                sysOpLog.operIp = getIpAddress(it)
             }
         }
 
-        val currentUser = UserContext.get()
-        if (currentUser != null) {
-            sysOpLog.operUserId = currentUser.userId
-            sysOpLog.operName = currentUser.username
-            sysOpLog.operRealName = currentUser.realName
-        } else {
-            sysOpLog.operUserId = "0"
-            sysOpLog.operName = "SYSTEM"
-            sysOpLog.operRealName = "系统任务"
+        UserContext.get()?.let { user ->
+            sysOpLog.operUserId = user.userId
+            sysOpLog.operName = user.username
+            sysOpLog.operRealName = user.realName
         }
 
         if (opLog.saveParam && joinPoint.args.isNotEmpty()) {
@@ -98,17 +91,15 @@ class OpLogAspect(
         return result
     }
 
-    private fun getDefaultOpName(businessType: BusinessType): String {
-        return when (businessType) {
-            BusinessType.INSERT -> "新增"
-            BusinessType.UPDATE -> "修改"
-            BusinessType.DELETE -> "删除"
-            BusinessType.IMPORT -> "导入"
-            BusinessType.EXPORT -> "导出"
-            BusinessType.UPLOAD -> "上传"
-            BusinessType.SELECT -> "查询"
-            BusinessType.SYNC -> "数据同步"
-            BusinessType.OTHER -> "操作"
+    private fun getDefaultOpName(opLog: OpLog): String {
+        return when (opLog.businessType.value) {
+            1 -> "新增"
+            2 -> "修改"
+            3 -> "删除"
+            4 -> "上传"
+            5 -> "查询"
+            6 -> "同步"
+            else -> "操作"
         }
     }
 

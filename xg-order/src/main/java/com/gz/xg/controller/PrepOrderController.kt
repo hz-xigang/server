@@ -1,8 +1,10 @@
 package com.gz.xg.controller
 
+import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.PrepOrderDto
 import com.gz.xg.domain.search.PrepOrderSearch
+import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.PrepOrderService
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,6 +25,7 @@ class PrepOrderController(
 
 
     @PostMapping("")
+    @OpLog(title = "备料单管理", opName = "新增备料单", businessType = BusinessType.INSERT)
     fun add(@RequestBody prepOrderDto: PrepOrderDto) : ResponseResult{
         service.add(prepOrderDto)
         return success()

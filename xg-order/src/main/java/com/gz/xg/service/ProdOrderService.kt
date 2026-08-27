@@ -8,6 +8,7 @@ import com.gz.xg.domain.dto.ProdOrderDto
 import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.search.ProdOrderSearch
 import com.gz.xg.service.plus.ProductionOrderPlusService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service
  class ProdOrderService(
     private val plusService: ProductionOrderPlusService
 ) : BaseService(){
+    private val log = LoggerFactory.getLogger(ProdOrderService::class.java)
 
     /**
      * 根据生产单号查询生产单。
@@ -65,6 +67,7 @@ import org.springframework.stereotype.Service
             .set(dto.spec != null, ProdOrder::getSpec, dto.spec)
             .set(dto.status != null, ProdOrder::getDeleted, !dto.status)
             .update()
+        log.info("更新生产单信息成功: id={}, erpOrderNo={}, inventoryCode={}", dto.id, dto.erpOrderNo, dto.inventoryCode)
     }
 
     /**
@@ -77,5 +80,6 @@ import org.springframework.stereotype.Service
             .eq(ProdOrder::getId, id)
             .set(ProdOrder::getDeleted, true)
             .update()
+        log.info("软删除生产单成功: id={}", id)
     }
 }

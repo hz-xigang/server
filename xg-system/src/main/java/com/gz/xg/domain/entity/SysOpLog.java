@@ -7,7 +7,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 系统操作日志表：记录系统功能操作日志，包括模块、操作名称、方法、操作人、请求参数、返回结果、异常信息及执行耗时等
+ * 系统操作日志表：记录系统功能操作日志，包括流水号、模块、操作名称、方法、操作人、请求参数、返回结果、异常信息及执行耗时等
  */
 @Data
 @TableName("SysOpLog")
@@ -20,6 +20,11 @@ public class SysOpLog {
     private String id;
 
     /**
+     * 请求唯一流水号/链路ID，关联应用日志与操作记录
+     */
+    private String requestId;
+
+    /**
      * 模块或业务标题，例如：文件模板、库位档案
      */
     private String title;
@@ -30,7 +35,7 @@ public class SysOpLog {
     private String opName;
 
     /**
-     * 业务类型：0-其他，1-新增，2-修改，3-删除，4-上传，5-查询
+     * 业务类型：0-其他，1-新增，2-修改，3-删除，4-上传，5-查询，6-同步
      */
     private Integer businessType;
 

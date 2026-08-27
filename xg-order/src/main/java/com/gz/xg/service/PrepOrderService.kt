@@ -13,8 +13,9 @@ import com.gz.xg.service.plus.PrepOrderDetailPlusService
 import com.gz.xg.service.plus.PrepOrderPlusService
 import com.gz.xg.util.DateUtil
 import com.gz.xg.util.IdUtil
-
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 备料单服务，负责主表及明细的新增和分页查询。
@@ -27,10 +28,12 @@ class PrepOrderService(
     private val detailMapStruct: PrepOrderDetailMapStruct,
     private val sysSequenceService: SysSequenceService
 ) {
+    private val log = LoggerFactory.getLogger(PrepOrderService::class.java)
 
     /**
      * 新增备料单，并为主表和明细生成主键及单号。
      */
+    @Transactional(rollbackFor = [Exception::class])
     fun add(prepOrderDto: PrepOrderDto){
         val details = detailMapStruct.toEntityList(prepOrderDto.details)
 
@@ -50,6 +53,8 @@ class PrepOrderService(
 
         plusService.save(prepOrder)
         detailPlusService.saveBatch(details)
+        log.info("创建备料单成功: prepNo={}, orderType={}, 明细条数={}, 操作人={}({})",
+            prepOrder.prepNo, prepOrder.orderType, details.size, realName, username)
     }
 
     /**

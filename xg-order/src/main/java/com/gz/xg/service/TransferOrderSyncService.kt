@@ -38,6 +38,7 @@ class TransferOrderSyncService(
     @OpLog(title = "U8订单同步", opName = "同步U8调拨单", businessType = BusinessType.SYNC)
     @Transactional(rollbackFor = [Exception::class])
     fun syncTransferOrders(accId: String?): Int {
+        log.info("开始查询待同步的 U8 调拨单, 账套: {}", accId ?: "默认")
         val response = u8TransferOrderService.queryTransferOrderMain(accId)
         if (!response.isSuccess || response.data == null || response.data.isEmpty()) {
             log.info("U8 调拨单接口返回无数据或未成功: {}", response.returnMessage)
@@ -45,6 +46,7 @@ class TransferOrderSyncService(
         }
 
         val u8Orders = response.data
+        log.info("从 U8 获取到 {} 条调拨单，开始逐条同步入库", u8Orders.size)
         var syncCount = 0
 
         for (u8Order in u8Orders) {
@@ -62,6 +64,7 @@ class TransferOrderSyncService(
             }
         }
 
+        log.info("U8 调拨单同步完成，成功同步 {}/{} 条", syncCount, u8Orders.size)
         return syncCount
     }
 

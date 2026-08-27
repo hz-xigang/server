@@ -182,4 +182,9 @@ public class ProdOrder {
     private Integer deleted;
 
     private String spec;
+
+    /**
+     * erp单号id
+     */
+    private String erpOrderId;
 }
