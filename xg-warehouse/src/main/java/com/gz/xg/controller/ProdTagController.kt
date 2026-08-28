@@ -64,4 +64,20 @@ import java.time.format.DateTimeFormatter
         return success()
     }
 
+    @OpLog(title = "标签管理", opName = "补打纸箱标签", businessType = BusinessType.OTHER)
+    @GetMapping("/reprint/{id}")
+    fun reprint(@PathVariable id: String): Any {
+        val pdfBytes = prodTagService.reprint(id)
+
+        return if (pdfBytes != null) {
+            val fileName = "prodTag_reprint_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))}.pdf"
+            ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes)
+        } else {
+            success()
+        }
+    }
+
 }

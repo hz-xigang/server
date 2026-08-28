@@ -125,6 +125,7 @@ public class ProdTagService extends BaseService {
         }
 
         String templatePath = staticYmlConfig.fullTemplate() + File.separator + fileTemp.getPath();
+        System.err.println("templatePath@@"+templatePath);
         Map<String, Object> data = prepareReportData(prodTag, prodOrder);
 
         return new ProdTagReport().generate(templatePath, data);
@@ -176,6 +177,52 @@ public class ProdTagService extends BaseService {
             return stockInTagPlusService.findVoByTagNo(tagNo);
         } else {
             return prodTagPlusService.findVoByTagNo(tagNo);
+        }
+    }
+
+    /**
+     * 补打标签，生成并返回标签 PDF。
+     * @param tagId 标签主键 ID
+     * @return PDF 字节数组
+     */
+    public byte[] reprint(String tagId) {
+        VProdTag vProdTag = prodTagPlusService.findById(tagId);
+        if (vProdTag == null) {
+            throw new WebException("标签不存在");
+        }
+        if (vProdTag.getDeleted() != null && vProdTag.getDeleted() != 0) {
+            throw new WebException("标签已作废，无法补打");
+        }
+
+        ProdOrder prodOrder = productionOrderPlusService.findById(vProdTag.getProdOrderId());
+        if (prodOrder == null) {
+            throw new WebException("关联的生产单不存在");
+        }
+        if (prodOrder.getTempId() == null) {
+            throw new WebException("该生产单未绑定打印模板");
+        }
+
+        ProdTag prodTag = prodTagPlusService.getById(tagId);
+
+        LoginUser userInfo = UserContext.INSTANCE.require();
+
+        // 记录补打日志（type=1 纸箱标签）
+        PrintLog printLog = new PrintLog();
+        printLog.setId(IdUtil.INSTANCE.generateId());
+        printLog.setNo(vProdTag.getTagNo());
+        printLog.setType(1);
+        printLog.setTempId(prodOrder.getTempId());
+        printLog.setUserId(userInfo.getUserId());
+        printLog.setUsername(userInfo.getUsername());
+        printLog.setRealName(userInfo.getRealName());
+        printLogMapper.insert(printLog);
+
+        log.info("补打纸箱标签: tagNo={}, prodNo={}, userId={}", vProdTag.getTagNo(), prodOrder.getProdNo(), userInfo.getUserId());
+
+        try {
+            return generateExcel(prodTag, prodOrder);
+        } catch (Exception e) {
+            throw new WebException(e.getMessage());
         }
     }
 

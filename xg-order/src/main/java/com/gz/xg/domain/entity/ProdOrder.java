@@ -187,4 +187,8 @@ public class ProdOrder {
      * erp单号id
      */
     private String erpOrderId;
+
+    private BigDecimal qty;
+
+    private BigDecimal inNum;
 }

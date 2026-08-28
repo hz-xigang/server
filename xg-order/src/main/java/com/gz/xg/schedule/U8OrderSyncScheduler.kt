@@ -22,7 +22,7 @@ class U8OrderSyncScheduler(
      * 定时同步销售订单和采购订单
      * 每小时的 00 和 30 分执行（异步）
      */
-    @Scheduled(cron = "0 0,30 * * * ?")
+    //@Scheduled(cron = "0 0,30 * * * ?")
      fun syncU8Orders() {
         log.info("开始执行 U8 订单同步任务")
 
@@ -39,11 +39,22 @@ class U8OrderSyncScheduler(
      * 定时同步调拨单
      * 每小时的 00, 20, 40 分执行（异步）
      */
-    @Scheduled(cron = "0 0,20,40 * * * ?")
+    //@Scheduled(cron = "0 0,20,40 * * * ?")
     open fun syncU8TransferOrders() {
         log.info("开始执行 U8 调拨单同步任务")
         syncTransferOrdersAsync()
         log.info("U8 调拨单同步任务已提交（异步执行）")
+    }
+
+    /**
+     * 定时同步生产订单
+     * 每小时的 00, 20, 40 分执行（异步）
+     */
+    //@Scheduled(cron = "0 0,20,40 * * * ?")
+    open fun syncU8MomOrders() {
+        log.info("开始执行 U8 生产订单同步任务")
+        syncMomOrdersAsync()
+        log.info("U8 生产订单同步任务已提交（异步执行）")
     }
 
     /**
@@ -85,6 +96,20 @@ class U8OrderSyncScheduler(
             log.info("U8 调拨单同步完成，共同步 {} 条", count)
         } catch (e: Exception) {
             log.error("U8 调拨单同步失败", e)
+        }
+    }
+
+    /**
+     * 异步同步生产订单
+     */
+    @Async
+    fun syncMomOrdersAsync() {
+        try {
+            log.info("开始同步 U8 生产订单")
+            val count = prodOrderSyncService.syncMomOrders(null)
+            log.info("U8 生产订单同步完成，共同步 {} 条", count)
+        } catch (e: Exception) {
+            log.error("U8 生产订单同步失败", e)
         }
     }
 }

@@ -65,6 +65,7 @@ import org.springframework.stereotype.Service
             .set(dto.productCategory != null, ProdOrder::getProductCategory, dto.productCategory)
             .set(dto.spec != null, ProdOrder::getSpec, dto.spec)
             .set(dto.status != null, ProdOrder::getDeleted, !dto.status)
+            .set(!dto.tempId.isNullOrEmpty(), ProdOrder::getTempId, dto.tempId)
             .update()
         log.info("更新生产单信息成功: id={}, erpOrderNo={}, inventoryCode={}", dto.id, dto.erpOrderNo, dto.inventoryCode)
     }

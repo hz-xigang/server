@@ -143,4 +143,58 @@ class ProdOrderSyncService(
         log.info("U8 采购订单同步入库完成，生成生产单数量: {}", prodOrders.size)
         return prodOrders.size
     }
+
+    /**
+     * 同步 U8 生产订单至系统生产订单表
+     *
+     * @param accId 账套编号
+     * @return 成功同步的订单数量
+     */
+    @OpLog(title = "U8订单同步", opName = "同步U8生产订单", businessType = BusinessType.SYNC)
+    @Transactional(rollbackFor = [Exception::class])
+    fun syncMomOrders(accId: String?): Int {
+        log.info("开始查询待同步的 U8 生产订单, 账套: {}", accId ?: "默认")
+        val convertResults = u8OrderSyncService.convertMomOrders(accId)
+        if (convertResults.isEmpty()) {
+            log.info("U8 生产订单无待同步数据")
+            return 0
+        }
+        log.info("从 U8 转换得到 {} 条生产订单，开始生成生产单号并入库", convertResults.size)
+
+        val datePrefix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+        val prodNos = sysSequenceService.generateSequences(
+            SequenceType.PRODUCTION_ORDER,
+            datePrefix,
+            convertResults.size
+        )
+
+        val prodOrders = convertResults.mapIndexed { index, result ->
+            ProdOrder().apply {
+                id = IdWorker.getIdStr()
+                prodNo = prodNos[index]
+                erpOrderNo = result.erpOrderNo
+                erpOrderId = result.erpOrderId
+                type = result.type
+
+                inventoryCode = result.inventoryCode
+                inventoryName = result.inventoryName
+                spec = result.spec
+                specWidth = result.specWidth
+                packingRequirement = result.packingRequirement
+
+                qty = result.qty
+                inNum = result.inNum
+
+                m1 = result.m1
+                m2 = result.m2
+                m3 = result.m3
+                m4 = result.m4
+                m5 = result.m5
+            }
+        }
+
+        productionOrderPlusService.saveBatch(prodOrders)
+        log.info("U8 生产订单同步入库完成，生成生产单数量: {}", prodOrders.size)
+        return prodOrders.size
+    }
 }
