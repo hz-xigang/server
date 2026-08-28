@@ -27,7 +27,7 @@ import org.springframework.web.client.RestTemplate
      */
      fun queryTransferOrderMain(caccId: String?): U8Response<U8TransferOrderMain> {
         val request = U8TransVouchQueryRequest()
-        request.cacc_id = caccId ?: u8Config.caccId
+        request.caccId = caccId ?: u8Config.caccId
 
         return callU8Api("UAP_TransVouch_query", request, object : TypeToken<U8Response<U8TransferOrderMain>>() {})
     }

@@ -27,7 +27,7 @@ open class U8MomOrderService(
      */
     open fun queryMomOrderMain(caccId: String? = null): U8Response<U8MomOrderMain> {
         val request = U8MomOrderQueryRequest().apply {
-            cacc_id = caccId ?: u8Config.caccId
+            this.caccId = caccId ?: u8Config.caccId
         }
         return callU8Api("UAP_MOM_order_query", request, object : TypeToken<U8Response<U8MomOrderMain>>() {})
     }

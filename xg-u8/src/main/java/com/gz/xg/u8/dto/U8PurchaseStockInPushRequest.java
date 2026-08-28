@@ -14,7 +14,8 @@ public class U8PurchaseStockInPushRequest {
     /**
      * 账套号 (必填)
      */
-    private String cacc_id;
+    @SerializedName("cacc_id")
+    private String caccId;
 
     /**
      * 入库单主表数据

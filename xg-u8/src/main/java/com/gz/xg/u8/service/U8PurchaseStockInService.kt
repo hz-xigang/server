@@ -33,7 +33,7 @@ open class U8PurchaseStockInService(
         caccId: String? = null
     ): U8Response<U8PurchaseStockInErrorDetail> {
         val pushRequest = U8PurchaseStockInPushRequest().apply {
-            this.cacc_id = caccId ?: u8Config.caccId
+            this.caccId = caccId ?: u8Config.caccId
             this.data = requestList
         }
 

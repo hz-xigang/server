@@ -1,5 +1,6 @@
 package com.gz.xg.u8.dto;
 
+import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 
 /**
@@ -11,5 +12,6 @@ public class U8MomOrderQueryRequest {
     /**
      * 账套编号
      */
-    private String cacc_id;
+    @SerializedName("cacc_id")
+    private String caccId;
 }

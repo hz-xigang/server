@@ -27,7 +27,7 @@ open class U8SalesOrderService(
      */
     open fun querySalesOrderMain(caccId: String?): U8Response<U8SalesOrderMain> {
         val request = U8SoMainQueryRequest()
-        request.cacc_id = caccId ?: u8Config.caccId
+        request.caccId = caccId ?: u8Config.caccId
 
         return callU8Api("/UAP_SO_main_query", request, object : TypeToken<U8Response<U8SalesOrderMain>>() {})
     }

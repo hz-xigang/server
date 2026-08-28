@@ -149,7 +149,7 @@ public class ProdOrder {
     private String m5;
 
     /**
-     * 类型：0-销售订单，1-采购订单
+     * 类型：0-销售订单，1-采购订单 2-生产订单
      */
     private Integer type;
 
