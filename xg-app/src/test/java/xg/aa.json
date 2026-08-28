@@ -1,0 +1,126 @@
+{
+  "Code": "1",
+  "ReturnMessage": "",
+  "Data": [
+    {
+      "voustate": "add",
+      "moid": 108001,
+      "ccode": "MO20260812026",
+      "ddate": "2026-08-12",
+      "cmemo": "8月生产计划",
+      "cmaker": "王调度",
+      "cverifier": "张主任",
+      "cauditdate": "2026-08-13",
+      "details": [
+        {
+          "modid": 1100011,
+          "SortSeq": 1,
+          "cdepcode": "DEP003",
+          "cdepname": "生产三部",
+          "cwhcode": "WH-SEMI01",
+          "cwhname": "半成品仓",
+          "cinvcode": "E000012",
+          "cinvname": "精密铜接头",
+          "cinvstd": "M12*1.5",
+          "cfree9": "12mm",
+          "cfree8": "吸塑盒包装",
+          "inum": 99,
+          "iquantity": 99,
+          "cbmemo": "加急生产"
+        },
+        {
+          "modid": 1100012,
+          "SortSeq": 2,
+          "cdepcode": "DEP003",
+          "cdepname": "生产三部",
+          "cwhcode": "WH-WORK01",
+          "cwhname": "车间线边仓",
+          "cinvcode": "E000009",
+          "cinvname": "塑胶底座",
+          "cinvstd": "400*300mm",
+          "cfree9": "300mm",
+          "cfree8": "托盘包装",
+          "inum": null,
+          "iquantity": 357,
+          "cbmemo": "首件确认后批量生产"
+        }
+      ]
+    },
+    {
+      "voustate": "add",
+      "moid": 108002,
+      "ccode": "MO20260801123",
+      "ddate": "2026-08-01",
+      "cmemo": "紧急插单生产",
+      "cmaker": "王调度",
+      "cverifier": "李经理",
+      "cauditdate": "2026-08-02",
+      "details": [
+        {
+          "modid": 1100021,
+          "SortSeq": 1,
+          "cdepcode": "DEP002",
+          "cdepname": "生产二部",
+          "cwhcode": "WH-FIN02",
+          "cwhname": "成品二号仓",
+          "cinvcode": "E000011",
+          "cinvname": "铝合金散热片",
+          "cinvstd": "120*80*25mm",
+          "cfree9": "80mm",
+          "cfree8": "防静电袋",
+          "inum": 543,
+          "iquantity": 543,
+          "cbmemo": "按图纸检验后入库"
+        },
+        {
+          "modid": 1100022,
+          "SortSeq": 2,
+          "cdepcode": "DEP003",
+          "cdepname": "生产三部",
+          "cwhcode": "WH-SEMI01",
+          "cwhname": "半成品仓",
+          "cinvcode": "E000010",
+          "cinvname": "外壳配件",
+          "cinvstd": "200*150mm",
+          "cfree9": "150mm",
+          "cfree8": "纸箱包装",
+          "inum": null,
+          "iquantity": 345,
+          "cbmemo": "按图纸检验后入库"
+        },
+        {
+          "modid": 1100023,
+          "SortSeq": 3,
+          "cdepcode": "DEP002",
+          "cdepname": "生产二部",
+          "cwhcode": "WH-FIN02",
+          "cwhname": "成品二号仓",
+          "cinvcode": "E000013",
+          "cinvname": "电机外壳组件",
+          "cinvstd": "Φ150*200",
+          "cfree9": "150mm",
+          "cfree8": "托盘+薄膜",
+          "inum": null,
+          "iquantity": 513,
+          "cbmemo": "外销订单备货"
+        },
+        {
+          "modid": 1100024,
+          "SortSeq": 4,
+          "cdepcode": "DEP004",
+          "cdepname": "冲压车间",
+          "cwhcode": "WH-WORK01",
+          "cwhname": "车间线边仓",
+          "cinvcode": "E000012",
+          "cinvname": "精密铜接头",
+          "cinvstd": "M12*1.5",
+          "cfree9": "12mm",
+          "cfree8": "吸塑盒包装",
+          "inum": null,
+          "iquantity": 593,
+          "cbmemo": "按图纸检验后入库"
+        }
+      ]
+    }
+  ]
+}

@@ -156,7 +156,7 @@ public class ProdOrder {
     /**
      * 规格厚度
      */
-    private BigDecimal specWidth;
+    private String specWidth;
 
     /**
      * 单位重量

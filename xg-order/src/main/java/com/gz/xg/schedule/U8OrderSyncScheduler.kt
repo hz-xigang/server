@@ -22,12 +22,12 @@ class U8OrderSyncScheduler(
      * 定时同步销售订单和采购订单
      * 每小时的 00 和 30 分执行（异步）
      */
-    //@Scheduled(cron = "0 0,30 * * * ?")
+    @Scheduled(cron = "0 0,6 * * * ?")
      fun syncU8Orders() {
         log.info("开始执行 U8 订单同步任务")
 
         // 异步同步销售订单
-        syncSalesOrdersAsync()
+        //syncSalesOrdersAsync()
 
         // 异步同步采购订单
         syncPurchaseOrdersAsync()
@@ -50,8 +50,8 @@ class U8OrderSyncScheduler(
      * 定时同步生产订单
      * 每小时的 00, 20, 40 分执行（异步）
      */
-    //@Scheduled(cron = "0 0,20,40 * * * ?")
-    open fun syncU8MomOrders() {
+    @Scheduled(cron = "0 0,6,40 * * * ?")
+     fun syncU8MomOrders() {
         log.info("开始执行 U8 生产订单同步任务")
         syncMomOrdersAsync()
         log.info("U8 生产订单同步任务已提交（异步执行）")

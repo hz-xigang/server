@@ -5,6 +5,7 @@ import com.gz.xg.XgApplication;
 import com.gz.xg.domain.entity.ProdOrder;
 import com.gz.xg.domain.enums.SequenceType;
 import com.gz.xg.service.ProdOrderService;
+import com.gz.xg.service.ProdOrderSyncService;
 import com.gz.xg.service.SysSequenceService;
 import com.gz.xg.service.plus.ProductionOrderPlusService;
 import com.gz.xg.u8.dto.*;
@@ -52,6 +53,8 @@ class U8SyncProdOrderTest {
     @Resource
     private SysSequenceService sysSequenceService;
 
+    @Resource
+    private ProdOrderSyncService prodOrderSyncService;
 
 
     @Test
@@ -111,7 +114,7 @@ class U8SyncProdOrderTest {
                 order.setTechnicalRequirement(detail.getTechnicalRequirement());
                 order.setPo(detail.getPo());
                 order.setProcessRoute(detail.getProcessRoute());
-                order.setSpecWidth(toBigDecimal(detail.getSpecWidth()));
+                order.setSpecWidth(detail.getSpecWidth());
 
                 assertEquals(main.getOrderCode(), order.getErpOrderNo());
                 assertEquals(0, order.getType());
@@ -194,7 +197,7 @@ class U8SyncProdOrderTest {
                 order.setTechnicalRequirement(detail.getTechnicalRequirement());
                 order.setPo(detail.getPo());
                 order.setProcessRoute(detail.getProcessRoute());
-                order.setSpecWidth(toBigDecimal(detail.getSpecWidth()));
+                order.setSpecWidth(detail.getSpecWidth());
 
                 assertEquals(main.getOrderCode(), order.getErpOrderNo());
                 assertEquals(1, order.getType());
@@ -218,6 +221,11 @@ class U8SyncProdOrderTest {
 
         productionOrderPlusService.saveBatch(list);
 
+    }
+
+    @Test
+    void momTest(){
+        prodOrderSyncService.syncPurchaseOrders(ACC_ID);
     }
 
     private static BigDecimal toBigDecimal(String value) {

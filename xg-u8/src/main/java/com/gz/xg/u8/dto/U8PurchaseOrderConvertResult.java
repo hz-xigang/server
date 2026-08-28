@@ -29,6 +29,15 @@ public class U8PurchaseOrderConvertResult {
     private String technicalRequirement;
     private String po;
     private String processRoute;
-    private BigDecimal specWidth;
+    private String specWidth;
     private String erpOrderId;
+    /**
+     * 数量 (iquantity)
+     */
+    private BigDecimal qty;
+
+    /**
+     * 辅计量数量 (inum)
+     */
+    private BigDecimal inNum;
 }

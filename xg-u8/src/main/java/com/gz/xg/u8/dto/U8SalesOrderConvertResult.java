@@ -29,5 +29,5 @@ public class U8SalesOrderConvertResult {
     private String technicalRequirement;
     private String po;
     private String processRoute;
-    private BigDecimal specWidth;
+    private String specWidth;
 }

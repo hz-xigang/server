@@ -42,7 +42,7 @@ public class U8MomOrderConvertResult {
     /**
      * 规格片宽
      */
-    private BigDecimal specWidth;
+    private String specWidth;
 
     /**
      * 包装要求
