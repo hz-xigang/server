@@ -62,6 +62,6 @@ public class U8MomOrderMain {
     /**
      * 订单明细数据
      */
-    @SerializedName("details")
+    @SerializedName("DataDetail")
     private List<U8MomOrderDetail> details;
 }

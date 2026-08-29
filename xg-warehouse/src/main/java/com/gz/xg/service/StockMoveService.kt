@@ -40,6 +40,7 @@ class StockMoveService(
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
     private val mapStruct: StockMoveMapStruct,
+    private val u8StockMoveSyncService: U8StockMoveSyncService
 ) : BaseService() {
 
     /**
@@ -82,6 +83,10 @@ class StockMoveService(
                 this.realName = realName
             }
 
+            val syncStatusByTagNo = u8StockMoveSyncService.syncStockMove(
+                resolved, originLocMap, stockMove, locArchive
+            )
+
             val tags = resolved.tagNos.map { tagNo ->
                 val originStock = originLocMap[tagNo] ?: throw WebException("【${tagNo}】不在库存中")
                 StockMoveTag().apply {
@@ -89,6 +94,7 @@ class StockMoveService(
                     this.tagNo = tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
+                    u8Sync = syncStatusByTagNo[tagNo] ?: 2
                 }
             }
 
@@ -133,6 +139,10 @@ class StockMoveService(
                 locId = locArchive.id
             }
 
+            val syncStatusByTagNo = u8StockMoveSyncService.syncStockMove(
+                resolved, originLocMap, stockMove, locArchive
+            )
+
             val tags = records.map {
                 val originStock = originLocMap[it.tagNo] ?: throw WebException("【${it.tagNo}】不在库存中")
                 StockMoveTag().apply {
@@ -140,6 +150,7 @@ class StockMoveService(
                     tagNo = it.tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
+                    u8Sync = syncStatusByTagNo[it.tagNo] ?: 2
                 }
             }
 

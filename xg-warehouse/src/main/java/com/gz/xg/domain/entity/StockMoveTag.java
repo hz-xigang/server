@@ -13,4 +13,12 @@ public class StockMoveTag extends TagEntity {
 
     private String oLocCode;
 
+    /**
+     * u8同步
+     * 0- 未同步
+     * 1- 已同步
+     * 2- 不需同步
+     */
+    private Integer u8Sync;
+
 }

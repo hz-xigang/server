@@ -34,6 +34,7 @@ class StockOutService(
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
+    private val u8SalesStockOutSyncService: U8SalesStockOutSyncService
 ) : BaseService() {
 
     /**
@@ -85,6 +86,11 @@ class StockOutService(
                 }
             }
 
+            val syncStatusByTagNo = u8SalesStockOutSyncService.syncSalesStockOut(
+                resolved, stockOut, records.associate { it.tagNo to it.loc }
+            )
+            tags.forEach { it.u8Sync = syncStatusByTagNo[it.tagNo] ?: 2 }
+
             plusService.save(stockOut)
             stockOutTagPlusService.saveBatch(tags)
             stockInventoryService.changeDelByTagNos(tagNos)
@@ -131,6 +137,11 @@ class StockOutService(
                     locId = locArchive.id
                 }
             }
+
+            val syncStatusByTagNo = u8SalesStockOutSyncService.syncSalesStockOut(
+                resolved, stockOut, records.associate { it.tagNo to locArchive.locCode }
+            )
+            tags.forEach { it.u8Sync = syncStatusByTagNo[it.tagNo] ?: 2 }
 
             plusService.save(stockOut)
             stockOutTagPlusService.saveBatch(tags)
