@@ -10,7 +10,9 @@ import com.gz.xg.u8.dto.U8PurchaseStockInDetailRequest
 import com.gz.xg.u8.dto.U8PurchaseStockInRequest
 import com.gz.xg.u8.service.U8MomStockInService
 import com.gz.xg.u8.service.U8PurchaseStockInService
+import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -133,16 +135,20 @@ class U8StockInSyncService(
                     rowNo = index + 1
                     inventoryCode = po.inventoryCode
                     quantity = po.qty                  // ProdOrder.qty
-                    auxiliaryQuantity = po.inNum       // ProdOrder.inNum
+                    auxiliaryQuantity = if(po.inNum == null || po.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else po.inNum         // ProdOrder.inNum
                     momOrderDetailId = po.erpOrderId   // ProdOrder.erpOrderId
                     invPosition = locArchive.locCode
+                    batchNo = IdUtil.generateId()
+                    packingMethod = po.packingRequirement
+                    specWidth = po.specWidth
+
                 }
             }
 
             val u8Request = U8MomStockInRequest().apply {
                 orderCode = stockIn.receiptNo
                 orderDate = todayStr
-                rdCode = "10"                         // 固定为 10
+                rdCode = "102"                         // 固定为 10
                 warehouseCode = "01"                  // 固定为 01
                 handler = "曾伟生"                    // 固定为 曾伟生
                 verifyDate = todayStr

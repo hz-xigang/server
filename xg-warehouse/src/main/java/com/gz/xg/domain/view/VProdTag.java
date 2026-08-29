@@ -45,4 +45,6 @@ public class VProdTag {
 
     private Integer deleted;
 
+    private String realName;
+
 }

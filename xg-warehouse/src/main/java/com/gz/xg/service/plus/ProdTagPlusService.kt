@@ -2,6 +2,8 @@ package com.gz.xg.service.plus
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
 import com.baomidou.mybatisplus.core.mapper.BaseMapper
+import com.baomidou.mybatisplus.core.metadata.IPage
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.domain.entity.ProdTag
@@ -39,6 +41,25 @@ import org.springframework.stereotype.Service
             .like(!search.inventoryName.isNullOrBlank(),VProdTag::getInventoryName,search.inventoryName)
 
         return vProTagMapper.selectList(wrapper)
+    }
+
+    /**
+     * 分页查询标签视图，支持按生产单号、操作人姓名、客户编号、存货名称筛选。
+     */
+    fun page(search: ProdTagSearch, current: Long, size: Long): IPage<VProdTag> {
+        val page = Page<VProdTag>(current, size)
+        DateUtil.initBaseSearch(search)
+        search.endDate = search.endDate?.let { DateUtil.strAddDays(it, 1) }
+
+        val wrapper = MPJLambdaWrapper<VProdTag>()
+            .between(VProdTag::getCreateTime, search.startDate, search.endDate)
+            .like(!search.prodNo.isNullOrBlank(), VProdTag::getProdNo, search.prodNo)
+            .like(!search.realName.isNullOrBlank(), VProdTag::getRealName, search.realName)
+            .like(!search.customerCode.isNullOrBlank(), VProdTag::getCustomerCode, search.customerCode)
+            .like(!search.inventoryName.isNullOrBlank(), VProdTag::getInventoryName, search.inventoryName)
+            .orderByDesc(VProdTag::getId)
+
+        return vProTagMapper.selectPage(page, wrapper)
     }
 
     /**

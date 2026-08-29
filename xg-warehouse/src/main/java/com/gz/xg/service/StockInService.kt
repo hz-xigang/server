@@ -61,7 +61,7 @@ class StockInService(
      * 调拨入库
      */
     fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive) {
-        TransactionTemplate(transactionManager).executeWithoutResult {
+        val u8FailCount = TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
 
@@ -72,6 +72,9 @@ class StockInService(
             }
 
             saveStockIn(resolved, "调拨入库", outNo, locArchive)
+        } ?: 0
+        if (u8FailCount > 0) {
+            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
         }
     }
 
@@ -111,7 +114,7 @@ class StockInService(
     }
 
     private fun addByType(req: AddStockIn, type: String) {
-        TransactionTemplate(transactionManager).executeWithoutResult {
+        val u8FailCount = TransactionTemplate(transactionManager).execute {
             val locArchive = locArchivePlusService.getById(req.locId)
                 ?: throw WebException("该库位不存在")
 
@@ -126,6 +129,9 @@ class StockInService(
             }
 
             saveStockIn(resolved, type, sysSequenceService.generateStockIn(), locArchive)
+        } ?: 0
+        if (u8FailCount > 0) {
+            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
         }
     }
 
@@ -137,7 +143,7 @@ class StockInService(
         type: String,
         receiptNo: String,
         locArchive: LocArchive
-    ) {
+    ): Int {
         val id = IdUtil.generateId()
         val (userId, username, realName) = UserContext.require()
 
@@ -176,6 +182,7 @@ class StockInService(
         stockInventoryService.addBatch(resolved.prodTags, locArchive)
         log.info("入库单保存完成: receiptNo={}, type={}, loc={}, 标签数量={}, 总重量={}", 
             receiptNo, type, locArchive.locCode, tags.size, resolved.total.grossWeight)
+        return tags.count { it.u8Sync == 0 }
     }
 
 }

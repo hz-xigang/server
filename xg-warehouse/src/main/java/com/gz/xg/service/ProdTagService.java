@@ -1,5 +1,6 @@
 package com.gz.xg.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.gz.xg.UserContext;
 import com.gz.xg.base.BaseService;
 import com.gz.xg.domain.auth.LoginUser;
@@ -155,6 +156,17 @@ public class ProdTagService extends BaseService {
      */
     public List<VProdTag> listByProdNo(ProdTagSearch search) {
         return prodTagPlusService.listVo(search);
+    }
+
+    /**
+     * 分页查询标签视图。
+     */
+    public Map<String, Object> page(ProdTagSearch search, long current, long size) {
+        IPage<VProdTag> pageObj = prodTagPlusService.page(search, current, size);
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", pageObj.getTotal());
+        result.put("records", pageObj.getRecords());
+        return result;
     }
 
     /**

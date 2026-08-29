@@ -41,7 +41,7 @@ class StockOutService(
      * 发货出库
      */
     fun addByShip(records: List<ShipRecord>, outNo: String) {
-        TransactionTemplate(transactionManager).executeWithoutResult {
+        val u8FailCount = TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val locCodes = records.map { it.loc }.distinct()
             val locArchives = locArchivePlusService.listByCode(locCodes)
@@ -95,6 +95,10 @@ class StockOutService(
             stockOutTagPlusService.saveBatch(tags)
             stockInventoryService.changeDelByTagNos(tagNos)
             log.info("发货生成出库单完成: receiptNo={}, 库位={}, 标签数量={}", outNo, stockOut.loc, tags.size)
+            tags.count { it.u8Sync == 0 }
+        } ?: 0
+        if (u8FailCount > 0) {
+            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
         }
     }
 
@@ -102,7 +106,7 @@ class StockOutService(
      * 调拨出库
      */
     fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive) {
-        TransactionTemplate(transactionManager).executeWithoutResult {
+        val u8FailCount = TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
 
@@ -147,6 +151,10 @@ class StockOutService(
             stockOutTagPlusService.saveBatch(tags)
             stockInventoryService.changeDelByTagNos(tagNos)
             log.info("调拨生成出库单完成: receiptNo={}, 库位={}, 标签数量={}", outNo, locArchive.locCode, tags.size)
+            tags.count { it.u8Sync == 0 }
+        } ?: 0
+        if (u8FailCount > 0) {
+            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
         }
     }
 

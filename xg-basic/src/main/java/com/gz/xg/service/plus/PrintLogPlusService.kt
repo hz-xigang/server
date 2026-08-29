@@ -18,7 +18,8 @@ class PrintLogPlusService : ServiceImpl<PrintLogMapper, PrintLog>() {
         val wrapper = MPJLambdaWrapper<PrintLog>()
             .like(!search.no.isNullOrBlank(), PrintLog::getNo, search.no)
             .eq(search.type != null, PrintLog::getType, search.type)
-            .like(!search.username.isNullOrBlank(), PrintLog::getUsername, search.username)
+            .like(!search.username.isNullOrBlank(), PrintLog::getRealName, search.realName)
+            .between(!search.startDate.isNullOrBlank() && !search.endDate.isNullOrBlank(), PrintLog::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(PrintLog::getCreateTime)
         return page(page, wrapper)
     }

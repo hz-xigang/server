@@ -3,6 +3,7 @@ package com.gz.xg.service
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.PrintLog
+import com.gz.xg.domain.mapstruct.PrintLogMapStruct
 import com.gz.xg.domain.search.PrintLogSearch
 import com.gz.xg.service.plus.PrintLogPlusService
 import org.slf4j.LoggerFactory
@@ -10,13 +11,14 @@ import org.springframework.stereotype.Service
 
 @Service
 class PrintLogService(
-    private val plusService: PrintLogPlusService
+    private val plusService: PrintLogPlusService,
+    private val printLogMapStruct: PrintLogMapStruct
 ) : BaseService() {
 
     fun page(current: Long, size: Long, search: PrintLogSearch): Map<String, Any> {
         val page = Page<PrintLog>(current, size)
         val pageObj = plusService.pageBySearch(page, search)
-        return getPage(pageObj)
+        return getDtoPage(pageObj,printLogMapStruct::toDtoList)
     }
 
     /**

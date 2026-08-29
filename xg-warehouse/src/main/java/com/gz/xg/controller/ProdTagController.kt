@@ -51,6 +51,15 @@ import java.time.format.DateTimeFormatter
         return success(prodTagService.listByProdNo(search))
     }
 
+    @PostMapping(value = ["page"])
+    fun page(
+        @RequestBody search: ProdTagSearch,
+        @RequestParam(value = "page", defaultValue = "1") current: Long,
+        @RequestParam(value = "size", defaultValue = "15") size: Long,
+    ) : ResponseResult {
+        return success(prodTagService.page(search, current, size))
+    }
+
     @GetMapping("/tag/{tagNo}")
      fun findByTagNo(@PathVariable tagNo: String,
                      @RequestParam(value = "type", defaultValue = "0") type : Int ) : ResponseResult{
