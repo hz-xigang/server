@@ -154,19 +154,26 @@ class StockInService(
             this.realName = realName
         }
 
+        // 先执行 U8 同步，获取各生产订单对应的同步状态（0-未同步, 1-已同步, 2-不需同步）
+        val syncStatusByOrderId = u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive)
+        val prodTagMap = resolved.prodTags.associateBy { it.tagNo }
+
         val tags = resolved.tagNos.map { tagNo ->
+            val orderId = prodTagMap[tagNo]?.prodOrderId
+            val syncStatus = if (orderId != null) (syncStatusByOrderId[orderId] ?: 2) else 2
+
             StockInTag().apply {
                 pId = id
                 this.tagNo = tagNo
                 locId = locArchive.id
                 locCode = locArchive.locCode
+                u8Sync = syncStatus
             }
         }
 
         plusService.save(stockIn)
         stockInTagPlusService.saveBatch(tags)
         stockInventoryService.addBatch(resolved.prodTags, locArchive)
-        u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive)
         log.info("入库单保存完成: receiptNo={}, type={}, loc={}, 标签数量={}, 总重量={}", 
             receiptNo, type, locArchive.locCode, tags.size, resolved.total.grossWeight)
     }

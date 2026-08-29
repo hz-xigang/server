@@ -60,7 +60,7 @@ class U8OrderSyncService(
                     po = detail.po
                     processRoute = detail.processRoute
                     specWidth =  detail.specWidth //toBigDecimal(detail.specWidth)
-                    erpOrderNo = main.salesOrderId.toString()
+                    erpOrderNo = detail.detailId.toString()
                 }
 
                 results.add(result)
@@ -113,7 +113,7 @@ class U8OrderSyncService(
                     po = detail.po
                     processRoute = detail.processRoute
                     specWidth =   detail.specWidth//toBigDecimal(detail.specWidth)
-                    erpOrderId = main.purchaseOrderId.toString()
+                    erpOrderId = detail.detailId.toString()
                     qty = detail.quantity
                     inNum = detail.auxiliaryQuantity
 
