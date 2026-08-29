@@ -39,7 +39,8 @@ class StockInService(
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
-    private val prepRecordService: PrepRecordService
+    private val prepRecordService: PrepRecordService,
+    private val u8StockInSyncService: U8StockInSyncService
 ) : BaseService() {
 
     /**
@@ -165,6 +166,7 @@ class StockInService(
         plusService.save(stockIn)
         stockInTagPlusService.saveBatch(tags)
         stockInventoryService.addBatch(resolved.prodTags, locArchive)
+        u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive)
         log.info("入库单保存完成: receiptNo={}, type={}, loc={}, 标签数量={}, 总重量={}", 
             receiptNo, type, locArchive.locCode, tags.size, resolved.total.grossWeight)
     }

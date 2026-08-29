@@ -19,4 +19,12 @@ public class StockInTag extends TagEntity {
      */
     private String locCode;
 
+    /**
+     * u8同步
+     * 0- 未同步
+     * 1- 已同步
+     * 2- 不需同步
+     */
+    private Integer u8Sync;
+
 }
