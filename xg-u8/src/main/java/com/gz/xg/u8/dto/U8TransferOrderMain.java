@@ -134,6 +134,6 @@ public class U8TransferOrderMain {
     /**
      * 订单明细数据
      */
-    @SerializedName("details")
+    @SerializedName("DataDetail")
     private List<U8TransferOrderDetail> details;
 }

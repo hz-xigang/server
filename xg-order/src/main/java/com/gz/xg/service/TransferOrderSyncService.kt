@@ -1,6 +1,7 @@
 package com.gz.xg.service
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
 import com.baomidou.mybatisplus.core.toolkit.IdWorker
 import com.gz.xg.annotation.OpLog
 import com.gz.xg.domain.entity.TransferOrder
@@ -76,9 +77,9 @@ class TransferOrderSyncService(
 
         // 检查库中是否已存在该单据号
         val existingOrder = transferOrderPlusService.getOne(
-            LambdaQueryWrapper<TransferOrder>()
-                .eq(TransferOrder::getOrderNo, orderCode)
-                .last("LIMIT 1")
+            QueryWrapper<TransferOrder>()
+                .eq("orderNo", orderCode)
+                .select("top 1 *")
         )
 
         val orderId = existingOrder?.id ?: IdWorker.getIdStr()
@@ -100,6 +101,7 @@ class TransferOrderSyncService(
             inCategory = u8Order.inCategoryName
             handler = u8Order.maker
             remark = u8Order.memo
+            orderType = if (u8Order.toWarehouseCode.isNullOrBlank() ) 2 else 1
         }
 
         if (isNew) {

@@ -1,6 +1,7 @@
 package com.gz.xg.schedule
 
 import com.gz.xg.service.ProdOrderSyncService
+import com.gz.xg.service.ShipOrderSyncService
 import com.gz.xg.service.TransferOrderSyncService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
@@ -14,7 +15,8 @@ import org.springframework.stereotype.Component
 @Component
 class U8OrderSyncScheduler(
     private val prodOrderSyncService: ProdOrderSyncService,
-    private val transferOrderSyncService: TransferOrderSyncService
+    private val transferOrderSyncService: TransferOrderSyncService,
+    private val shipOrderSyncService: ShipOrderSyncService
 ) {
     private val log = LoggerFactory.getLogger(U8OrderSyncScheduler::class.java)
 
@@ -46,6 +48,17 @@ class U8OrderSyncScheduler(
         log.info("开始执行 U8 调拨单同步任务")
         syncTransferOrdersAsync()
         log.info("U8 调拨单同步任务已提交（异步执行）")
+    }
+
+    /**
+     * 定时同步发货单
+     * 每小时的 00, 20, 40 分执行（异步）
+     */
+    //@Scheduled(cron = "0 0,20,40 * * * ?")
+    open fun syncU8ShipOrders() {
+        log.info("开始执行 U8 发货单同步任务")
+        syncShipOrdersAsync()
+        log.info("U8 发货单同步任务已提交（异步执行）")
     }
 
     /**
@@ -88,10 +101,24 @@ class U8OrderSyncScheduler(
     }
 
     /**
+     * 异步同步发货单
+     */
+    @Async
+    fun syncShipOrdersAsync() {
+        try {
+            log.info("开始同步 U8 发货单")
+            val count = shipOrderSyncService.syncShipOrders(CCAC_ID)
+            log.info("U8 发货单同步完成，共同步 {} 条", count)
+        } catch (e: Exception) {
+            log.error("U8 发货单同步失败", e)
+        }
+    }
+
+    /**
      * 异步同步调拨单
      */
     @Async
-     fun syncTransferOrdersAsync() {
+    fun syncTransferOrdersAsync() {
         try {
             log.info("开始同步 U8 调拨单")
             val count = transferOrderSyncService.syncTransferOrders(CCAC_ID)

@@ -3,6 +3,8 @@ package xg;
 import com.google.gson.Gson;
 import com.gz.xg.XgApplication;
 import com.gz.xg.service.ProdOrderSyncService;
+import com.gz.xg.service.ShipOrderSyncService;
+import com.gz.xg.service.TransferOrderSyncService;
 import com.gz.xg.u8.dto.*;
 import com.gz.xg.u8.service.U8MomOrderService;
 import com.gz.xg.u8.service.U8PurchaseOrderService;
@@ -38,12 +40,20 @@ public class U8Test {
     @Resource
     private ProdOrderSyncService prodOrderSyncService;
 
+    @Resource
+    private TransferOrderSyncService transferOrderSyncService;
+
+    @Resource
+    private ShipOrderSyncService  shipOrderSyncService;
+
     @Test
     void poTest(){
        /* U8Response<U8PurchaseOrderMain> response = purchaseOrderService.queryPurchaseOrderMain("108");
         List<U8PurchaseOrderMain> data = response.getData();
         System.out.println(new Gson().toJson(data));*/
-        prodOrderSyncService.syncSalesOrders("108");
+        //prodOrderSyncService.syncSalesOrders("108");
+        //transferOrderSyncService.syncTransferOrders("108");
+        shipOrderSyncService.syncShipOrders("108");
     }
 
     @Test
