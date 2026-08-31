@@ -30,4 +30,5 @@ public class U8SalesOrderConvertResult {
     private String po;
     private String processRoute;
     private String specWidth;
+    private String erpOrderId;
 }

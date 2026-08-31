@@ -28,7 +28,7 @@ class PrepRecordService(
     private val prepRecordMapStruct: PrepRecordMapStruct
 ) : BaseService() {
 
-    fun add(addStockOrder: AddStockOrder){
+    fun add(addStockOrder: AddStockOrder): String {
         val prepOrder = prepOrderPlusService.findByNo(addStockOrder.no)
         val tagNos = addStockOrder.tagNos
         val records = arrayListOf<PrepRecord>()
@@ -60,9 +60,10 @@ class PrepRecordService(
             }
 
             plusService.saveBatch(records)
-            stockMoveService.addByPrep(records,packLoc)
+            val u8ErrorMsg = stockMoveService.addByPrep(records,packLoc)
             pmt.commit(status)
             log.info("备料确认成功: prepNo={}, 备料条数={}", prepOrder.prepNo, records.size)
+            return u8ErrorMsg
         }catch (e: Exception){
             pmt.rollback(status)
             throw WebException(e.message ?: "备料失败", e)

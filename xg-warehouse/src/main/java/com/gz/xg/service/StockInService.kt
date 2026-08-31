@@ -44,24 +44,24 @@ class StockInService(
 ) : BaseService() {
 
     /**
-     * 新增入库单，并同步写入库存表。
+     * 新增入库单，并同步写入库存表。返回 U8 同步错误信息（空字符串表示同步成功）。
      */
-    fun add(req: AddStockIn) {
-        addByType(req, "直接入库")
+    fun add(req: AddStockIn): String {
+        return addByType(req, "直接入库")
     }
 
     /**
-     * 新增退货入库单，并同步写入库存表。
+     * 新增退货入库单，并同步写入库存表。返回 U8 同步错误信息（空字符串表示同步成功）。
      */
-    fun addReturn(req: AddStockIn) {
-        addByType(req, "退货入库")
+    fun addReturn(req: AddStockIn): String {
+        return addByType(req, "退货入库")
     }
 
     /**
-     * 调拨入库
+     * 调拨入库。返回 U8 同步错误信息（空字符串表示同步成功）。
      */
-    fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive) {
-        val u8FailCount = TransactionTemplate(transactionManager).execute {
+    fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive): String {
+        val u8Result = TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
 
@@ -72,10 +72,8 @@ class StockInService(
             }
 
             saveStockIn(resolved, "调拨入库", outNo, locArchive)
-        } ?: 0
-        if (u8FailCount > 0) {
-            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
         }
+        return u8Result?.errorMessage ?: ""
     }
 
     /**
@@ -113,8 +111,8 @@ class StockInService(
         )
     }
 
-    private fun addByType(req: AddStockIn, type: String) {
-        val u8FailCount = TransactionTemplate(transactionManager).execute {
+    private fun addByType(req: AddStockIn, type: String): String {
+        val u8Result = TransactionTemplate(transactionManager).execute {
             val locArchive = locArchivePlusService.getById(req.locId)
                 ?: throw WebException("该库位不存在")
 
@@ -129,10 +127,8 @@ class StockInService(
             }
 
             saveStockIn(resolved, type, sysSequenceService.generateStockIn(), locArchive)
-        } ?: 0
-        if (u8FailCount > 0) {
-            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
         }
+        return u8Result?.errorMessage ?: ""
     }
 
     /**
@@ -143,7 +139,7 @@ class StockInService(
         type: String,
         receiptNo: String,
         locArchive: LocArchive
-    ): Int {
+    ): U8SyncResult {
         val id = IdUtil.generateId()
         val (userId, username, realName) = UserContext.require()
 
@@ -162,12 +158,12 @@ class StockInService(
 
         // 先执行 U8 同步，获取各生产订单对应的同步状态（0-未同步, 1-已同步, 2-不需同步）
         val u8Batch = IdUtil.generateId()
-        val syncStatusByOrderId = u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive,u8Batch)
+        val syncResult = u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive, u8Batch)
         val prodTagMap = resolved.prodTags.associateBy { it.tagNo }
 
         val tags = resolved.tagNos.map { tagNo ->
             val orderId = prodTagMap[tagNo]?.prodOrderId
-            val syncStatus = if (orderId != null) (syncStatusByOrderId[orderId] ?: 2) else 2
+            val syncStatus = if (orderId != null) (syncResult.statusMap[orderId] ?: 2) else 2
 
             StockInTag().apply {
                 pId = id
@@ -180,10 +176,10 @@ class StockInService(
 
         plusService.save(stockIn)
         stockInTagPlusService.saveBatch(tags)
-        stockInventoryService.addBatch(resolved.prodTags, locArchive)
+        stockInventoryService.addBatch(resolved.prodTags, locArchive,u8Batch)
         log.info("入库单保存完成: receiptNo={}, type={}, loc={}, 标签数量={}, 总重量={}", 
             receiptNo, type, locArchive.locCode, tags.size, resolved.total.grossWeight)
-        return tags.count { it.u8Sync == 0 }
+        return syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
     }
 
 }

@@ -22,8 +22,7 @@ class StockMoveController(
     @PostMapping("")
     @OpLog(title = "移库管理", opName = "库位移库", businessType = BusinessType.INSERT)
     fun add (@RequestBody req : AddStockIn) : ResponseResult{
-        service.add(req)
-        return success()
+        return success(service.add(req))
     }
 
     @PostMapping("page")

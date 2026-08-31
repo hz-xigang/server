@@ -28,17 +28,17 @@ class U8StockInSyncService(
 ) : BaseService() {
 
     /**
-     * 同步入库单到 U8，返回每个 prodOrderId 对应的 u8Sync 状态（0-未同步, 1-已同步, 2-不需同步）
+     * 同步入库单到 U8，返回每个 prodOrderId 对应的 u8Sync 状态（0-未同步, 1-已同步, 2-不需同步）及 U8 错误信息
      */
     fun syncStockIn(
         resolved: ResolvedTags,
         stockIn: StockIn,
         locArchive: LocArchive,
         u8Batch : String
-    ): Map<String, Int> {
+    ): U8SyncResult {
         val prodOrderIds = resolved.prodTags.mapNotNull { it.prodOrderId }.distinct()
         if (prodOrderIds.isEmpty()) {
-            return emptyMap()
+            return U8SyncResult()
         }
 
         val orders = productionOrderPlusService.listByIds(prodOrderIds)
@@ -46,6 +46,7 @@ class U8StockInSyncService(
 
         // 最终返回每个 prodOrderId 的同步状态
         val syncStatusByOrderId = mutableMapOf<String, Int>()
+        val errors = mutableListOf<String>()
 
         // 标记不需要同步的订单（type != 1 且 != 2，或者无 erpOrderId）
         prodOrderIds.forEach { orderId ->
@@ -58,31 +59,37 @@ class U8StockInSyncService(
         // 1. 同步采购入库 (type == 1 且有 erpOrderId)
         val purchaseOrders = orders.filter { it.type == 1 && !it.erpOrderId.isNullOrBlank() }
         if (purchaseOrders.isNotEmpty()) {
-            val success = trySyncPurchaseStockIn(purchaseOrders, stockIn, locArchive,u8Batch)
-            val status = if (success) 1 else 0
+            val errorMsg = trySyncPurchaseStockIn(purchaseOrders, stockIn, locArchive, u8Batch)
+            val status = if (errorMsg == null) 1 else 0
             purchaseOrders.forEach { syncStatusByOrderId[it.id] = status }
+            if (errorMsg != null) errors.add(errorMsg)
         }
 
         // 2. 同步产成品入库 (type == 2 且有 erpOrderId)
         val momOrders = orders.filter { it.type == 2 && !it.erpOrderId.isNullOrBlank() }
         if (momOrders.isNotEmpty()) {
-            val success = trySyncMomStockIn(momOrders, stockIn, locArchive,u8Batch)
-            val status = if (success) 1 else 0
+            val errorMsg = trySyncMomStockIn(momOrders, stockIn, locArchive, u8Batch)
+            val status = if (errorMsg == null) 1 else 0
             momOrders.forEach { syncStatusByOrderId[it.id] = status }
+            if (errorMsg != null) errors.add(errorMsg)
         }
 
-        return syncStatusByOrderId
+        return U8SyncResult(
+            statusMap = syncStatusByOrderId,
+            failCount = syncStatusByOrderId.count { it.value == 0 },
+            errorMessage = errors.joinToString("; ").ifBlank { null }
+        )
     }
 
     /**
-     * 尝试同步采购入库，异常与失败不中断主流程，返回 true 表示成功，false 表示失败
+     * 尝试同步采购入库，异常与失败不中断主流程，成功返回 null，失败返回 U8 错误信息
      */
     private fun trySyncPurchaseStockIn(
         purchaseOrders: List<com.gz.xg.domain.entity.ProdOrder>,
         stockIn: StockIn,
         locArchive: LocArchive,
         u8Batch: String
-    ): Boolean {
+    ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
@@ -111,26 +118,26 @@ class U8StockInSyncService(
             val response = u8PurchaseStockInService.pushPurchaseStockIn(u8Request)
             if (response.isSuccess) {
                 log.info("U8 采购入库推送成功: receiptNo={}", stockIn.receiptNo)
-                true
+                null
             } else {
                 log.error("U8 采购入库推送失败: receiptNo={}, 原因={}", stockIn.receiptNo, response.returnMessage)
-                false
+                response.returnMessage ?: "U8采购入库推送失败"
             }
         } catch (e: Exception) {
             log.error("U8 采购入库接口调用异常: receiptNo={}", stockIn.receiptNo, e)
-            false
+            "U8采购入库接口调用异常: ${e.message}"
         }
     }
 
     /**
-     * 尝试同步产成品入库，异常与失败不中断主流程，返回 true 表示成功，false 表示失败
+     * 尝试同步产成品入库，异常与失败不中断主流程，成功返回 null，失败返回 U8 错误信息
      */
     private fun trySyncMomStockIn(
         momOrders: List<com.gz.xg.domain.entity.ProdOrder>,
         stockIn: StockIn,
         locArchive: LocArchive,
         u8Batch : String
-    ): Boolean {
+    ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
@@ -152,7 +159,7 @@ class U8StockInSyncService(
             val u8Request = U8MomStockInRequest().apply {
                 orderCode = stockIn.receiptNo
                 orderDate = todayStr
-                rdCode = "102"                         // 固定为 10
+                rdCode = "102"                         // 固定为 102
                 warehouseCode = "01"                  // 固定为 01
                 handler = "曾伟生"                    // 固定为 曾伟生
                 verifyDate = todayStr
@@ -163,14 +170,14 @@ class U8StockInSyncService(
             val response = u8MomStockInService.pushMomStockIn(u8Request)
             if (response.isSuccess) {
                 log.info("U8 产成品入库推送成功: receiptNo={}", stockIn.receiptNo)
-                true
+                null
             } else {
                 log.error("U8 产成品入库推送失败: receiptNo={}, 原因={}", stockIn.receiptNo, response.returnMessage)
-                false
+                response.returnMessage ?: "U8产成品入库推送失败"
             }
         } catch (e: Exception) {
             log.error("U8 产成品入库接口调用异常: receiptNo={}", stockIn.receiptNo, e)
-            false
+            "U8产成品入库接口调用异常: ${e.message}"
         }
     }
 }

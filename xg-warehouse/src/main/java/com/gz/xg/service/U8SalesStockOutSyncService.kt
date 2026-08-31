@@ -35,10 +35,10 @@ class U8SalesStockOutSyncService(
         resolved: ResolvedTags,
         stockOut: StockOut,
         locCodeByTagNo: Map<String, String>
-    ): Map<String, Int> {
+    ): U8SyncResult {
         val prodOrderIds = resolved.prodTags.mapNotNull { it.prodOrderId }.distinct()
         if (prodOrderIds.isEmpty()) {
-            return resolved.prodTags.associate { it.tagNo to 2 }
+            return U8SyncResult(statusMap = resolved.prodTags.associate { it.tagNo to 2 })
         }
 
         val orders = productionOrderPlusService.listByIds(prodOrderIds)
@@ -60,15 +60,19 @@ class U8SalesStockOutSyncService(
         }
 
         if (eligibleTags.isEmpty()) {
-            return syncStatusByTagNo
+            return U8SyncResult(statusMap = syncStatusByTagNo)
         }
 
         // 针对 type == 2 的标签执行 U8 推送
-        val success = trySyncSalesStockOut(eligibleTags, orderMap, stockOut, locCodeByTagNo)
-        val status = if (success) 1 else 0
+        val errorMsg = trySyncSalesStockOut(eligibleTags, orderMap, stockOut, locCodeByTagNo)
+        val status = if (errorMsg == null) 1 else 0
         eligibleTags.forEach { syncStatusByTagNo[it.tagNo] = status }
 
-        return syncStatusByTagNo
+        return U8SyncResult(
+            statusMap = syncStatusByTagNo,
+            failCount = syncStatusByTagNo.count { it.value == 0 },
+            errorMessage = errorMsg
+        )
     }
 
     private fun trySyncSalesStockOut(
@@ -76,7 +80,7 @@ class U8SalesStockOutSyncService(
         orderMap: Map<String, ProdOrder>,
         stockOut: StockOut,
         locCodeByTagNo: Map<String, String>
-    ): Boolean {
+    ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
@@ -120,14 +124,14 @@ class U8SalesStockOutSyncService(
             val response = u8SalesStockOutService.pushSalesStockOut(u8Request)
             if (response.isSuccess) {
                 log.info("U8 成品出仓推送成功: receiptNo={}, 明细数量={}", stockOut.receiptNo, detailList.size)
-                true
+                null
             } else {
                 log.error("U8 成品出仓推送失败: receiptNo={}, 原因={}", stockOut.receiptNo, response.returnMessage)
-                false
+                response.returnMessage ?: "U8成品出仓推送失败"
             }
         } catch (e: Exception) {
             log.error("U8 成品出仓接口调用异常: receiptNo={}", stockOut.receiptNo, e)
-            false
+            "U8成品出仓接口调用异常: ${e.message}"
         }
     }
 }

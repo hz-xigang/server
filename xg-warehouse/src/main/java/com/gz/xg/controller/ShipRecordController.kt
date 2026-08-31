@@ -21,8 +21,7 @@ class ShipRecordController(
     @PostMapping("")
     @OpLog(title = "发货作业", opName = "发货扫码确认", businessType = BusinessType.INSERT)
     fun add(@RequestBody order: AddStockOrder) : ResponseResult{
-        shipRecordService.add(order)
-        return success()
+        return success(shipRecordService.add(order))
     }
 
 

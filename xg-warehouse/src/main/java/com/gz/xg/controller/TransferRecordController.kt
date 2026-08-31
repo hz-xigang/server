@@ -20,8 +20,7 @@ class TransferRecordController(
     @PostMapping("")
     @OpLog(title = "调拨作业", opName = "调拨扫码确认", businessType = BusinessType.INSERT)
     fun add(@RequestBody order: AddStockOrder) : ResponseResult{
-        service.add(order)
-        return success()
+        return success(service.add(order))
     }
 
 }

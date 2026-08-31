@@ -27,7 +27,7 @@ class ShipRecordService(
     private val stockOutService: StockOutService
 ) : BaseService() {
 
-    fun add(addStockOrder: AddStockOrder){
+    fun add(addStockOrder: AddStockOrder): String {
 
         val shipOrder = shipOrderPlusService.findByNo(addStockOrder.no)
         val tagNos = addStockOrder.tagNos
@@ -72,14 +72,14 @@ class ShipRecordService(
                 }
             }
             plusService.saveBatch(shipRecords)
-            stockOutService.addByShip(shipRecords  , outNo)
+            val u8ErrorMsg = stockOutService.addByShip(shipRecords  , outNo)
             pmt.commit(status)
             log.info("发货确认成功: shipNo={}, 出库单号={}, 发货条数={}", shipOrder.shipNo, outNo, shipRecords.size)
+            return u8ErrorMsg
         }catch (e: Exception){
             pmt.rollback(status)
             throw WebException(e.message ?: "发货失败", e)
         }
-
 
 
 

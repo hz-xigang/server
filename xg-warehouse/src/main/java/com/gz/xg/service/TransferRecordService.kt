@@ -33,7 +33,7 @@ class TransferRecordService(
     private val stockInService: StockInService,
 ) : BaseService() {
 
-    fun add(addStockOrder: AddStockOrder){
+    fun add(addStockOrder: AddStockOrder): String {
         val order = transferOrderPlusService.findByNo(addStockOrder.no)
         val tagNos = addStockOrder.tagNos
 
@@ -72,13 +72,14 @@ class TransferRecordService(
             }
 
             plusService.saveBatch(records)
-            if (order.orderType == 1){
+            val u8ErrorMsg = if (order.orderType == 1){
                 stockInService.addByTransfer(records,no,loc)
             }else{
                 stockOutService.addByTransfer(records,no,loc)
             }
             pmt.commit(status)
             log.info("调拨确认成功: orderNo={}, orderType={}, 出入库单号={}, 条数={}", order.orderNo, order.orderType, no, records.size)
+            return u8ErrorMsg
         }catch (e: Exception){
             pmt.rollback(status)
             throw WebException(e.message ?: "调拨失败", e)

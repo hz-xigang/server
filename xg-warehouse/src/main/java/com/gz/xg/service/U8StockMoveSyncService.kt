@@ -38,10 +38,10 @@ class U8StockMoveSyncService(
         originLocMap: Map<String, StockInventory>,
         stockMove: StockMove,
         targetLocArchive: LocArchive
-    ): Map<String, Int> {
+    ): U8SyncResult {
         val prodOrderIds = resolved.prodTags.mapNotNull { it.prodOrderId }.distinct()
         if (prodOrderIds.isEmpty()) {
-            return resolved.prodTags.associate { it.tagNo to 2 }
+            return U8SyncResult(statusMap = resolved.prodTags.associate { it.tagNo to 2 })
         }
 
         val orders = productionOrderPlusService.listByIds(prodOrderIds)
@@ -49,6 +49,7 @@ class U8StockMoveSyncService(
 
         val tagMap = resolved.prodTags.associateBy { it.tagNo }
         val syncStatusByTagNo = mutableMapOf<String, Int>()
+        var errorMsg: String? = null
 
         // 筛选出 type == 2 的标签项
         val eligibleTags = mutableListOf<VProdTag>()
@@ -63,15 +64,19 @@ class U8StockMoveSyncService(
         }
 
         if (eligibleTags.isEmpty()) {
-            return syncStatusByTagNo
+            return U8SyncResult(statusMap = syncStatusByTagNo)
         }
 
         // 针对 type == 2 的标签执行 U8 推送
-        val success = trySyncStockMove(eligibleTags, orderMap, originLocMap, stockMove, targetLocArchive)
-        val status = if (success) 1 else 0
+        errorMsg = trySyncStockMove(eligibleTags, orderMap, originLocMap, stockMove, targetLocArchive)
+        val status = if (errorMsg == null) 1 else 0
         eligibleTags.forEach { syncStatusByTagNo[it.tagNo] = status }
 
-        return syncStatusByTagNo
+        return U8SyncResult(
+            statusMap = syncStatusByTagNo,
+            failCount = syncStatusByTagNo.count { it.value == 0 },
+            errorMessage = errorMsg
+        )
     }
 
     private fun trySyncStockMove(
@@ -80,7 +85,7 @@ class U8StockMoveSyncService(
         originLocMap: Map<String, StockInventory>,
         stockMove: StockMove,
         targetLocArchive: LocArchive
-    ): Boolean {
+    ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
@@ -117,14 +122,14 @@ class U8StockMoveSyncService(
             val response = u8StockMoveService.pushStockMove(u8Request)
             if (response.isSuccess) {
                 log.info("U8 移库作业推送成功: receiptNo={}, 明细数量={}", stockMove.receiptNo, detailList.size)
-                true
+                null
             } else {
                 log.error("U8 移库作业推送失败: receiptNo={}, 原因={}", stockMove.receiptNo, response.returnMessage)
-                false
+                response.returnMessage ?: "U8移库作业推送失败"
             }
         } catch (e: Exception) {
             log.error("U8 移库作业接口调用异常: receiptNo={}", stockMove.receiptNo, e)
-            false
+            "U8移库作业接口调用异常: ${e.message}"
         }
     }
 }

@@ -46,8 +46,11 @@ class StockMoveService(
     /**
      * 新增移库单，并同步修改库存库位。
      */
-    fun add(req: AddStockIn) {
-        val u8FailCount = TransactionTemplate(transactionManager).execute {
+    /**
+     * 新增移库单，并同步修改库存库位。返回 U8 同步错误信息（空字符串表示同步成功）。
+     */
+    fun add(req: AddStockIn): String {
+        val u8Result = TransactionTemplate(transactionManager).execute {
             val locArchive = locArchivePlusService.getById(req.locId)
                 ?: throw WebException("该库位不存在")
 
@@ -83,7 +86,7 @@ class StockMoveService(
                 this.realName = realName
             }
 
-            val syncStatusByTagNo = u8StockMoveSyncService.syncStockMove(
+            val syncResult = u8StockMoveSyncService.syncStockMove(
                 resolved, originLocMap, stockMove, locArchive
             )
 
@@ -94,7 +97,7 @@ class StockMoveService(
                     this.tagNo = tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
-                    u8Sync = syncStatusByTagNo[tagNo] ?: 2
+                    u8Sync = syncResult.statusMap[tagNo] ?: 2
                 }
             }
 
@@ -102,18 +105,16 @@ class StockMoveService(
             stockMoveTagPlusService.saveBatch(tags)
             stockInventoryService.editLoc(resolved.prodTags, locArchive)
             log.info("普通移库完成: receiptNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, locArchive.locCode, tags.size)
-            tags.count { it.u8Sync == 0 }
-        } ?: 0
-        if (u8FailCount > 0) {
-            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
+            syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
+        return u8Result?.errorMessage ?: ""
     }
 
     /**
-     * 备料移库
+     * 备料移库。返回 U8 同步错误信息（空字符串表示同步成功）。
      */
-    fun addByPrep(records: List<PrepRecord>, locArchive: LocArchive) {
-        val u8FailCount = TransactionTemplate(transactionManager).execute {
+    fun addByPrep(records: List<PrepRecord>, locArchive: LocArchive): String {
+        val u8Result = TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
 
@@ -143,7 +144,7 @@ class StockMoveService(
                 locId = locArchive.id
             }
 
-            val syncStatusByTagNo = u8StockMoveSyncService.syncStockMove(
+            val syncResult = u8StockMoveSyncService.syncStockMove(
                 resolved, originLocMap, stockMove, locArchive
             )
 
@@ -154,7 +155,7 @@ class StockMoveService(
                     tagNo = it.tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
-                    u8Sync = syncStatusByTagNo[it.tagNo] ?: 2
+                    u8Sync = syncResult.statusMap[it.tagNo] ?: 2
                 }
             }
 
@@ -162,11 +163,9 @@ class StockMoveService(
             stockMoveTagPlusService.saveBatch(tags)
             stockInventoryService.editLocByTagNo(tagNos, locArchive)
             log.info("备料移库完成: receiptNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, locArchive.locCode, tags.size)
-            tags.count { it.u8Sync == 0 }
-        } ?: 0
-        if (u8FailCount > 0) {
-            throw WebException("U8同步失败，$u8FailCount 个标签未同步，单据已保存")
+            syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
+        return u8Result?.errorMessage ?: ""
     }
 
     fun page(search: StockSearch,current: Long, size: Long): Map<String, Any> {

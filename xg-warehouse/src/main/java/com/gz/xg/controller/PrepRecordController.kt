@@ -21,7 +21,6 @@ class PrepRecordController(
     @PostMapping("")
     @OpLog(title = "备料作业", opName = "备料扫码确认", businessType = BusinessType.INSERT)
     fun add(@RequestBody order: AddStockOrder) : ResponseResult{
-        prepRecordService.add(order)
-        return success()
+        return success(prepRecordService.add(order))
     }
 }
