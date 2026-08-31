@@ -68,11 +68,17 @@ class ShipRecordService(
                     record.tagNo = it.tagNo
                     record.shipOrder = shipOrder.shipNo
 
+                    record.m1 = orderDetail.m1
+                    record.m2 = orderDetail.m2
+                    record.m3 = orderDetail.m3
+                    record.m4 = orderDetail.m4
+                    record.m5 = orderDetail.m5
+
                     shipRecords.add(record)
                 }
             }
             plusService.saveBatch(shipRecords)
-            val u8ErrorMsg = stockOutService.addByShip(shipRecords  , outNo)
+            val u8ErrorMsg = stockOutService.addByShip(shipRecords, outNo, shipOrder, orderDetails)
             pmt.commit(status)
             log.info("发货确认成功: shipNo={}, 出库单号={}, 发货条数={}", shipOrder.shipNo, outNo, shipRecords.size)
             return u8ErrorMsg

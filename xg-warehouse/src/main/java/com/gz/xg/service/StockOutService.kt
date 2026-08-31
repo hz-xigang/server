@@ -40,7 +40,12 @@ class StockOutService(
     /**
      * 发货出库。返回 U8 同步错误信息（空字符串表示同步成功）。
      */
-    fun addByShip(records: List<ShipRecord>, outNo: String): String {
+    fun addByShip(
+        records: List<ShipRecord>,
+        outNo: String,
+        shipOrder: com.gz.xg.domain.entity.ShipOrder,
+        orderDetails: List<com.gz.xg.domain.entity.ShipOrderDetail>
+    ): String {
         val u8Result = TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val locCodes = records.map { it.loc }.distinct()
@@ -87,7 +92,7 @@ class StockOutService(
             }
 
             val syncResult = u8SalesStockOutSyncService.syncSalesStockOut(
-                resolved, stockOut, records.associate { it.tagNo to it.loc }
+                resolved, stockOut, shipOrder, orderDetails, records.associate { it.tagNo to it.loc }
             )
             tags.forEach { it.u8Sync = syncResult.statusMap[it.tagNo] ?: 2 }
 
@@ -101,10 +106,10 @@ class StockOutService(
     }
 
     /**
-     * 调拨出库。返回 U8 同步错误信息（空字符串表示同步成功）。
+     * 调拨出库（调拨出库不推送 U8 销售出库单）。
      */
     fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive): String {
-        val u8Result = TransactionTemplate(transactionManager).execute {
+        TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
 
@@ -137,21 +142,16 @@ class StockOutService(
                     tagNo = it.tagNo
                     locCode = locArchive.locCode
                     locId = locArchive.id
+                    u8Sync = 2 // 调拨出库无需同步销售出库
                 }
             }
-
-            val syncResult = u8SalesStockOutSyncService.syncSalesStockOut(
-                resolved, stockOut, records.associate { it.tagNo to locArchive.locCode }
-            )
-            tags.forEach { it.u8Sync = syncResult.statusMap[it.tagNo] ?: 2 }
 
             plusService.save(stockOut)
             stockOutTagPlusService.saveBatch(tags)
             stockInventoryService.changeDelByTagNos(tagNos)
             log.info("调拨生成出库单完成: receiptNo={}, 库位={}, 标签数量={}", outNo, locArchive.locCode, tags.size)
-            syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
-        return u8Result?.errorMessage ?: ""
+        return ""
     }
 
     fun page(search: StockSearch, current: Long, size: Long) : Map<String, Any>  {
