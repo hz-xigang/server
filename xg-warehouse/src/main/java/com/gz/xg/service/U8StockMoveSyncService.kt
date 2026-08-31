@@ -96,6 +96,9 @@ class U8StockMoveSyncService(
                     invPositionIn = targetLocArchive.locCode
                     batchNo = order?.prodNo
                     rowMemo = prodTag.tagNo
+                    packingMethod = order?.packingRequirement
+                    specWidth = order?.specWidth
+                    batchNo = originStock?.u8Batch
                 }
             }
 
@@ -108,6 +111,7 @@ class U8StockMoveSyncService(
                 maker = stockMove.realName ?: stockMove.username
                 memo = stockMove.type
                 details = detailList
+
             }
 
             val response = u8StockMoveService.pushStockMove(u8Request)

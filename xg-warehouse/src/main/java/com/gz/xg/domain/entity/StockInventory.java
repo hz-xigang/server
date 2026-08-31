@@ -88,4 +88,10 @@ public class StockInventory  {
      * 自定义扩展备注字段5
      */
     private String m5;
+
+    /**
+     * u8 入库批次
+     */
+    private String u8Batch;
+
 }

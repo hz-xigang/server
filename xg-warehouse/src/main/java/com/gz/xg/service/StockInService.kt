@@ -161,7 +161,8 @@ class StockInService(
         }
 
         // 先执行 U8 同步，获取各生产订单对应的同步状态（0-未同步, 1-已同步, 2-不需同步）
-        val syncStatusByOrderId = u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive)
+        val u8Batch = IdUtil.generateId()
+        val syncStatusByOrderId = u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive,u8Batch)
         val prodTagMap = resolved.prodTags.associateBy { it.tagNo }
 
         val tags = resolved.tagNos.map { tagNo ->

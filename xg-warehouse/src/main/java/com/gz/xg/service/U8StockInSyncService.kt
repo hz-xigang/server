@@ -33,7 +33,8 @@ class U8StockInSyncService(
     fun syncStockIn(
         resolved: ResolvedTags,
         stockIn: StockIn,
-        locArchive: LocArchive
+        locArchive: LocArchive,
+        u8Batch : String
     ): Map<String, Int> {
         val prodOrderIds = resolved.prodTags.mapNotNull { it.prodOrderId }.distinct()
         if (prodOrderIds.isEmpty()) {
@@ -57,7 +58,7 @@ class U8StockInSyncService(
         // 1. 同步采购入库 (type == 1 且有 erpOrderId)
         val purchaseOrders = orders.filter { it.type == 1 && !it.erpOrderId.isNullOrBlank() }
         if (purchaseOrders.isNotEmpty()) {
-            val success = trySyncPurchaseStockIn(purchaseOrders, stockIn, locArchive)
+            val success = trySyncPurchaseStockIn(purchaseOrders, stockIn, locArchive,u8Batch)
             val status = if (success) 1 else 0
             purchaseOrders.forEach { syncStatusByOrderId[it.id] = status }
         }
@@ -65,7 +66,7 @@ class U8StockInSyncService(
         // 2. 同步产成品入库 (type == 2 且有 erpOrderId)
         val momOrders = orders.filter { it.type == 2 && !it.erpOrderId.isNullOrBlank() }
         if (momOrders.isNotEmpty()) {
-            val success = trySyncMomStockIn(momOrders, stockIn, locArchive)
+            val success = trySyncMomStockIn(momOrders, stockIn, locArchive,u8Batch)
             val status = if (success) 1 else 0
             momOrders.forEach { syncStatusByOrderId[it.id] = status }
         }
@@ -79,7 +80,8 @@ class U8StockInSyncService(
     private fun trySyncPurchaseStockIn(
         purchaseOrders: List<com.gz.xg.domain.entity.ProdOrder>,
         stockIn: StockIn,
-        locArchive: LocArchive
+        locArchive: LocArchive,
+        u8Batch: String
     ): Boolean {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
@@ -92,6 +94,7 @@ class U8StockInSyncService(
                     auxiliaryQuantity = po.inNum       // ProdOrder.inNum
                     purchaseOrderDetailId = po.erpOrderId
                     invPosition = locArchive.locCode
+                    batchNo = u8Batch
                 }
             }
 
@@ -125,7 +128,8 @@ class U8StockInSyncService(
     private fun trySyncMomStockIn(
         momOrders: List<com.gz.xg.domain.entity.ProdOrder>,
         stockIn: StockIn,
-        locArchive: LocArchive
+        locArchive: LocArchive,
+        u8Batch : String
     ): Boolean {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
@@ -138,7 +142,7 @@ class U8StockInSyncService(
                     auxiliaryQuantity = if(po.inNum == null || po.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else po.inNum         // ProdOrder.inNum
                     momOrderDetailId = po.erpOrderId   // ProdOrder.erpOrderId
                     invPosition = locArchive.locCode
-                    batchNo = IdUtil.generateId()
+                    batchNo = u8Batch
                     packingMethod = po.packingRequirement
                     specWidth = po.specWidth
 
