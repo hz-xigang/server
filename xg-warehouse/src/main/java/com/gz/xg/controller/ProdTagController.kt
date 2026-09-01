@@ -61,9 +61,25 @@ import java.time.format.DateTimeFormatter
     }
 
     @GetMapping("/tag/{tagNo}")
-     fun findByTagNo(@PathVariable tagNo: String,
-                     @RequestParam(value = "type", defaultValue = "0") type : Int ) : ResponseResult{
+    fun findByTagNo(@PathVariable tagNo: String,
+                    @RequestParam(value = "type", defaultValue = "0") type : Int ) : ResponseResult{
         return success( prodTagService.findVoByTagNo(tagNo,type) )
+    }
+
+    @GetMapping("/checkShip")
+    fun checkShipTag(
+        @RequestParam("shipNo") shipNo: String,
+        @RequestParam("tagNo") tagNo: String
+    ): ResponseResult {
+        return success(prodTagService.checkShipTag(shipNo, tagNo))
+    }
+
+    @GetMapping("/checkTransfer")
+    fun checkTransferTag(
+        @RequestParam("orderNo") orderNo: String,
+        @RequestParam("tagNo") tagNo: String
+    ): ResponseResult {
+        return success(prodTagService.checkTransferTag(orderNo, tagNo))
     }
 
     @OpLog(title = "标签管理", opName = "删除纸箱标签", businessType = BusinessType.DELETE)

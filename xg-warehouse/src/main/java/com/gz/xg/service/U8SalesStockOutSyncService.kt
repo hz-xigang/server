@@ -30,6 +30,7 @@ class U8SalesStockOutSyncService(
      * @param shipOrder 发货单主表
      * @param orderDetails 发货单明细列表
      * @param locCodeByTagNo 每个标签对应的出库货位映射 (tagNo -> locCode)
+     * @param u8BatchByTagNo 每个标签对应的 U8 批次号映射 (tagNo -> u8Batch)
      * @return 每个 tagNo 对应的 u8Sync 状态（0-未同步, 1-已同步, 2-不需同步）
      */
     fun syncSalesStockOut(
@@ -37,7 +38,8 @@ class U8SalesStockOutSyncService(
         stockOut: StockOut,
         shipOrder: ShipOrder,
         orderDetails: List<ShipOrderDetail>,
-        locCodeByTagNo: Map<String, String>
+        locCodeByTagNo: Map<String, String>,
+        u8BatchByTagNo: Map<String, String>
     ): U8SyncResult {
         if (resolved.prodTags.isEmpty()) {
             return U8SyncResult(statusMap = emptyMap())
@@ -61,7 +63,7 @@ class U8SalesStockOutSyncService(
             return U8SyncResult(statusMap = syncStatusByTagNo)
         }
 
-        val errorMsg = trySyncSalesStockOut(eligibleTags, detailMap, shipOrder, stockOut, locCodeByTagNo)
+        val errorMsg = trySyncSalesStockOut(eligibleTags, detailMap, shipOrder, stockOut, locCodeByTagNo, u8BatchByTagNo)
         val status = if (errorMsg == null) 1 else 0
         eligibleTags.forEach { syncStatusByTagNo[it.tagNo] = status }
 
@@ -77,7 +79,8 @@ class U8SalesStockOutSyncService(
         detailMap: Map<String, ShipOrderDetail>,
         shipOrder: ShipOrder,
         stockOut: StockOut,
-        locCodeByTagNo: Map<String, String>
+        locCodeByTagNo: Map<String, String>,
+        u8BatchByTagNo: Map<String, String>
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
@@ -102,7 +105,8 @@ class U8SalesStockOutSyncService(
                     auxiliaryQuantity = prodTag.netWeight ?: BigDecimal.ZERO
                     quantity = prodTag.qty?.let { BigDecimal.valueOf(it.toLong()) } ?: BigDecimal.ZERO
                     invPosition = locCodeByTagNo[prodTag.tagNo] ?: ""
-                    batchNo = prodTag.prodNo ?: ""
+                    // 批次号取库存表 StockInventory.u8Batch（入库时写入的 U8 批次）
+                    batchNo = u8BatchByTagNo[prodTag.tagNo] ?: ""
                     rowMemo = prodTag.tagNo ?: ""
                     // isosid 销售订单行主键，存放在 m5
                     salesOrderDetailId = orderDetail?.m5 ?: ""

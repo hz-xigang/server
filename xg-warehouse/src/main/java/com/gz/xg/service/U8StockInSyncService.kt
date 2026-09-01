@@ -2,7 +2,9 @@ package com.gz.xg.service
 
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
+import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
+import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.service.plus.ProductionOrderPlusService
 import com.gz.xg.u8.dto.U8MomStockInDetailRequest
 import com.gz.xg.u8.dto.U8MomStockInRequest
@@ -10,7 +12,6 @@ import com.gz.xg.u8.dto.U8PurchaseStockInDetailRequest
 import com.gz.xg.u8.dto.U8PurchaseStockInRequest
 import com.gz.xg.u8.service.U8MomStockInService
 import com.gz.xg.u8.service.U8PurchaseStockInService
-import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -57,20 +58,26 @@ class U8StockInSyncService(
         }
 
         // 1. 同步采购入库 (type == 1 且有 erpOrderId)
-        val purchaseOrders = orders.filter { it.type == 1 && !it.erpOrderId.isNullOrBlank() }
-        if (purchaseOrders.isNotEmpty()) {
-            val errorMsg = trySyncPurchaseStockIn(purchaseOrders, stockIn, locArchive, u8Batch)
+        val purchaseTags = resolved.prodTags.filter { tag ->
+            val po = orderMap[tag.prodOrderId]
+            po != null && po.type == 1 && !po.erpOrderId.isNullOrBlank()
+        }
+        if (purchaseTags.isNotEmpty()) {
+            val errorMsg = trySyncPurchaseStockIn(purchaseTags, orderMap, stockIn, locArchive, u8Batch)
             val status = if (errorMsg == null) 1 else 0
-            purchaseOrders.forEach { syncStatusByOrderId[it.id] = status }
+            purchaseTags.mapNotNull { it.prodOrderId }.distinct().forEach { syncStatusByOrderId[it] = status }
             if (errorMsg != null) errors.add(errorMsg)
         }
 
         // 2. 同步产成品入库 (type == 2 且有 erpOrderId)
-        val momOrders = orders.filter { it.type == 2 && !it.erpOrderId.isNullOrBlank() }
-        if (momOrders.isNotEmpty()) {
-            val errorMsg = trySyncMomStockIn(momOrders, stockIn, locArchive, u8Batch)
+        val momTags = resolved.prodTags.filter { tag ->
+            val po = orderMap[tag.prodOrderId]
+            po != null && po.type == 2 && !po.erpOrderId.isNullOrBlank()
+        }
+        if (momTags.isNotEmpty()) {
+            val errorMsg = trySyncMomStockIn(momTags, orderMap, stockIn, locArchive, u8Batch)
             val status = if (errorMsg == null) 1 else 0
-            momOrders.forEach { syncStatusByOrderId[it.id] = status }
+            momTags.mapNotNull { it.prodOrderId }.distinct().forEach { syncStatusByOrderId[it] = status }
             if (errorMsg != null) errors.add(errorMsg)
         }
 
@@ -82,10 +89,11 @@ class U8StockInSyncService(
     }
 
     /**
-     * 尝试同步采购入库，异常与失败不中断主流程，成功返回 null，失败返回 U8 错误信息
+     * 尝试同步采购入库，每个 ProdTag 对应一条明细，quantity 取 ProdTag.qty
      */
     private fun trySyncPurchaseStockIn(
-        purchaseOrders: List<com.gz.xg.domain.entity.ProdOrder>,
+        purchaseTags: List<VProdTag>,
+        orderMap: Map<String, ProdOrder>,
         stockIn: StockIn,
         locArchive: LocArchive,
         u8Batch: String
@@ -93,13 +101,17 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            val detailList = purchaseOrders.mapIndexed { index, po ->
+            // 每个 ProdTag 对应一条 U8 明细
+            val detailList = purchaseTags.mapIndexed { index, prodTag ->
+                val po = orderMap[prodTag.prodOrderId]
+                val tagQty = BigDecimal.valueOf(prodTag.qty.toLong())
+
                 U8PurchaseStockInDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = po.inventoryCode
-                    quantity = po.qty                  // ProdOrder.qty
-                    auxiliaryQuantity = po.inNum       // ProdOrder.inNum
-                    purchaseOrderDetailId = po.erpOrderId
+                    inventoryCode = po?.inventoryCode ?: prodTag.inventoryCode ?: ""
+                    quantity = tagQty                  // 单个 ProdTag.qty
+                    auxiliaryQuantity = po?.inNum      // ProdOrder.inNum
+                    purchaseOrderDetailId = po?.erpOrderId ?: ""
                     invPosition = locArchive.locCode
                     batchNo = u8Batch
                 }
@@ -117,7 +129,7 @@ class U8StockInSyncService(
 
             val response = u8PurchaseStockInService.pushPurchaseStockIn(u8Request)
             if (response.isSuccess) {
-                log.info("U8 采购入库推送成功: receiptNo={}", stockIn.receiptNo)
+                log.info("U8 采购入库推送成功: receiptNo={}, 明细行数={}", stockIn.receiptNo, detailList.size)
                 null
             } else {
                 log.error("U8 采购入库推送失败: receiptNo={}, 原因={}", stockIn.receiptNo, response.returnMessage)
@@ -130,10 +142,11 @@ class U8StockInSyncService(
     }
 
     /**
-     * 尝试同步产成品入库，异常与失败不中断主流程，成功返回 null，失败返回 U8 错误信息
+     * 尝试同步产成品入库，每个 ProdTag 对应一条明细，quantity 取 ProdTag.qty
      */
     private fun trySyncMomStockIn(
-        momOrders: List<com.gz.xg.domain.entity.ProdOrder>,
+        momTags: List<VProdTag>,
+        orderMap: Map<String, ProdOrder>,
         stockIn: StockIn,
         locArchive: LocArchive,
         u8Batch : String
@@ -141,18 +154,21 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            val detailList = momOrders.mapIndexed { index, po ->
+            // 每个 ProdTag 对应一条 U8 明细
+            val detailList = momTags.mapIndexed { index, prodTag ->
+                val po = orderMap[prodTag.prodOrderId]
+                val tagQty = BigDecimal.valueOf(prodTag.qty.toLong())
+
                 U8MomStockInDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = po.inventoryCode
-                    quantity = po.qty                  // ProdOrder.qty
-                    auxiliaryQuantity = if(po.inNum == null || po.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else po.inNum         // ProdOrder.inNum
-                    momOrderDetailId = po.erpOrderId   // ProdOrder.erpOrderId
+                    inventoryCode = po?.inventoryCode ?: prodTag.inventoryCode ?: ""
+                    quantity = tagQty                  // 单个 ProdTag.qty
+                    auxiliaryQuantity = if (po?.inNum == null || po.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else po.inNum
+                    momOrderDetailId = po?.erpOrderId ?: ""   // ProdOrder.erpOrderId
                     invPosition = locArchive.locCode
                     batchNo = u8Batch
-                    packingMethod = po.packingRequirement
-                    specWidth = po.specWidth
-
+                    packingMethod = po?.packingRequirement
+                    specWidth = po?.specWidth
                 }
             }
 
@@ -169,7 +185,7 @@ class U8StockInSyncService(
 
             val response = u8MomStockInService.pushMomStockIn(u8Request)
             if (response.isSuccess) {
-                log.info("U8 产成品入库推送成功: receiptNo={}", stockIn.receiptNo)
+                log.info("U8 产成品入库推送成功: receiptNo={}, 明细行数={}", stockIn.receiptNo, detailList.size)
                 null
             } else {
                 log.error("U8 产成品入库推送失败: receiptNo={}, 原因={}", stockIn.receiptNo, response.returnMessage)

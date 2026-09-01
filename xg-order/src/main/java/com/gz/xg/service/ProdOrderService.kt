@@ -8,6 +8,7 @@ import com.gz.xg.domain.dto.ProdOrderDto
 import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.search.ProdOrderSearch
 import com.gz.xg.service.plus.ProductionOrderPlusService
+import com.gz.xg.util.DateUtil
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -32,8 +33,9 @@ import org.springframework.stereotype.Service
     fun page(current: Long, size: Long, search: ProdOrderSearch) : Map<String, Any> {
         val page = Page<ProdOrder>(current, size)
 
+        val addDays = search.endDate?.let { DateUtil.strAddDays(it, 1) }
         val wrapper = MPJLambdaWrapper<ProdOrder>()
-            .between(ProdOrder::getCreateTime, search.startDate, search.endDate)
+            .between(ProdOrder::getCreateTime, search.startDate, addDays)
             .and { w ->
                 run {
                     w.like(ProdOrder::getProdNo, search.keyword)
@@ -43,6 +45,7 @@ import org.springframework.stereotype.Service
             }
             .eq(search.status != null,ProdOrder::getDeleted,search.status)
             .eq(!search.category.isNullOrBlank(), ProdOrder::getProductCategory, search.category)
+            .eq(search.type != null, ProdOrder::getType, search.type)
             .orderByDesc(ProdOrder::getCreateTime)
 
 

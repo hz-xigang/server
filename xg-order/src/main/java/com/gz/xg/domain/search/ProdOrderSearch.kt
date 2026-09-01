@@ -6,4 +6,6 @@ class ProdOrderSearch : BaseSearch() {
 
     var status : Boolean? = null
 
+    var type :Int? =null
+
 }
