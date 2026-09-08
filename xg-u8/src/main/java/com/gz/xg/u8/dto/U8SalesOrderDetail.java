@@ -124,4 +124,6 @@ public class U8SalesOrderDetail {
      */
     @SerializedName("cdefine28")
     private String processRoute;
+
+
 }

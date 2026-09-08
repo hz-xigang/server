@@ -31,4 +31,6 @@ public class U8SalesOrderConvertResult {
     private String processRoute;
     private String specWidth;
     private String erpOrderId;
+    private BigDecimal qty;
+    private BigDecimal inNum;
 }

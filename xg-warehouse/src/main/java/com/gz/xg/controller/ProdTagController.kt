@@ -68,7 +68,7 @@ import java.time.format.DateTimeFormatter
 
     @GetMapping("/checkShip")
     fun checkShipTag(
-        @RequestParam("shipNo") shipNo: String,
+        @RequestParam("orderNo") shipNo: String,
         @RequestParam("tagNo") tagNo: String
     ): ResponseResult {
         return success(prodTagService.checkShipTag(shipNo, tagNo))
@@ -80,6 +80,14 @@ import java.time.format.DateTimeFormatter
         @RequestParam("tagNo") tagNo: String
     ): ResponseResult {
         return success(prodTagService.checkTransferTag(orderNo, tagNo))
+    }
+
+    @GetMapping("/checkPrep")
+    fun checkPrepTag(
+        @RequestParam("orderNo") prepNo: String,
+        @RequestParam("tagNo") tagNo: String
+    ): ResponseResult {
+        return success(prodTagService.checkPrepTag(prepNo, tagNo))
     }
 
     @OpLog(title = "标签管理", opName = "删除纸箱标签", businessType = BusinessType.DELETE)

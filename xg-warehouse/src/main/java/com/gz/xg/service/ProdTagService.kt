@@ -43,7 +43,9 @@ class ProdTagService(
     private val shipOrderPlusService: ShipOrderPlusService,
     private val shipOrderDetailPlusService: ShipOrderDetailPlusService,
     private val transferOrderPlusService: TransferOrderPlusService,
-    private val transferOrderDetailPlusService: TransferOrderDetailPlusService
+    private val transferOrderDetailPlusService: TransferOrderDetailPlusService,
+    private val prepOrderPlusService: PrepOrderPlusService,
+    private val prepOrderDetailPlusService: PrepOrderDetailPlusService
 ) : BaseService() {
 
     /**
@@ -217,6 +219,29 @@ class ProdTagService(
 
         if (!matched) {
             throw WebException("【${tagNo}】存货编码【${tag.inventoryCode}】不在调拨指令清单中")
+        }
+
+        return tag
+    }
+
+    /**
+     * 检查条码对应的存货编码是否在备料指令单明细中
+     *
+     * @param prepNo 备料指令单号
+     * @param tagNo  纸箱条码
+     * @return 标签视图对象
+     */
+    fun checkPrepTag(prepNo: String, tagNo: String): VProdTag {
+        val prepOrder = prepOrderPlusService.findByNo(prepNo)
+
+        val tag = prodTagPlusService.findVoByTagNo(tagNo)
+            ?: throw WebException("条码【${tagNo}】不存在")
+
+        val details = prepOrderDetailPlusService.listByPId(prepOrder.id)
+        val matched = details.any { d -> d.inventoryCode != null && d.inventoryCode == tag.inventoryCode }
+
+        if (!matched) {
+            throw WebException("【${tagNo}】存货编码【${tag.inventoryCode}】不在备料指令清单中")
         }
 
         return tag

@@ -45,3 +45,7 @@ build/
 # 生产环境实际配置（不提交，只提交模板）
 # application-prod.yaml 允许提交，但敏感信息通过环境变量注入
 # application-prod.yaml.readme 是说明文档，应该提交
+
+# 日志文件
+logs/
+**/logs/

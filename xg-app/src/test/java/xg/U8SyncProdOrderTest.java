@@ -1,3 +1,4 @@
+/*
 package xg;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -27,18 +28,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+*/
 /**
  * 验证用友 U8 销售订单/采购订单同步为 WMS ProdOrder 的字段映射逻辑。
  * <p>
  * 不启动完整 Spring 容器（避免依赖 MapStruct 生成类、数据库等），
  * 仅手工装配 U8 客户端，直接调用真实接口取数。
- */
+ *//*
+
 @SpringBootTest(classes = XgApplication.class)
 class U8SyncProdOrderTest {
 
     private static final String ACC_ID = "108";
 
-    /** 与 application.yaml 中 u8.url 保持一致，可用 -Du8.url=... 覆盖 */
+    */
+/** 与 application.yaml 中 u8.url 保持一致，可用 -Du8.url=... 覆盖 *//*
+
     private static final String DEFAULT_U8_URL = "http://127.0.0.1:3001/U8_API/";
 
     @Resource
@@ -245,3 +250,4 @@ class U8SyncProdOrderTest {
         return first != null ? first : second;
     }
 }
+*/

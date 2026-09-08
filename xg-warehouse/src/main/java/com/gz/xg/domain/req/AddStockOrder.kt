@@ -4,8 +4,10 @@ import jakarta.validation.constraints.NotBlank
 
 class AddStockOrder {
 
-     @NotBlank(message = "请选择库位")
+     @NotBlank(message = "指令单号不能为空")
      val no: String = ""
 
      val tagNos: List<String> = listOf()
+
+    val locCode : String = ""
  }

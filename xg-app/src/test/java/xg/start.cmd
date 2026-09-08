@@ -1,0 +1,1 @@
+java -Dloader.path=lib/ -jar xg-server.jar --spring.profiles.active=prod

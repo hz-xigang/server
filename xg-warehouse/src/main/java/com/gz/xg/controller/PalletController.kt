@@ -26,12 +26,14 @@ class PalletController(
         return success(service.add(tagNos))
     }
 
+    @OpLog(title = "托盘管理", opName = "托码查询", businessType = BusinessType.SELECT)
     @GetMapping("/tags/{palletNo}")
     fun findTags(@PathVariable palletNo: String,
                  @RequestParam(value = "type", defaultValue = "0") type : Int ) : ResponseResult
     {
         return success(service.findTagsByPalletNo(palletNo, type))
     }
+
 
     @OpLog(title = "托盘管理", opName = "托盘拆托", businessType = BusinessType.DELETE)
     @PostMapping("/unbundle/{palletNo}")

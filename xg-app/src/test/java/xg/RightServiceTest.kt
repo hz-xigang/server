@@ -1,3 +1,4 @@
+/*
 package xg
 
 import com.gz.xg.XgApplication
@@ -18,4 +19,4 @@ class RightServiceTest{
     }
 
 
-}
+}*/

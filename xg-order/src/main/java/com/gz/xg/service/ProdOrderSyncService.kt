@@ -76,7 +76,9 @@ class ProdOrderSyncService(
                 po = result.po
                 processRoute = result.processRoute
                 specWidth = result.specWidth
-                erpOrderId = result.erpOrderNo
+                erpOrderId = result.erpOrderId
+                qty = result.qty
+                inNum = result.inNum
             }
         }
 

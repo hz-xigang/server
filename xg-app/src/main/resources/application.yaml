@@ -10,6 +10,7 @@ mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: false
+    log-impl:  com.gz.xg.config.MybatisPlusOutImpl
 
 logging:
   pattern:
