@@ -24,11 +24,19 @@ open class ProdOrderController(
 ) : BaseController() {
 
     @GetMapping(value = ["/pgNo/{pgNo}"])
+    @OpLog(title = "生产单管理", opName = "生产单查询", businessType = BusinessType.SELECT)
     fun findByProdNo(@PathVariable pgNo: String) : ResponseResult {
         return success(service.findByProgNo(pgNo))
     }
 
+    @GetMapping(value = ["/erpNo/{erpNo}"])
+    @OpLog(title = "生产单管理", opName = "生产单查询", businessType = BusinessType.SELECT)
+    fun listBy(@PathVariable erpNo: String) : ResponseResult {
+        return success(service.listByErpOrderNo(erpNo))
+    }
+
     @PostMapping(value = ["/page"])
+    @OpLog(title = "生产单管理", opName = "分页查询", businessType = BusinessType.SELECT)
     fun page(
         @RequestParam(value = "page", defaultValue = "1") page: Long,
         @RequestParam(value = "size", defaultValue = "1") size: Long,

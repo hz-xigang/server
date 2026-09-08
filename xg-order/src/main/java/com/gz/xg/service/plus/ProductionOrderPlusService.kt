@@ -32,4 +32,18 @@ open class ProductionOrderPlusService(
     fun findById(id : String) : ProdOrder {
         return this.getById(id) ?: throw WebException("该生产单号不存在")
     }
+
+
+    fun listByErpOrderNo(erpOrderNo: String): List<ProdOrder> {
+        val wrapper = MPJLambdaWrapper<ProdOrder>()
+            .eq(ProdOrder::getErpOrderNo, erpOrderNo)
+
+        val list = super.list(wrapper)
+        if (list.isEmpty()){
+            throw WebException("【${erpOrderNo}】该单号不存在")
+        }
+        return list
+
+    }
+
 }

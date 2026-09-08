@@ -27,6 +27,10 @@ import org.springframework.stereotype.Service
         return plusService.findByNo(prodNo)
     }
 
+    fun listByErpOrderNo(erpOrderNo: String): List<ProdOrder> {
+        return plusService.listByErpOrderNo(erpOrderNo)
+    }
+
     /**
      * 分页查询生产单，支持日期、关键字和状态过滤。
      */
