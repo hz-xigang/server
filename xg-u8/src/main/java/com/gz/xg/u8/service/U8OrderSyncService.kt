@@ -41,6 +41,7 @@ class U8OrderSyncService(
                     type = 0 // 0-销售订单
 
                     customerCode = main.customerCode
+                    customerName = main.customerName
                     customerOrderNo = main.customerOrderNo
                     orderTypeName = main.orderTypeName
                     saleType = main.salesTypeName

@@ -8,4 +8,6 @@ class ProdOrderSearch : BaseSearch() {
 
     var type :Int? =null
 
+    var customerCode: String? = null
+
 }

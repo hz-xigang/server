@@ -43,6 +43,15 @@ open class ProductionOrderPlusService(
             throw WebException("【${erpOrderNo}】该单号不存在")
         }
         return list
+    }
+
+    fun customerList() : List<ProdOrder> {
+        val wrapper = MPJLambdaWrapper<ProdOrder>()
+            .select("DISTINCT customerCode,customerName")
+            .isNotNull(ProdOrder::getCustomerName)
+            .ne(ProdOrder::getCustomerCode, "")
+
+        return super.list(wrapper)
 
     }
 

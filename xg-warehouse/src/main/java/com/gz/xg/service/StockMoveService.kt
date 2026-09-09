@@ -10,6 +10,7 @@ import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockMove
 import com.gz.xg.domain.entity.StockMoveTag
+import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockMoveMapStruct
 import com.gz.xg.domain.req.AddStockIn
 import com.gz.xg.domain.search.StockSearch
@@ -166,6 +167,59 @@ class StockMoveService(
             syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
         return u8Result?.errorMessage ?: ""
+    }
+
+    /**
+     * 调拨移库。不走 U8 同步，将标签对应的库存移至目标库位。
+     */
+    fun addByTransfer(records: List<TransferRecord>, locArchive: LocArchive, orderNo: String) {
+        TransactionTemplate(transactionManager).execute {
+            val tagNos = records.map { it.tagNo }
+            val resolved = billTagResolver.resolve(tagNos)
+
+            // 校验标签是否在库存中
+            val originStocks = stockInventoryPlusService.listByTagNos(resolved.tagNos)
+            if (originStocks.size != resolved.tagNos.size) {
+                val exists = originStocks.map { it.tagNo }.toSet()
+                val missing = resolved.tagNos - exists
+                throw WebException("【${missing.joinToString(",")}】不在库存中")
+            }
+
+            val originLocMap = originStocks.associateBy { it.tagNo }
+            val id = IdUtil.generateId()
+            val (userId, username, realName) = UserContext.require()
+
+            val stockMove = StockMove().apply {
+                this.id = id
+                receiptNo = sysSequenceService.generateMoves()
+                qty = resolved.total.qty
+                grossWeight = resolved.total.grossWeight
+                netWeight = resolved.total.netWeight
+                this.userId = userId
+                this.username = username
+                this.realName = realName
+                type = "调拨移库"
+                locCode = locArchive.locCode
+                locId = locArchive.id
+                m1 = orderNo // 记录调拨指令单号
+            }
+
+            val tags = records.map {
+                val originStock = originLocMap[it.tagNo] ?: throw WebException("【${it.tagNo}】不在库存中")
+                StockMoveTag().apply {
+                    pId = id
+                    tagNo = it.tagNo
+                    oLocId = originStock.locId
+                    oLocCode = originStock.locCode
+                    u8Sync = 2 // 调拨不走 U8，标记为无需同步
+                }
+            }
+
+            plusService.save(stockMove)
+            stockMoveTagPlusService.saveBatch(tags)
+            stockInventoryService.editLocByTagNo(tagNos, locArchive)
+            log.info("调拨移库完成: receiptNo={}, orderNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, orderNo, locArchive.locCode, tags.size)
+        }
     }
 
     fun page(search: StockSearch,current: Long, size: Long): Map<String, Any> {

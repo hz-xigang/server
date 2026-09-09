@@ -52,7 +52,7 @@ public class U8Test {
         /*List<U8PurchaseOrderMain> data = response.getData();
         System.out.println(new Gson().toJson(data));*/
 
-        prodOrderSyncService.syncMomOrders("108");
+        prodOrderSyncService.syncSalesOrders("108");
         //transferOrderSyncService.syncTransferOrders("108");
         //shipOrderSyncService.syncShipOrders("108");
     }

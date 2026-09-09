@@ -16,9 +16,9 @@ import org.springframework.stereotype.Service
  * 生产单服务，负责生产单查询及分页检索。
  */
 @Service
- class ProdOrderService(
+class ProdOrderService(
     private val plusService: ProductionOrderPlusService
-) : BaseService(){
+) : BaseService() {
 
     /**
      * 根据生产单号查询生产单。
@@ -34,23 +34,31 @@ import org.springframework.stereotype.Service
     /**
      * 分页查询生产单，支持日期、关键字和状态过滤。
      */
-    fun page(current: Long, size: Long, search: ProdOrderSearch) : Map<String, Any> {
+    fun page(current: Long, size: Long, search: ProdOrderSearch): Map<String, Any> {
         val page = Page<ProdOrder>(current, size)
 
-        val addDays = search.endDate?.let { DateUtil.strAddDays(it, 1) }
+
         val wrapper = MPJLambdaWrapper<ProdOrder>()
-            .between(ProdOrder::getCreateTime, search.startDate, addDays)
-            .and { w ->
-                run {
-                    w.like(ProdOrder::getProdNo, search.keyword)
-                        .or()
-                        .like(ProdOrder::getErpOrderNo, search.keyword)
-                }
-            }
-            .eq(search.status != null,ProdOrder::getDeleted,search.status)
+            .eq(search.status != null, ProdOrder::getDeleted, search.status)
             .eq(!search.category.isNullOrBlank(), ProdOrder::getProductCategory, search.category)
             .eq(search.type != null, ProdOrder::getType, search.type)
+            .eq(!search.customerCode.isNullOrBlank(), ProdOrder::getCustomerCode, search.customerCode)
             .orderByDesc(ProdOrder::getCreateTime)
+
+        if (!search.startDate.isNullOrBlank() && !search.endDate.isNullOrBlank()) {
+            val addDays = search.endDate?.let { DateUtil.strAddDays(it, 1) }
+            wrapper.between(ProdOrder::getCreateTime, search.startDate, addDays)
+        }
+
+        if (!search.keyword.isNullOrBlank()) {
+            wrapper.and { w ->
+                run {
+                    w.like(!search.keyword.isNullOrBlank(), ProdOrder::getProdNo, search.keyword)
+                        .or()
+                        .like(!search.keyword.isNullOrBlank(), ProdOrder::getErpOrderNo, search.keyword)
+                }
+            }
+        }
 
 
         val orderPage = plusService.page(page, wrapper)
@@ -74,7 +82,12 @@ import org.springframework.stereotype.Service
             .set(dto.status != null, ProdOrder::getDeleted, !dto.status)
             .set(!dto.tempId.isNullOrEmpty(), ProdOrder::getTempId, dto.tempId)
             .update()
-        log.info("更新生产单信息成功: id={}, erpOrderNo={}, inventoryCode={}", dto.id, dto.erpOrderNo, dto.inventoryCode)
+        log.info(
+            "更新生产单信息成功: id={}, erpOrderNo={}, inventoryCode={}",
+            dto.id,
+            dto.erpOrderNo,
+            dto.inventoryCode
+        )
     }
 
     /**
@@ -89,4 +102,9 @@ import org.springframework.stereotype.Service
             .update()
         log.info("软删除生产单成功: id={}", id)
     }
+
+    fun customerList(): List<ProdOrder> {
+        return plusService.customerList()
+    }
+
 }

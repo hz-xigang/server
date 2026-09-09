@@ -57,6 +57,7 @@ class ProdOrderSyncService(
                 type = result.type
 
                 customerCode = result.customerCode
+                customerName = result.customerName
                 customerOrderNo = result.customerOrderNo
                 orderTypeName = result.orderTypeName
                 saleType = result.saleType

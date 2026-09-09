@@ -12,6 +12,7 @@ public class U8SalesOrderConvertResult {
     private String erpOrderNo;
     private Integer type;
     private String customerCode;
+    private String customerName;
     private String customerOrderNo;
     private String orderTypeName;
     private String saleType;

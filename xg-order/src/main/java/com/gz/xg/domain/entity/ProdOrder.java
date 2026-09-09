@@ -191,4 +191,9 @@ public class ProdOrder {
     private BigDecimal qty;
 
     private BigDecimal inNum;
+
+    /**
+     * 客户名称
+     */
+    private String customerName;
 }

@@ -58,25 +58,6 @@ class StockInService(
     }
 
     /**
-     * 调拨入库。返回 U8 同步错误信息（空字符串表示同步成功）。
-     */
-    fun addByTransfer(records: List<TransferRecord>, outNo: String, locArchive: LocArchive): String {
-        val u8Result = TransactionTemplate(transactionManager).execute {
-            val tagNos = records.map { it.tagNo }
-            val resolved = billTagResolver.resolve(tagNos)
-
-            // TRN-4 / STK-2：调拨入库前校验是否已在库
-            val existing = stockInventoryPlusService.listByTagNos(resolved.tagNos)
-            if (existing.isNotEmpty()) {
-                throw WebException("【${existing.joinToString(",") { it.tagNo }}】已在库存中，不能重复入库")
-            }
-
-            saveStockIn(resolved, "调拨入库", outNo, locArchive)
-        }
-        return u8Result?.errorMessage ?: ""
-    }
-
-    /**
      * 分页查询入库单，并回填关联标签详情。
      */
     fun page(search: StockSearch, current: Long, size: Long): Map<String, Any> {

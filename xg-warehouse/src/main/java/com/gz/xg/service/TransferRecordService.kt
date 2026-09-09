@@ -1,15 +1,12 @@
 package com.gz.xg.service
 
 import com.gz.xg.base.BaseService
-import com.gz.xg.domain.entity.LocArchive
-import com.gz.xg.domain.entity.TransferOrder
 import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.TransferRecordMapStruct
 import com.gz.xg.domain.req.AddStockOrder
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.service.plus.ProdTagPlusService
-import com.gz.xg.service.plus.StockInTagPlusService
 import com.gz.xg.service.plus.TransferOrderDetailPlusService
 import com.gz.xg.service.plus.TransferOrderPlusService
 import com.gz.xg.service.plus.TransferRecordPlusService
@@ -27,15 +24,23 @@ class TransferRecordService(
     private val prodTagPlusService: ProdTagPlusService,
     private val transferRecordMapStruct: TransferRecordMapStruct,
     private val pmt: PlatformTransactionManager,
-    private val sysSequenceService: SysSequenceService,
     private val locArchivePlusService: LocArchivePlusService,
-    private val stockOutService: StockOutService,
-    private val stockInService: StockInService,
+    private val stockMoveService: StockMoveService
 ) : BaseService() {
 
     fun add(addStockOrder: AddStockOrder): String {
+        val targetLocCode = addStockOrder.locCode
+        if (targetLocCode.isBlank()) {
+            throw WebException("目标库位不能为空")
+        }
+
+        val targetLoc = locArchivePlusService.byCode(targetLocCode)
+
         val order = transferOrderPlusService.findByNo(addStockOrder.no)
         val tagNos = addStockOrder.tagNos
+        if (tagNos.isEmpty()) {
+            throw WebException("调拨标签列表不能为空")
+        }
 
         val records = arrayListOf<TransferRecord>()
         val prodTags = prodTagPlusService.listByTagNos(tagNos)
@@ -46,46 +51,28 @@ class TransferRecordService(
         val status = pmt.getTransaction(definition)
 
         try {
-
-            var no = ""
-            var loc  = LocArchive()
-
-            if (order.orderType == 1){
-                no = sysSequenceService.generateStockIn()
-                loc = locArchivePlusService.byCode(order.toWarehouse)
-            }else{
-                no = sysSequenceService.generateStockOut()
-                loc = locArchivePlusService.byCode(order.fromWarehouse)
-            }
-
-
             prodTags.forEach { it ->
-                run {
-                    val detail = orderDetails.find { oIt -> oIt.inventoryCode == it.inventoryCode }
-                        ?: throw WebException("【${it.tagNo}】存货编码【${it.inventoryCode}】不在调拨指令清单中")
-                    val record = transferRecordMapStruct.detailToEntity(detail)
-                    record.id = IdUtil.generateId()
-                    record.transferOrderNo = order.orderNo
-                    record.tagNo = it.tagNo
-                    records.add(record)
-                }
+                val detail = orderDetails.find { oIt -> oIt.inventoryCode == it.inventoryCode }
+                    ?: throw WebException("【${it.tagNo}】存货编码【${it.inventoryCode}】不在调拨指令清单中")
+                val record = transferRecordMapStruct.detailToEntity(detail)
+                record.id = IdUtil.generateId()
+                record.transferOrderNo = order.orderNo
+                record.tagNo = it.tagNo
+                records.add(record)
             }
 
             plusService.saveBatch(records)
-            val u8ErrorMsg = if (order.orderType == 1){
-                stockInService.addByTransfer(records,no,loc)
-            }else{
-                stockOutService.addByTransfer(records,no,loc)
-            }
+
+            // 执行移库操作：更新库存库位至目标库位，生成移库记录（不走 U8）
+            stockMoveService.addByTransfer(records, targetLoc, order.orderNo)
+
             pmt.commit(status)
-            log.info("调拨确认成功: orderNo={}, orderType={}, 出入库单号={}, 条数={}", order.orderNo, order.orderType, no, records.size)
-            return u8ErrorMsg
-        }catch (e: Exception){
+            log.info("调拨移库确认成功: orderNo={}, 目标库位={}, 条数={}", order.orderNo, targetLoc.locCode, records.size)
+            return ""
+        } catch (e: Exception) {
             pmt.rollback(status)
             throw WebException(e.message ?: "调拨失败", e)
         }
-
     }
-
 
 }

@@ -60,4 +60,10 @@ open class ProdOrderController(
         return success()
     }
 
+    @GetMapping(value = ["/customer"])
+    @OpLog(title = "生产单管理", opName = "客户列表", businessType = BusinessType.SELECT)
+    fun customerList() : ResponseResult{
+        return success(service.customerList())
+    }
+
 }
