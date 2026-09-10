@@ -2,12 +2,16 @@ package com.gz.xg.util;
 
 import com.aspose.cells.License;
 import com.aspose.cells.PdfSaveOptions;
+import com.aspose.cells.Picture;
 import com.aspose.cells.Workbook;
+import com.aspose.cells.Worksheet;
 import com.gz.xg.exception.WebException;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.Map;
 
 /**
  * Excel 转 PDF 工具。
@@ -51,12 +55,27 @@ public class PdfUtil {
      * @return PDF 字节数组。
      */
     public static byte[] excel2Pdf(InputStream excelIps) {
+        return excel2Pdf(excelIps, null);
+    }
+
+    /**
+     * 将 Excel 输入流转换为 PDF 字节数组，并支持按图片名称替换图片。
+     *
+     * @param excelIps    Excel 输入流。
+     * @param imageReplacements 图片名称与对应新图片字节数组的映射表。
+     * @return PDF 字节数组。
+     */
+    public static byte[] excel2Pdf(InputStream excelIps, Map<String, byte[]> imageReplacements) {
         getLicense();
 
         Workbook wb = null;
         try (InputStream is = excelIps;
              ByteArrayOutputStream pdfOps = new ByteArrayOutputStream()) {
             wb = new Workbook(is);
+
+            if (imageReplacements != null && !imageReplacements.isEmpty()) {
+                replaceImages(wb, imageReplacements);
+            }
 
             PdfSaveOptions pdfSaveOptions = new PdfSaveOptions();
             pdfSaveOptions.setOnePagePerSheet(true);
@@ -69,6 +88,80 @@ public class PdfUtil {
                 try {
                     wb.dispose();
                 } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    /**
+     * 将多个 Excel 数据流（及对应的条码图片映射）合并为一个包含多个工作表的 Workbook，并输出为单份多页 PDF。
+     *
+     * @param excelStreams 每个标签渲染后的 Excel 输入流
+     * @param imageReplacementsList 每个标签对应的条码图片映射表
+     * @return 合并后的多页 PDF 字节数组
+     */
+    public static byte[] mergeExcelsToPdf(java.util.List<byte[]> excelStreams, java.util.List<Map<String, byte[]>> imageReplacementsList) {
+        if (excelStreams == null || excelStreams.isEmpty()) {
+            return new byte[0];
+        }
+        getLicense();
+
+        Workbook finalWb = null;
+        try (ByteArrayOutputStream pdfOps = new ByteArrayOutputStream()) {
+            finalWb = new Workbook(new ByteArrayInputStream(excelStreams.get(0)));
+            if (imageReplacementsList != null && !imageReplacementsList.isEmpty() && imageReplacementsList.get(0) != null) {
+                replaceImagesInSheet(finalWb.getWorksheets().get(0), imageReplacementsList.get(0));
+            }
+
+            for (int i = 1; i < excelStreams.size(); i++) {
+                Workbook tempWb = new Workbook(new ByteArrayInputStream(excelStreams.get(i)));
+                if (imageReplacementsList != null && imageReplacementsList.size() > i && imageReplacementsList.get(i) != null) {
+                    replaceImagesInSheet(tempWb.getWorksheets().get(0), imageReplacementsList.get(i));
+                }
+                finalWb.combine(tempWb);
+                tempWb.dispose();
+            }
+
+            PdfSaveOptions pdfSaveOptions = new PdfSaveOptions();
+            pdfSaveOptions.setOnePagePerSheet(true);
+            finalWb.save(pdfOps, pdfSaveOptions);
+            return pdfOps.toByteArray();
+        } catch (Exception e) {
+            throw new WebException("多页标签合并转PDF失败", e);
+        } finally {
+            if (finalWb != null) {
+                try {
+                    finalWb.dispose();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    private static void replaceImagesInSheet(Worksheet sheet, Map<String, byte[]> imageReplacements) throws Exception {
+        for (int i = 0; i < sheet.getPictures().getCount(); i++) {
+            Picture pic = sheet.getPictures().get(i);
+            String picName = pic.getName();
+            if (picName != null && imageReplacements.containsKey(picName)) {
+                byte[] newImageData = imageReplacements.get(picName);
+                if (newImageData != null && newImageData.length > 0) {
+                    pic.setData(newImageData);
+                }
+            }
+        }
+    }
+
+    private static void replaceImages(Workbook wb, Map<String, byte[]> imageReplacements) throws Exception {
+        for (int s = 0; s < wb.getWorksheets().getCount(); s++) {
+            Worksheet sheet = wb.getWorksheets().get(s);
+            for (int i = 0; i < sheet.getPictures().getCount(); i++) {
+                Picture pic = sheet.getPictures().get(i);
+                String picName = pic.getName();
+                if (picName != null && imageReplacements.containsKey(picName)) {
+                    byte[] newImageData = imageReplacements.get(picName);
+                    if (newImageData != null && newImageData.length > 0) {
+                        pic.setData(newImageData);
+                    }
                 }
             }
         }

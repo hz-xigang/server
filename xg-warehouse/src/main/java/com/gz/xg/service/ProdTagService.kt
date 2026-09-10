@@ -53,6 +53,18 @@ class ProdTagService(
      * @return PDF 字节数组（如果配置了模板），否则返回 null
      */
     fun add(dto: ProdTagDto): ByteArray? {
+        return batchAdd(dto, 1)
+    }
+
+    /**
+     * 批量新增纸箱标签，按指定张数生成标签号并合并打印多页标签。
+     * @param dto 标签物料信息
+     * @param count 打印张数
+     * @return 多页合并后的 PDF 字节数组（如果配置了模板），否则返回 null
+     */
+    fun batchAdd(dto: ProdTagDto, count: Int): ByteArray? {
+        val printCount = if (count <= 0) 1 else count
+
         val def = DefaultTransactionDefinition().apply {
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRED
         }
@@ -61,36 +73,46 @@ class ProdTagService(
         try {
             val prodOrder = productionOrderPlusService.findById(dto.prodOrderId)
                 ?: throw WebException("关联的生产单不存在")
-            val prodTag = prodTagMapStruct.toEntity(dto)
 
             val userInfo = UserContext.require()
+            val prodTagList = mutableListOf<ProdTag>()
 
-            val tagNo = sysSequenceService.generateCarton()
-            prodTag.id = IdUtil.generateId()
-            prodTag.userId = userInfo.userId
-            prodTag.username = userInfo.username
-            prodTag.realName = userInfo.realName
-            prodTag.tagNo = tagNo
-            prodTag.createTime = LocalDateTime.now()
-            prodTag.deleted = 0
-            prodTagPlusService.save(prodTag)
+            for (i in 0 until printCount) {
+                val prodTag = prodTagMapStruct.toEntity(dto)
+                val tagNo = sysSequenceService.generateCarton()
+                prodTag.id = IdUtil.generateId()
+                prodTag.userId = userInfo.userId
+                prodTag.username = userInfo.username
+                prodTag.realName = userInfo.realName
+                prodTag.tagNo = tagNo
+                prodTag.createTime = LocalDateTime.now()
+                prodTag.deleted = 0
 
-            val printLog = PrintLog().apply {
-                id = IdUtil.generateId()
-                no = tagNo
-                type = 1
-                tempId = prodOrder.tempId
-                userId = userInfo.userId
-                username = userInfo.username
-                realName = userInfo.realName
+                prodTagPlusService.save(prodTag)
+
+                val printLog = PrintLog().apply {
+                    id = IdUtil.generateId()
+                    no = tagNo
+                    type = 1
+                    tempId = prodOrder.tempId
+                    userId = userInfo.userId
+                    username = userInfo.username
+                    realName = userInfo.realName
+                }
+                printLogMapper.insert(printLog)
+
+                prodTagList.add(prodTag)
             }
-            printLogMapper.insert(printLog)
 
             pmt.commit(status)
-            log.info("生成纸箱标签成功: prodNo={}, tagNo={}, qty={}, userId={}", prodOrder.prodNo, tagNo, dto.qty, userInfo.userId)
+            log.info("批量生成纸箱标签成功: prodNo={}, count={}, qty={}, userId={}", prodOrder.prodNo, printCount, dto.qty, userInfo.userId)
 
             if (prodOrder.tempId != null) {
-                return generateExcel(prodTag, prodOrder)
+                return if (printCount == 1) {
+                    generateExcel(prodTagList[0], prodOrder)
+                } else {
+                    generateBatchExcel(prodTagList, prodOrder)
+                }
             }
 
             return null
@@ -98,6 +120,22 @@ class ProdTagService(
             pmt.rollback(status)
             throw WebException(e.message)
         }
+    }
+
+    /**
+     * 批量生成标签多页 PDF。
+     */
+    private fun generateBatchExcel(prodTags: List<ProdTag>, prodOrder: ProdOrder): ByteArray {
+        val fileTemp = fileTempPlusService.byId(prodOrder.tempId)
+
+        if (fileTemp?.path.isNullTransOrBlank()) {
+            throw WebException("打印模板文件未上传")
+        }
+
+        val templatePath = "${staticYmlConfig.fullTemplate()}${File.separator}${fileTemp.path}"
+        val dataList = prodTags.map { prepareReportData(it, prodOrder) }
+
+        return ProdTagReport().generateBatch(templatePath, dataList)
     }
 
     /**

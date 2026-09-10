@@ -73,6 +73,9 @@ public class U8Test {
     void momTest(){
         U8Response<U8MomOrderMain> res = u8MomOrderService.queryMomOrderMain("108");
         res.getData().forEach(System.out::println);
+
+        shipOrderSyncService.syncShipOrders("108");
+
     }
 
 

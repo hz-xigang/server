@@ -30,8 +30,15 @@ import java.time.format.DateTimeFormatter
 
     @OpLog(title = "标签管理", opName = "生成纸箱标签", businessType = BusinessType.INSERT)
     @PostMapping(value = [""])
-    fun add(@RequestBody @Validated dto: ProdTagDto): Any {
-        val pdfBytes = prodTagService.add(dto)
+    fun add(
+        @RequestBody @Validated dto: ProdTagDto,
+        @RequestParam(value = "count", defaultValue = "1") count: Int
+    ): Any {
+        val pdfBytes = if (count > 1) {
+            prodTagService.batchAdd(dto, count)
+        } else {
+            prodTagService.add(dto)
+        }
 
         // 如果生成了 PDF，返回文件下载响应
         return if (pdfBytes != null) {
@@ -42,6 +49,25 @@ import java.time.format.DateTimeFormatter
                 .body(pdfBytes)
         } else {
             // 未配置模板时，返回普通成功响应
+            success()
+        }
+    }
+
+    @OpLog(title = "标签管理", opName = "批量生成纸箱标签", businessType = BusinessType.INSERT)
+    @PostMapping(value = ["/batch"])
+    fun batchAdd(
+        @RequestBody @Validated dto: ProdTagDto,
+        @RequestParam(value = "count", defaultValue = "1") count: Int
+    ): Any {
+        val pdfBytes = prodTagService.batchAdd(dto, count)
+
+        return if (pdfBytes != null) {
+            val fileName = "prodTag_batch_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))}.pdf"
+            ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes)
+        } else {
             success()
         }
     }

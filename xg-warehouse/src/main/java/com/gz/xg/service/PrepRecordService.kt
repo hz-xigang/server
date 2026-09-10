@@ -41,7 +41,7 @@ class PrepRecordService(
         val status = pmt.getTransaction(definition)
 
         try {
-            val packLoc = locArchivePlusService.packLoc()
+            val packLoc = locArchivePlusService.byId(addStockOrder.locCode)
 
             prodTags.forEach { it ->
                 run {
@@ -60,6 +60,8 @@ class PrepRecordService(
             }
 
             plusService.saveBatch(records)
+            prepOrder.status = 2
+            prepOrderPlusService.updateById(prepOrder)
             val u8ErrorMsg = stockMoveService.addByPrep(records,packLoc)
             pmt.commit(status)
             log.info("备料确认成功: prepNo={}, 备料条数={}", prepOrder.prepNo, records.size)
