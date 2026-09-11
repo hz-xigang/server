@@ -89,7 +89,7 @@ class U8StockInSyncService(
     }
 
     /**
-     * 尝试同步采购入库，每个 ProdTag 对应一条明细，quantity 取 ProdTag.qty
+     * 尝试同步采购入库，按存货编号 inventoryCode 汇总明细
      */
     private fun trySyncPurchaseStockIn(
         purchaseTags: List<VProdTag>,
@@ -101,21 +101,26 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 每个 ProdTag 对应一条 U8 明细
-            val detailList = purchaseTags.mapIndexed { index, prodTag ->
-                val po = orderMap[prodTag.prodOrderId]
-                val tagQty = BigDecimal.valueOf(prodTag.qty.toLong())
+            // 按存货编号汇总明细，辅计量和订单信息以组内第一个 ProdOrder 为准
+            val detailList = purchaseTags
+                .groupBy { orderMap[it.prodOrderId]?.inventoryCode ?: it.inventoryCode ?: "" }
+                .values
+                .mapIndexed { index, groupTags ->
+                    val firstTag = groupTags.first()
+                    val firstPo = groupTags.firstNotNullOfOrNull { orderMap[it.prodOrderId] }
+                    val totalQty = BigDecimal.valueOf(groupTags.sumOf { (it.qty ?: 0).toLong() })
+                    val invCode = firstPo?.inventoryCode ?: firstTag.inventoryCode ?: ""
 
-                U8PurchaseStockInDetailRequest().apply {
-                    rowNo = index + 1
-                    inventoryCode = po?.inventoryCode ?: prodTag.inventoryCode ?: ""
-                    quantity = tagQty                  // 单个 ProdTag.qty
-                    auxiliaryQuantity = po?.inNum      // ProdOrder.inNum
-                    purchaseOrderDetailId = po?.erpOrderId ?: ""
-                    invPosition = locArchive.locCode
-                    batchNo = u8Batch
+                    U8PurchaseStockInDetailRequest().apply {
+                        rowNo = index + 1
+                        inventoryCode = invCode
+                        quantity = totalQty
+                        auxiliaryQuantity = firstPo?.inNum
+                        purchaseOrderDetailId = firstPo?.erpOrderId ?: ""
+                        invPosition = locArchive.locCode
+                        batchNo = u8Batch
+                    }
                 }
-            }
 
             val u8Request = U8PurchaseStockInRequest().apply {
                 orderCode = stockIn.receiptNo
@@ -142,7 +147,7 @@ class U8StockInSyncService(
     }
 
     /**
-     * 尝试同步产成品入库，每个 ProdTag 对应一条明细，quantity 取 ProdTag.qty
+     * 尝试同步产成品入库，按存货编号 inventoryCode 汇总明细
      */
     private fun trySyncMomStockIn(
         momTags: List<VProdTag>,
@@ -154,23 +159,28 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 每个 ProdTag 对应一条 U8 明细
-            val detailList = momTags.mapIndexed { index, prodTag ->
-                val po = orderMap[prodTag.prodOrderId]
-                val tagQty = BigDecimal.valueOf(prodTag.qty.toLong())
+            // 按存货编号汇总明细，辅计量和订单信息以组内第一个 ProdOrder 为准
+            val detailList = momTags
+                .groupBy { orderMap[it.prodOrderId]?.inventoryCode ?: it.inventoryCode ?: "" }
+                .values
+                .mapIndexed { index, groupTags ->
+                    val firstTag = groupTags.first()
+                    val firstPo = groupTags.firstNotNullOfOrNull { orderMap[it.prodOrderId] }
+                    val totalQty = BigDecimal.valueOf(groupTags.sumOf { (it.qty ?: 0).toLong() })
+                    val invCode = firstPo?.inventoryCode ?: firstTag.inventoryCode ?: ""
 
-                U8MomStockInDetailRequest().apply {
-                    rowNo = index + 1
-                    inventoryCode = po?.inventoryCode ?: prodTag.inventoryCode ?: ""
-                    quantity = tagQty                  // 单个 ProdTag.qty
-                    auxiliaryQuantity = if (po?.inNum == null || po.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else po.inNum
-                    momOrderDetailId = po?.erpOrderId ?: ""   // ProdOrder.erpOrderId
-                    invPosition = locArchive.locCode
-                    batchNo = u8Batch
-                    packingMethod = po?.packingRequirement
-                    specWidth = po?.specWidth
+                    U8MomStockInDetailRequest().apply {
+                        rowNo = index + 1
+                        inventoryCode = invCode
+                        quantity = totalQty
+                        auxiliaryQuantity = if (firstPo?.inNum == null || firstPo.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else firstPo.inNum
+                        momOrderDetailId = firstPo?.erpOrderId ?: ""   // ProdOrder.erpOrderId
+                        invPosition = locArchive.locCode
+                        batchNo = u8Batch
+                        packingMethod = firstPo?.packingRequirement
+                        specWidth = firstPo?.specWidth
+                    }
                 }
-            }
 
             val u8Request = U8MomStockInRequest().apply {
                 orderCode = stockIn.receiptNo

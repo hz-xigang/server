@@ -89,21 +89,24 @@ class U8StockMoveSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 每个标签对应一条移库明细
-            val detailList = eligibleTags.mapIndexed { index, prodTag ->
+            // 按 inventoryCode 汇总移库明细
+            val detailList = eligibleTags.groupBy { prodTag ->
                 val order = orderMap[prodTag.prodOrderId]
-                val originStock = originLocMap[prodTag.tagNo]
+                order?.inventoryCode ?: prodTag.inventoryCode ?: ""
+            }.values.mapIndexed { index, tagGroup ->
+                val firstTag = tagGroup.first()
+                val order = orderMap[firstTag.prodOrderId]
+                val originStock = originLocMap[firstTag.tagNo]
 
                 U8StockMoveDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = order?.inventoryCode
+                    inventoryCode = order?.inventoryCode ?: firstTag.inventoryCode
                     invPositionOut = originStock?.locCode
                     invPositionIn = targetLocArchive.locCode
-                    batchNo = order?.prodNo
-                    rowMemo = prodTag.tagNo
                     packingMethod = order?.packingRequirement
                     specWidth = order?.specWidth
-                    batchNo = originStock?.u8Batch
+                    batchNo = originStock?.u8Batch ?: order?.prodNo
+                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
                 }
             }
 
