@@ -90,6 +90,48 @@ public class U8MomOrderDetail {
     private BigDecimal quantity;
 
     /**
+     * 客户编号
+     */
+    @SerializedName("cinvdefine2")
+    private String customerCode;
+
+    /**
+     * 产品材质/材料
+     */
+    @SerializedName("cinvdefine1")
+    private String material;
+
+    /**
+     * 技术要求
+     */
+    @SerializedName("cinvdefine8")
+    private String technicalRequirement;
+
+    /**
+     * 退火方式
+     */
+    @SerializedName("cinvdefine9")
+    private String annealingMethod;
+
+    /**
+     * 喷涂切割
+     */
+    @SerializedName("cinvdefine10")
+    private String sprayCutting;
+
+    /**
+     * 单重
+     */
+    @SerializedName("iinvweight")
+    private String unitWeight;
+
+    /**
+     * 辅计量单位名称
+     */
+    @SerializedName("unitname")
+    private String unitName;
+
+    /**
      * 单据行备注
      */
     @SerializedName("cbmemo")

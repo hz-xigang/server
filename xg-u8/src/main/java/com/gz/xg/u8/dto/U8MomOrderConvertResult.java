@@ -60,6 +60,41 @@ public class U8MomOrderConvertResult {
     private BigDecimal inNum;
 
     /**
+     * 客户编号
+     */
+    private String customerCode;
+
+    /**
+     * 产品材质/材料
+     */
+    private String material;
+
+    /**
+     * 技术要求
+     */
+    private String technicalRequirement;
+
+    /**
+     * 退火方式
+     */
+    private String annealingMethod;
+
+    /**
+     * 喷涂切割
+     */
+    private String sprayCutting;
+
+    /**
+     * 单重
+     */
+    private String unitWeight;
+
+    /**
+     * 辅计量单位
+     */
+    private String unitName;
+
+    /**
      * 扩展字段1: 自定义扩展
      */
     private String m1;

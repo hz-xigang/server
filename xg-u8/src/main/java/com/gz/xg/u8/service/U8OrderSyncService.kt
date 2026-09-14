@@ -163,6 +163,14 @@ class U8OrderSyncService(
                     qty = detail.quantity
                     inNum = detail.auxiliaryQuantity
 
+                    customerCode = detail.customerCode
+                    material = detail.material
+                    technicalRequirement = detail.technicalRequirement
+                    annealingMethod = detail.annealingMethod
+                    sprayCutting = detail.sprayCutting
+                    unitWeight = detail.unitWeight
+                    unitName = detail.unitName
+
                     m1 = detail.departmentName ?: detail.departmentCode
                     m2 = detail.warehouseName ?: detail.warehouseCode
                     m3 = detail.rowMemo

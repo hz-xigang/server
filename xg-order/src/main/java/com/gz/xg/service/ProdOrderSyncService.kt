@@ -188,6 +188,13 @@ class ProdOrderSyncService(
                 specWidth = result.specWidth
                 packingRequirement = result.packingRequirement
 
+                customerCode = result.customerCode
+                material = result.material
+                technicalRequirement = result.technicalRequirement
+                annealingMethod = result.annealingMethod
+                sprayCutting = result.sprayCutting
+                unitWeight = toBigDecimal(result.unitWeight)
+
                 qty = result.qty
                 inNum = result.inNum
 
@@ -202,5 +209,16 @@ class ProdOrderSyncService(
         productionOrderPlusService.saveBatch(prodOrders)
         log.info("U8 生产订单同步入库完成，生成生产单数量: {}", prodOrders.size)
         return prodOrders.size
+    }
+
+    private fun toBigDecimal(value: String?): java.math.BigDecimal? {
+        if (value.isNullOrBlank()) {
+            return null
+        }
+        return try {
+            java.math.BigDecimal(value.trim())
+        } catch (_: Exception) {
+            null
+        }
     }
 }

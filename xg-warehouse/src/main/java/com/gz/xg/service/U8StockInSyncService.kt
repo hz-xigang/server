@@ -80,18 +80,21 @@ class U8StockInSyncService(
             po != null && po.type == 0
         }
 
-        // 处理销售订单标签：反查生产单
+        // 处理销售订单标签：按存货编码与客户编号反查生产单
         val momResolvedOrdersByTag = mutableMapOf<String, ProdOrder>()
         val salesInvCodeCache = mutableMapOf<String, ProdOrder>()
 
         salesTags.forEach { tag ->
-            val invCode = orderMap[tag.prodOrderId]?.inventoryCode ?: tag.inventoryCode ?: ""
+            val so = orderMap[tag.prodOrderId]
+            val invCode = so?.inventoryCode ?: tag.inventoryCode ?: ""
+            val customerCode = so?.customerCode
             if (invCode.isBlank()) {
                 throw WebException("标签条码[${tag.tagNo}]缺少存货编码，无法反查生产订单推送到U8")
             }
-            val momOrder = salesInvCodeCache.getOrPut(invCode) {
-                productionOrderPlusService.findLatestMomOrderByInvCode(invCode)
-                    ?: throw WebException("存货[${invCode}]未找到对应的有效生产订单(已下发U8)，无法回传U8成品入库")
+            val cacheKey = "$invCode:${customerCode ?: ""}"
+            val momOrder = salesInvCodeCache.getOrPut(cacheKey) {
+                productionOrderPlusService.findLatestMomOrderByInvCodeAndCustomerCode(invCode, customerCode)
+                    ?: throw WebException("存货[${invCode}]${if (!customerCode.isNullOrBlank()) "、客户[${customerCode}]" else ""}未找到对应的有效生产订单(已下发U8)，无法回传U8成品入库")
             }
             momResolvedOrdersByTag[tag.tagNo] = momOrder
         }
