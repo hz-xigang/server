@@ -5,6 +5,7 @@ import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.view.VProdTag
+import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.ProductionOrderPlusService
 import com.gz.xg.u8.dto.U8MomStockInDetailRequest
 import com.gz.xg.u8.dto.U8MomStockInRequest
@@ -49,12 +50,9 @@ class U8StockInSyncService(
         val syncStatusByOrderId = mutableMapOf<String, Int>()
         val errors = mutableListOf<String>()
 
-        // 标记不需要同步的订单（type != 1 且 != 2，或者无 erpOrderId）
+        // 默认标记为 2 (不需同步)
         prodOrderIds.forEach { orderId ->
-            val order = orderMap[orderId]
-            if (order == null || order.erpOrderId.isNullOrBlank() || (order.type != 1 && order.type != 2)) {
-                syncStatusByOrderId[orderId] = 2 // 不需同步
-            }
+            syncStatusByOrderId[orderId] = 2
         }
 
         // 1. 同步采购入库 (type == 1 且有 erpOrderId)
@@ -69,15 +67,41 @@ class U8StockInSyncService(
             if (errorMsg != null) errors.add(errorMsg)
         }
 
-        // 2. 同步产成品入库 (type == 2 且有 erpOrderId)
-        val momTags = resolved.prodTags.filter { tag ->
+        // 2. 成品入库包含两类标签：
+        //    A. 生产订单直接入库 (type == 2 且有 erpOrderId)
+        //    B. 销售订单入库 (type == 0)，需根据 inventoryCode 反查最新的有效生产订单 (type == 2)
+        val momDirectTags = resolved.prodTags.filter { tag ->
             val po = orderMap[tag.prodOrderId]
             po != null && po.type == 2 && !po.erpOrderId.isNullOrBlank()
         }
-        if (momTags.isNotEmpty()) {
-            val errorMsg = trySyncMomStockIn(momTags, orderMap, stockIn, locArchive, u8Batch)
+
+        val salesTags = resolved.prodTags.filter { tag ->
+            val po = orderMap[tag.prodOrderId]
+            po != null && po.type == 0
+        }
+
+        // 处理销售订单标签：反查生产单
+        val momResolvedOrdersByTag = mutableMapOf<String, ProdOrder>()
+        val salesInvCodeCache = mutableMapOf<String, ProdOrder>()
+
+        salesTags.forEach { tag ->
+            val invCode = orderMap[tag.prodOrderId]?.inventoryCode ?: tag.inventoryCode ?: ""
+            if (invCode.isBlank()) {
+                throw WebException("标签条码[${tag.tagNo}]缺少存货编码，无法反查生产订单推送到U8")
+            }
+            val momOrder = salesInvCodeCache.getOrPut(invCode) {
+                productionOrderPlusService.findLatestMomOrderByInvCode(invCode)
+                    ?: throw WebException("存货[${invCode}]未找到对应的有效生产订单(已下发U8)，无法回传U8成品入库")
+            }
+            momResolvedOrdersByTag[tag.tagNo] = momOrder
+        }
+
+        // 合并所有成品入库标签：直接生产单 + 销售单反查生产单
+        val allMomTags = momDirectTags + salesTags
+        if (allMomTags.isNotEmpty()) {
+            val errorMsg = trySyncMomStockIn(allMomTags, orderMap, momResolvedOrdersByTag, stockIn, locArchive, u8Batch)
             val status = if (errorMsg == null) 1 else 0
-            momTags.mapNotNull { it.prodOrderId }.distinct().forEach { syncStatusByOrderId[it] = status }
+            allMomTags.mapNotNull { it.prodOrderId }.distinct().forEach { syncStatusByOrderId[it] = status }
             if (errorMsg != null) errors.add(errorMsg)
         }
 
@@ -152,6 +176,7 @@ class U8StockInSyncService(
     private fun trySyncMomStockIn(
         momTags: List<VProdTag>,
         orderMap: Map<String, ProdOrder>,
+        salesMomOrderMap: Map<String, ProdOrder>,
         stockIn: StockIn,
         locArchive: LocArchive,
         u8Batch : String
@@ -159,26 +184,38 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 按存货编号汇总明细，辅计量和订单信息以组内第一个 ProdOrder 为准
+            // 获取标签对应的生产单（优先直接生产单，若为销售单则取反查出的生产单）
+            fun getEffectiveMomOrder(tag: VProdTag): ProdOrder? {
+                val direct = orderMap[tag.prodOrderId]
+                if (direct != null && direct.type == 2) {
+                    return direct
+                }
+                return salesMomOrderMap[tag.tagNo]
+            }
+
+            // 按存货编号汇总明细，辅计量和订单信息以组内生效的 ProdOrder 为准
             val detailList = momTags
-                .groupBy { orderMap[it.prodOrderId]?.inventoryCode ?: it.inventoryCode ?: "" }
+                .groupBy { tag ->
+                    val po = getEffectiveMomOrder(tag)
+                    po?.inventoryCode ?: tag.inventoryCode ?: ""
+                }
                 .values
                 .mapIndexed { index, groupTags ->
                     val firstTag = groupTags.first()
-                    val firstPo = groupTags.firstNotNullOfOrNull { orderMap[it.prodOrderId] }
+                    val effectivePo = groupTags.firstNotNullOfOrNull { getEffectiveMomOrder(it) }
                     val totalQty = BigDecimal.valueOf(groupTags.sumOf { (it.qty ?: 0).toLong() })
-                    val invCode = firstPo?.inventoryCode ?: firstTag.inventoryCode ?: ""
+                    val invCode = effectivePo?.inventoryCode ?: firstTag.inventoryCode ?: ""
 
                     U8MomStockInDetailRequest().apply {
                         rowNo = index + 1
                         inventoryCode = invCode
                         quantity = totalQty
-                        auxiliaryQuantity = if (firstPo?.inNum == null || firstPo.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else firstPo.inNum
-                        momOrderDetailId = firstPo?.erpOrderId ?: ""   // ProdOrder.erpOrderId
+                        auxiliaryQuantity = if (effectivePo?.inNum == null || effectivePo.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else effectivePo.inNum
+                        momOrderDetailId = effectivePo?.erpOrderId ?: ""   // ProdOrder.erpOrderId
                         invPosition = locArchive.locCode
                         batchNo = u8Batch
-                        packingMethod = firstPo?.packingRequirement
-                        specWidth = firstPo?.specWidth
+                        packingMethod = effectivePo?.packingRequirement
+                        specWidth = effectivePo?.specWidth
                     }
                 }
 

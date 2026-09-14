@@ -147,7 +147,8 @@ class StockInService(
 
         val tags = resolved.tagNos.map { tagNo ->
             val orderId = prodTagMap[tagNo]?.prodOrderId
-            val syncStatus = if (orderId != null) (syncResult.statusMap[orderId] ?: 2) else 2
+            // 优先按 tagNo 获取同步状态，兜底按 orderId 获取
+            val syncStatus = syncResult.statusMap[tagNo] ?: if (orderId != null) (syncResult.statusMap[orderId] ?: 2) else 2
 
             StockInTag().apply {
                 pId = id

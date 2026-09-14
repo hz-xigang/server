@@ -55,4 +55,18 @@ open class ProductionOrderPlusService(
 
     }
 
+    /**
+     * 根据存货编号查询最新一条有效的生产订单 (type == 2 且 erpOrderId 不为空)
+     */
+    fun findLatestMomOrderByInvCode(inventoryCode: String): ProdOrder? {
+        val wrapper = MPJLambdaWrapper<ProdOrder>()
+            .eq(ProdOrder::getInventoryCode, inventoryCode)
+            .eq(ProdOrder::getType, 2)
+            .isNotNull(ProdOrder::getErpOrderId)
+            .ne(ProdOrder::getErpOrderId, "")
+            .orderByDesc(ProdOrder::getCreateTime)
+
+        return this.list(wrapper).firstOrNull()
+    }
+
 }
