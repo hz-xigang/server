@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
 import com.gz.xg.base.BaseService
-import com.gz.xg.domain.dto.AddStockIn
+import com.gz.xg.domain.req.AddStockIn
 import com.gz.xg.domain.dto.ProdTagTotal
 import com.gz.xg.domain.dto.StockInExecutionResult
 import com.gz.xg.domain.dto.StockInFailTag
@@ -15,8 +15,6 @@ import com.gz.xg.domain.entity.StockInTag
 import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockInMapStruct
 import com.gz.xg.domain.search.StockSearch
-import com.gz.xg.domain.view.ResolvedTags
-import com.gz.xg.domain.view.ResolvedTotal
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
@@ -116,6 +114,14 @@ class StockInService(
         val prodTagMap = resolved.prodTags.associateBy { it.tagNo }
         val failTags = mutableListOf<StockInFailTag>()
 
+        // 提前批量查询所有关联的 ProdOrder
+        val prodOrderIds = resolved.prodTags.mapNotNull { it.prodOrderId }.distinct()
+        val orderMap = if (prodOrderIds.isNotEmpty()) {
+            productionOrderPlusService.listByIds(prodOrderIds).associateBy { it.id }
+        } else {
+            emptyMap()
+        }
+
         // 缓存销售单反查到的生产订单：key: "$invCode:${customerCode ?: ""}" -> ProdOrder?
         val momOrderCache = mutableMapOf<String, ProdOrder?>()
 
@@ -133,30 +139,36 @@ class StockInService(
         for (tagNo in resolved.tagNos) {
             val prodTag = prodTagMap[tagNo]
             if (prodTag == null) {
+                failTags.add(StockInFailTag(tagNo, "未找到该标签记录"))
+                continue
+            }
+            val prodOrder = prodTag.prodOrderId?.let { orderMap[it] }
+            if (prodOrder == null) {
                 failTags.add(StockInFailTag(tagNo, "未找到该标签对应的订单记录"))
                 continue
             }
-            val orderType = prodTag.orderType
-            val erpOrderId = prodTag.erpOrderId
+            val orderType = prodOrder.type
+            val erpOrderId = prodOrder.erpOrderId
+            val orderNo = prodOrder.erpOrderNo ?: prodOrder.prodNo ?: ""
 
             if (orderType == 1) {
                 // 采购订单：必须有 erpOrderId
                 if (erpOrderId.isNullOrBlank()) {
-                    failTags.add(StockInFailTag(tagNo, "采购订单[${prodTag.orderNo ?: ""}]未关联有效的U8采购订单号"))
+                    failTags.add(StockInFailTag(tagNo, "采购订单[${orderNo}]未关联有效的U8采购订单号"))
                 } else {
                     validTargets.add(TagOrderTarget(tagNo, prodTag, 1, erpOrderId))
                 }
             } else if (orderType == 2) {
                 // 生产订单：必须有 erpOrderId
                 if (erpOrderId.isNullOrBlank()) {
-                    failTags.add(StockInFailTag(tagNo, "生产订单[${prodTag.orderNo ?: ""}]未关联有效的U8生产订单号"))
+                    failTags.add(StockInFailTag(tagNo, "生产订单[${orderNo}]未关联有效的U8生产订单号"))
                 } else {
                     validTargets.add(TagOrderTarget(tagNo, prodTag, 2, erpOrderId))
                 }
             } else if (orderType == 0) {
                 // 销售订单：通过 inventoryCode + customerCode 反查生产订单 (type == 2)
-                val invCode = prodTag.inventoryCode ?: ""
-                val custCode = prodTag.customerCode
+                val invCode = prodOrder.inventoryCode ?: prodTag.inventoryCode ?: ""
+                val custCode = prodOrder.customerCode ?: prodTag.customerCode
                 val cacheKey = "$invCode:${custCode ?: ""}"
 
                 val momOrder = momOrderCache.getOrPut(cacheKey) {
