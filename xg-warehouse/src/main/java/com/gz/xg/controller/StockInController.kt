@@ -22,15 +22,25 @@ class StockInController(
     @PostMapping("")
     @OpLog(title = "入库管理", opName = "产品/退货入库", businessType = BusinessType.INSERT)
     fun add (@RequestBody req : AddStockIn,
-             @RequestParam(defaultValue = "0" )type : Int) : ResponseResult{
+             @RequestParam(defaultValue = "0" )type : Int) : ResponseResult {
 
-        val msg = if (type == 1){
+        val result = if (type == 1) {
             service.addReturn(req)
-        }else{
+        } else {
             service.add(req)
         }
 
-        return success(msg)
+        // 如果存在未完成的条码，返回自定义状态码与未完成条码明细
+        if (result.failTags.isNotEmpty()) {
+            val res = ResponseResult()
+            res.code = 10008
+            res.isSuccess = false
+            res.message = "部分条码入库失败(共${result.failTags.size}件)，请核对后重试"
+            res.data = result.failTags
+            return res
+        }
+
+        return success("入库成功，共${result.successCount}件")
     }
 
     @PostMapping("page")

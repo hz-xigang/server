@@ -20,8 +20,23 @@ import kotlin.random.Random
     /**
      * 生成纸箱标签号。
      */
-    fun generateCarton() = generateByDate(SequenceType.CARTON_LABEL) +
-            Random.nextInt(0, 100).toString().padStart(2, '0')
+    /**
+     * 生成单个箱标签号（保持兼容）。
+     */
+    fun generateCarton(): String = generateCartons(1).first()
+
+    /**
+     * 批量生成箱标签号。
+     * 一次性递增申请 count 个流水号，避免循环内重复访问数据库与并发冲突。
+     */
+    fun generateCartons(count: Int): List<String> {
+        if (count <= 0) return emptyList()
+        val prefix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
+        val sequences = generateSequences(SequenceType.CARTON_LABEL, prefix, count)
+        return sequences.map { seq ->
+            seq + Random.nextInt(0, 100).toString().padStart(2, '0')
+        }
+    }
 
     /**
      * 生成托盘号。
@@ -56,26 +71,49 @@ import kotlin.random.Random
     }
 
     /**
-     * 按数量批量生成流水号，并递增当前序列值。
+     * 按数量批量生成流水号，并通过 CAS 乐观锁递增当前序列值。
+     * 支持并发重试，避免并发下主键/流水号冲突。
      */
     fun generateSequences(sequenceType: SequenceType, value: String, count: Int): List<String> {
         if (count <= 0) {
             throw WebException("count must be greater than 0")
         }
 
-        val sequence = getSequenceConfig(sequenceType)
-        val currentValue = sequence.currentValue
-        val sequenceNumbers = (1..count).map { offset ->
-            val nextValue = currentValue + offset
-            buildSequenceNo(sequence, value, nextValue)
+        val maxRetries = 20
+        for (attempt in 1..maxRetries) {
+            val sequence = getSequenceConfig(sequenceType)
+            val currentVal = sequence.currentValue ?: 0
+
+            // 尝试 CAS 更新 currentValue
+            val updatedRows = if (sequence.id != null) {
+                plusService.baseMapper.update(
+                    null,
+                    com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<SysSequence>()
+                        .setSql("currentValue = currentValue + $count")
+                        .eq("id", sequence.id)
+                        .eq("currentValue", currentVal)
+                )
+            } else {
+                0
+            }
+
+            if (updatedRows > 0) {
+                return (1..count).map { offset ->
+                    val nextValue = currentVal + offset
+                    buildSequenceNo(sequence, value, nextValue)
+                }
+            }
+
+            // 竞争失败，进行微小休眠后重试
+            try {
+                Thread.sleep((10..30).random().toLong())
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                throw WebException("生成流水号被中断")
+            }
         }
 
-        sequence.currentValue = currentValue + count
-        if (!plusService.updateById(sequence)) {
-            throw WebException("Failed to update sequence current value")
-        }
-
-        return sequenceNumbers
+        throw WebException("流水号并发冲突，生成失败，请重试")
     }
 
     /**

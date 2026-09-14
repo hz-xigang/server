@@ -4,16 +4,24 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.UserContext
 import com.gz.xg.base.BaseService
+import com.gz.xg.domain.dto.AddStockIn
+import com.gz.xg.domain.dto.ProdTagTotal
+import com.gz.xg.domain.dto.StockInExecutionResult
+import com.gz.xg.domain.dto.StockInFailTag
 import com.gz.xg.domain.entity.LocArchive
+import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.StockIn
 import com.gz.xg.domain.entity.StockInTag
 import com.gz.xg.domain.entity.TransferRecord
 import com.gz.xg.domain.mapstruct.StockInMapStruct
-import com.gz.xg.domain.req.AddStockIn
 import com.gz.xg.domain.search.StockSearch
+import com.gz.xg.domain.view.ResolvedTags
+import com.gz.xg.domain.view.ResolvedTotal
+import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.LocArchivePlusService
 import com.gz.xg.service.plus.ProdTagPlusService
+import com.gz.xg.service.plus.ProductionOrderPlusService
 import com.gz.xg.service.plus.StockInPlusService
 import com.gz.xg.service.plus.StockInTagPlusService
 import com.gz.xg.service.plus.StockInventoryPlusService
@@ -22,7 +30,7 @@ import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-
+import java.math.BigDecimal
 
 /**
  * 入库服务，负责入库单生成、标签关联保存以及库存落库。
@@ -34,6 +42,7 @@ class StockInService(
     private val stockInventoryPlusService: StockInventoryPlusService,
     private val locArchivePlusService: LocArchivePlusService,
     private val prodTagPlusService: ProdTagPlusService,
+    private val productionOrderPlusService: ProductionOrderPlusService,
     private val sysSequenceService: SysSequenceService,
     private val stockInMapStruct: StockInMapStruct,
     private val stockInventoryService: StockInventoryService,
@@ -44,16 +53,16 @@ class StockInService(
 ) : BaseService() {
 
     /**
-     * 新增入库单，并同步写入库存表。返回 U8 同步错误信息（空字符串表示同步成功）。
+     * 新增入库单，按 (业务类型, ERP单号) 分批提交入库。返回执行结果（成功数与未完成条码列表）。
      */
-    fun add(req: AddStockIn): String {
+    fun add(req: AddStockIn): StockInExecutionResult {
         return addByType(req, "直接入库")
     }
 
     /**
-     * 新增退货入库单，并同步写入库存表。返回 U8 同步错误信息（空字符串表示同步成功）。
+     * 新增退货入库单，按 (业务类型, ERP单号) 分批提交入库。返回执行结果（成功数与未完成条码列表）。
      */
-    fun addReturn(req: AddStockIn): String {
+    fun addReturn(req: AddStockIn): StockInExecutionResult {
         return addByType(req, "退货入库")
     }
 
@@ -92,35 +101,147 @@ class StockInService(
         )
     }
 
-    private fun addByType(req: AddStockIn, type: String): String {
-        val u8Result = TransactionTemplate(transactionManager).execute {
-            val locArchive = locArchivePlusService.getById(req.locId)
-                ?: throw WebException("该库位不存在")
+    private fun addByType(req: AddStockIn, type: String): StockInExecutionResult {
+        val locArchive = locArchivePlusService.getById(req.locId)
+            ?: throw WebException("该库位不存在")
 
-            val resolved = billTagResolver.resolve(req.tagNos)
+        val resolved = billTagResolver.resolve(req.tagNos)
 
-            // STK-1：防重复入库改为查库存表（StockInventory.deleted=0），而非入库流水表
-            // 流水表同一 tagNo 可有多条（首次+退货+调拨），历史上入过库即被误拦；
-            // 文档规则：当前在库（deleted=0）才拦截
-            val occupied = stockInventoryPlusService.listByTagNos(resolved.tagNos)
-            if (occupied.isNotEmpty()) {
-                throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已在库存中，不能重复入库")
-            }
-
-            saveStockIn(resolved, type, sysSequenceService.generateStockIn(), locArchive)
+        // STK-1：防重复入库查库存表（StockInventory.deleted=0）
+        val occupied = stockInventoryPlusService.listByTagNos(resolved.tagNos)
+        if (occupied.isNotEmpty()) {
+            throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已在库存中，不能重复入库")
         }
-        return u8Result?.errorMessage ?: ""
+
+        val prodTagMap = resolved.prodTags.associateBy { it.tagNo }
+        val failTags = mutableListOf<StockInFailTag>()
+
+        // 缓存销售单反查到的生产订单：key: "$invCode:${customerCode ?: ""}" -> ProdOrder?
+        val momOrderCache = mutableMapOf<String, ProdOrder?>()
+
+        // 为每个标签计算目标 ERP 类型与订单号 (targetType: 1-采购, 2-生产, targetErpOrderId: String)
+        data class TagOrderTarget(
+            val tagNo: String,
+            val prodTag: VProdTag,
+            val targetType: Int,
+            val targetErpOrderId: String,
+            val momOrder: ProdOrder? = null
+        )
+
+        val validTargets = mutableListOf<TagOrderTarget>()
+
+        for (tagNo in resolved.tagNos) {
+            val prodTag = prodTagMap[tagNo]
+            if (prodTag == null) {
+                failTags.add(StockInFailTag(tagNo, "未找到该标签对应的订单记录"))
+                continue
+            }
+            val orderType = prodTag.orderType
+            val erpOrderId = prodTag.erpOrderId
+
+            if (orderType == 1) {
+                // 采购订单：必须有 erpOrderId
+                if (erpOrderId.isNullOrBlank()) {
+                    failTags.add(StockInFailTag(tagNo, "采购订单[${prodTag.orderNo ?: ""}]未关联有效的U8采购订单号"))
+                } else {
+                    validTargets.add(TagOrderTarget(tagNo, prodTag, 1, erpOrderId))
+                }
+            } else if (orderType == 2) {
+                // 生产订单：必须有 erpOrderId
+                if (erpOrderId.isNullOrBlank()) {
+                    failTags.add(StockInFailTag(tagNo, "生产订单[${prodTag.orderNo ?: ""}]未关联有效的U8生产订单号"))
+                } else {
+                    validTargets.add(TagOrderTarget(tagNo, prodTag, 2, erpOrderId))
+                }
+            } else if (orderType == 0) {
+                // 销售订单：通过 inventoryCode + customerCode 反查生产订单 (type == 2)
+                val invCode = prodTag.inventoryCode ?: ""
+                val custCode = prodTag.customerCode
+                val cacheKey = "$invCode:${custCode ?: ""}"
+
+                val momOrder = momOrderCache.getOrPut(cacheKey) {
+                    productionOrderPlusService.findLatestMomOrderByInvCodeAndCustomerCode(invCode, custCode)
+                }
+
+                if (momOrder == null || momOrder.erpOrderId.isNullOrBlank()) {
+                    val detailReason = if (invCode.isBlank()) {
+                        "销售单缺少存货编码"
+                    } else {
+                        "存货[${invCode}]${if (!custCode.isNullOrBlank()) "、客户[${custCode}]" else ""}未找到关联的有效生产订单(已下发U8)"
+                    }
+                    failTags.add(StockInFailTag(tagNo, detailReason))
+                } else {
+                    validTargets.add(TagOrderTarget(tagNo, prodTag, 2, momOrder.erpOrderId, momOrder))
+                }
+            } else {
+                failTags.add(StockInFailTag(tagNo, "未知订单类型[${orderType}]，无法入库"))
+            }
+        }
+
+        // 按 (业务分类, 目标ERP单号) 分组
+        val groupedTargets = validTargets.groupBy { Pair(it.targetType, it.targetErpOrderId) }
+
+        var successCount = 0
+
+        // 逐批次独立循环执行：每组对应一次独立的 U8 推送和 WMS 入库
+        for ((groupKey, groupItems) in groupedTargets) {
+            val (targetType, targetErpOrderId) = groupKey
+            val groupTagNos = groupItems.map { it.tagNo }
+            val groupProdTags = groupItems.map { it.prodTag }
+
+            // 计算该组的统计汇总
+            val sumQty = groupProdTags.sumOf { it.qty ?: 0 }
+            val sumGross = groupProdTags.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.grossWeight ?: BigDecimal.ZERO) }
+            val sumNet = groupProdTags.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.netWeight ?: BigDecimal.ZERO) }
+            val groupTotal = ProdTagTotal(sumQty, sumGross, sumNet)
+            val groupResolved = ResolvedTags(groupTagNos, groupProdTags, groupTotal)
+
+            // 构造专属于该批次的销售单反查生产单映射
+            val groupMomOrderMap = groupItems.filter { it.momOrder != null }.associate { it.tagNo to it.momOrder!! }
+
+            // 为该批次生成独立的入库单号
+            val receiptNo = sysSequenceService.generateStockIn()
+
+            try {
+                // 单批次内部采用独立事务，保证 WMS 落库与 U8 推送的局部原子性
+                TransactionTemplate(transactionManager).execute {
+                    saveSingleBatchStockIn(
+                        resolved = groupResolved,
+                        type = type,
+                        receiptNo = receiptNo,
+                        locArchive = locArchive,
+                        targetType = targetType,
+                        targetErpOrderId = targetErpOrderId,
+                        momOrderMap = groupMomOrderMap
+                    )
+                }
+                successCount += groupTagNos.size
+                log.info("批次入库成功: receiptNo={}, targetType={}, erpOrderId={}, 条码数={}",
+                    receiptNo, targetType, targetErpOrderId, groupTagNos.size)
+            } catch (e: Exception) {
+                log.error("批次入库失败: erpOrderId={}, 错误: {}", targetErpOrderId, e.message)
+                val errMsg = e.message ?: "入库异常"
+                for (tagNo in groupTagNos) {
+                    failTags.add(StockInFailTag(tagNo, errMsg))
+                }
+            }
+        }
+
+        return StockInExecutionResult(successCount, failTags)
     }
 
     /**
-     * STK-6：入库单保存公共逻辑（普通/退货/调拨入库共用）。
+     * 单个 ERP 订单批次的入库处理：先推 U8，成功后写 WMS 主单、标签流水、库存。
      */
-    private fun saveStockIn(
+    private fun saveSingleBatchStockIn(
         resolved: ResolvedTags,
         type: String,
         receiptNo: String,
-        locArchive: LocArchive
-    ): U8SyncResult {
+        locArchive: LocArchive,
+        targetType: Int,
+        targetErpOrderId: String,
+        momOrderMap: Map<String, ProdOrder>
+    ) {
         val id = IdUtil.generateId()
         val (userId, username, realName) = UserContext.require()
 
@@ -137,18 +258,27 @@ class StockInService(
             this.realName = realName
         }
 
-        // 先执行 U8 同步，获取各生产订单对应的同步状态（0-未同步, 1-已同步, 2-不需同步）
         val u8Batch = IdUtil.generateId()
-        val syncResult = u8StockInSyncService.syncStockIn(resolved, stockIn, locArchive, u8Batch)
+
+        // 调用 U8 同步，获取 U8 同步结果
+        val syncResult = u8StockInSyncService.syncSingleBatch(
+            resolved = resolved,
+            stockIn = stockIn,
+            locArchive = locArchive,
+            u8Batch = u8Batch,
+            targetType = targetType,
+            targetErpOrderId = targetErpOrderId,
+            momOrderMap = momOrderMap
+        )
+
         if (!syncResult.errorMessage.isNullOrBlank()) {
-            throw WebException("U8入库同步失败: ${syncResult.errorMessage}")
+            throw WebException(syncResult.errorMessage)
         }
+
         val prodTagMap = resolved.prodTags.associateBy { it.tagNo }
 
         val tags = resolved.tagNos.map { tagNo ->
-            val orderId = prodTagMap[tagNo]?.prodOrderId
-            // 优先按 tagNo 获取同步状态，兜底按 orderId 获取
-            val syncStatus = syncResult.statusMap[tagNo] ?: if (orderId != null) (syncResult.statusMap[orderId] ?: 2) else 2
+            val syncStatus = syncResult.statusMap[tagNo] ?: 1
 
             StockInTag().apply {
                 pId = id
@@ -161,10 +291,7 @@ class StockInService(
 
         plusService.save(stockIn)
         stockInTagPlusService.saveBatch(tags)
-        stockInventoryService.addBatch(resolved.prodTags, locArchive,u8Batch)
-        log.info("入库单保存完成: receiptNo={}, type={}, loc={}, 标签数量={}, 总重量={}", 
-            receiptNo, type, locArchive.locCode, tags.size, resolved.total.grossWeight)
-        return syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
+        stockInventoryService.addBatch(resolved.prodTags, locArchive, u8Batch)
     }
 
 }

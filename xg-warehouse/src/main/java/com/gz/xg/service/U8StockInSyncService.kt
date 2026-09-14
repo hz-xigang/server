@@ -61,7 +61,8 @@ class U8StockInSyncService(
             po != null && po.type == 1 && !po.erpOrderId.isNullOrBlank()
         }
         if (purchaseTags.isNotEmpty()) {
-            val errorMsg = trySyncPurchaseStockIn(purchaseTags, orderMap, stockIn, locArchive, u8Batch)
+            val po = orderMap[purchaseTags.first().prodOrderId]!!
+            val errorMsg = syncSinglePurchaseOrder(purchaseTags, po, stockIn, locArchive, u8Batch)
             val status = if (errorMsg == null) 1 else 0
             purchaseTags.mapNotNull { it.prodOrderId }.distinct().forEach { syncStatusByOrderId[it] = status }
             if (errorMsg != null) errors.add(errorMsg)
@@ -102,7 +103,12 @@ class U8StockInSyncService(
         // 合并所有成品入库标签：直接生产单 + 销售单反查生产单
         val allMomTags = momDirectTags + salesTags
         if (allMomTags.isNotEmpty()) {
-            val errorMsg = trySyncMomStockIn(allMomTags, orderMap, momResolvedOrdersByTag, stockIn, locArchive, u8Batch)
+            val firstMomOrder = if (momDirectTags.isNotEmpty()) {
+                orderMap[momDirectTags.first().prodOrderId]!!
+            } else {
+                momResolvedOrdersByTag[salesTags.first().tagNo]!!
+            }
+            val errorMsg = syncSingleMomOrder(allMomTags, firstMomOrder, stockIn, locArchive, u8Batch)
             val status = if (errorMsg == null) 1 else 0
             allMomTags.mapNotNull { it.prodOrderId }.distinct().forEach { syncStatusByOrderId[it] = status }
             if (errorMsg != null) errors.add(errorMsg)
@@ -116,11 +122,13 @@ class U8StockInSyncService(
     }
 
     /**
-     * 尝试同步采购入库，按存货编号 inventoryCode 汇总明细
+     * 同步单张采购入库单（严格属于同一个采购单 erpOrderId 的标签集合）
+     * 组内按存货编号 inventoryCode 汇总明细
+     * @return 错误信息，若成功返回 null
      */
-    private fun trySyncPurchaseStockIn(
+    fun syncSinglePurchaseOrder(
         purchaseTags: List<VProdTag>,
-        orderMap: Map<String, ProdOrder>,
+        prodOrder: ProdOrder,
         stockIn: StockIn,
         locArchive: LocArchive,
         u8Batch: String
@@ -128,22 +136,21 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 按存货编号汇总明细，辅计量和订单信息以组内第一个 ProdOrder 为准
+            // 按存货编号汇总明细
             val detailList = purchaseTags
-                .groupBy { orderMap[it.prodOrderId]?.inventoryCode ?: it.inventoryCode ?: "" }
+                .groupBy { it.inventoryCode ?: prodOrder.inventoryCode ?: "" }
                 .values
                 .mapIndexed { index, groupTags ->
                     val firstTag = groupTags.first()
-                    val firstPo = groupTags.firstNotNullOfOrNull { orderMap[it.prodOrderId] }
                     val totalQty = BigDecimal.valueOf(groupTags.sumOf { (it.qty ?: 0).toLong() })
-                    val invCode = firstPo?.inventoryCode ?: firstTag.inventoryCode ?: ""
+                    val invCode = firstTag.inventoryCode ?: prodOrder.inventoryCode ?: ""
 
                     U8PurchaseStockInDetailRequest().apply {
                         rowNo = index + 1
                         inventoryCode = invCode
                         quantity = totalQty
-                        auxiliaryQuantity = firstPo?.inNum
-                        purchaseOrderDetailId = firstPo?.erpOrderId ?: ""
+                        auxiliaryQuantity = prodOrder.inNum
+                        purchaseOrderDetailId = prodOrder.erpOrderId ?: ""
                         invPosition = locArchive.locCode
                         batchNo = u8Batch
                     }
@@ -152,8 +159,8 @@ class U8StockInSyncService(
             val u8Request = U8PurchaseStockInRequest().apply {
                 orderCode = stockIn.receiptNo
                 orderDate = todayStr
-                warehouseCode = "01"                  // 固定为 01
-                handler = "曾伟生"                    // 固定为 曾伟生
+                warehouseCode = "01"
+                handler = "曾伟生"
                 verifyDate = todayStr
                 maker = stockIn.realName ?: stockIn.username
                 details = detailList
@@ -161,73 +168,61 @@ class U8StockInSyncService(
 
             val response = u8PurchaseStockInService.pushPurchaseStockIn(u8Request)
             if (response.isSuccess) {
-                log.info("U8 采购入库推送成功: receiptNo={}, 明细行数={}", stockIn.receiptNo, detailList.size)
+                log.info("U8 采购入库推送成功: receiptNo={}, erpOrderId={}, 明细行数={}", stockIn.receiptNo, prodOrder.erpOrderId, detailList.size)
                 null
             } else {
-                log.error("U8 采购入库推送失败: receiptNo={}, 原因={}", stockIn.receiptNo, response.returnMessage)
+                log.error("U8 采购入库推送失败: receiptNo={}, erpOrderId={}, 原因={}", stockIn.receiptNo, prodOrder.erpOrderId, response.returnMessage)
                 response.returnMessage ?: "U8采购入库推送失败"
             }
         } catch (e: Exception) {
-            log.error("U8 采购入库接口调用异常: receiptNo={}", stockIn.receiptNo, e)
+            log.error("U8 采购入库接口调用异常: receiptNo={}, erpOrderId={}", stockIn.receiptNo, prodOrder.erpOrderId, e)
             "U8采购入库接口调用异常: ${e.message}"
         }
     }
 
     /**
-     * 尝试同步产成品入库，按存货编号 inventoryCode 汇总明细
+     * 同步单张产成品入库单（严格属于同一个生产单 erpOrderId 的标签集合，包含销售单反查绑定的生产单）
+     * 组内按存货编号 inventoryCode 汇总明细
+     * @return 错误信息，若成功返回 null
      */
-    private fun trySyncMomStockIn(
+    fun syncSingleMomOrder(
         momTags: List<VProdTag>,
-        orderMap: Map<String, ProdOrder>,
-        salesMomOrderMap: Map<String, ProdOrder>,
+        momOrder: ProdOrder,
         stockIn: StockIn,
         locArchive: LocArchive,
-        u8Batch : String
+        u8Batch: String
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 获取标签对应的生产单（优先直接生产单，若为销售单则取反查出的生产单）
-            fun getEffectiveMomOrder(tag: VProdTag): ProdOrder? {
-                val direct = orderMap[tag.prodOrderId]
-                if (direct != null && direct.type == 2) {
-                    return direct
-                }
-                return salesMomOrderMap[tag.tagNo]
-            }
-
-            // 按存货编号汇总明细，辅计量和订单信息以组内生效的 ProdOrder 为准
+            // 按存货编号汇总明细
             val detailList = momTags
-                .groupBy { tag ->
-                    val po = getEffectiveMomOrder(tag)
-                    po?.inventoryCode ?: tag.inventoryCode ?: ""
-                }
+                .groupBy { it.inventoryCode ?: momOrder.inventoryCode ?: "" }
                 .values
                 .mapIndexed { index, groupTags ->
                     val firstTag = groupTags.first()
-                    val effectivePo = groupTags.firstNotNullOfOrNull { getEffectiveMomOrder(it) }
                     val totalQty = BigDecimal.valueOf(groupTags.sumOf { (it.qty ?: 0).toLong() })
-                    val invCode = effectivePo?.inventoryCode ?: firstTag.inventoryCode ?: ""
+                    val invCode = firstTag.inventoryCode ?: momOrder.inventoryCode ?: ""
 
                     U8MomStockInDetailRequest().apply {
                         rowNo = index + 1
                         inventoryCode = invCode
                         quantity = totalQty
-                        auxiliaryQuantity = if (effectivePo?.inNum == null || effectivePo.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else effectivePo.inNum
-                        momOrderDetailId = effectivePo?.erpOrderId ?: ""   // ProdOrder.erpOrderId
+                        auxiliaryQuantity = if (momOrder.inNum == null || momOrder.inNum.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ONE else momOrder.inNum
+                        momOrderDetailId = momOrder.erpOrderId ?: ""
                         invPosition = locArchive.locCode
                         batchNo = u8Batch
-                        packingMethod = effectivePo?.packingRequirement
-                        specWidth = effectivePo?.specWidth
+                        packingMethod = momOrder.packingRequirement
+                        specWidth = momOrder.specWidth
                     }
                 }
 
             val u8Request = U8MomStockInRequest().apply {
                 orderCode = stockIn.receiptNo
                 orderDate = todayStr
-                rdCode = "102"                         // 固定为 102
-                warehouseCode = "01"                  // 固定为 01
-                handler = "曾伟生"                    // 固定为 曾伟生
+                rdCode = "102"
+                warehouseCode = "01"
+                handler = "曾伟生"
                 verifyDate = todayStr
                 maker = stockIn.realName ?: stockIn.username
                 details = detailList
@@ -235,15 +230,58 @@ class U8StockInSyncService(
 
             val response = u8MomStockInService.pushMomStockIn(u8Request)
             if (response.isSuccess) {
-                log.info("U8 产成品入库推送成功: receiptNo={}, 明细行数={}", stockIn.receiptNo, detailList.size)
+                log.info("U8 产成品入库推送成功: receiptNo={}, erpOrderId={}, 明细行数={}", stockIn.receiptNo, momOrder.erpOrderId, detailList.size)
                 null
             } else {
-                log.error("U8 产成品入库推送失败: receiptNo={}, 原因={}", stockIn.receiptNo, response.returnMessage)
+                log.error("U8 产成品入库推送失败: receiptNo={}, erpOrderId={}, 原因={}", stockIn.receiptNo, momOrder.erpOrderId, response.returnMessage)
                 response.returnMessage ?: "U8产成品入库推送失败"
             }
         } catch (e: Exception) {
-            log.error("U8 产成品入库接口调用异常: receiptNo={}", stockIn.receiptNo, e)
+            log.error("U8 产成品入库接口调用异常: receiptNo={}, erpOrderId={}", stockIn.receiptNo, momOrder.erpOrderId, e)
             "U8产成品入库接口调用异常: ${e.message}"
         }
+    }
+
+    /**
+     * 单批次入库同步入口：根据 targetType 判断调用采购入库或产成品入库。
+     */
+    fun syncSingleBatch(
+        resolved: ResolvedTags,
+        stockIn: StockIn,
+        locArchive: LocArchive,
+        u8Batch: String,
+        targetType: Int,
+        targetErpOrderId: String,
+        momOrderMap: Map<String, ProdOrder>
+    ): U8SyncResult {
+        val prodTags = resolved.prodTags
+        val errorMsg: String?
+
+        if (targetType == 1) {
+            // 采购入库
+            val dummyPo = ProdOrder().apply {
+                this.erpOrderId = targetErpOrderId
+                this.inventoryCode = prodTags.firstOrNull()?.inventoryCode
+                this.inNum = null
+            }
+            errorMsg = syncSinglePurchaseOrder(prodTags, dummyPo, stockIn, locArchive, u8Batch)
+        } else {
+            // 生产/产成品入库
+            val momOrder = momOrderMap.values.firstOrNull { it.erpOrderId == targetErpOrderId }
+                ?: ProdOrder().apply {
+                    this.erpOrderId = targetErpOrderId
+                    this.inventoryCode = prodTags.firstOrNull()?.inventoryCode
+                }
+            errorMsg = syncSingleMomOrder(prodTags, momOrder, stockIn, locArchive, u8Batch)
+        }
+
+        val status = if (errorMsg == null) 1 else 0
+        val statusMap = prodTags.associate { it.tagNo to status }
+
+        return U8SyncResult(
+            statusMap = statusMap,
+            failCount = if (errorMsg == null) 0 else prodTags.size,
+            errorMessage = errorMsg
+        )
     }
 }

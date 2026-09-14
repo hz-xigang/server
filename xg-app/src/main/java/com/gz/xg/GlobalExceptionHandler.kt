@@ -63,6 +63,15 @@ open class GlobalExceptionHandler {
 
 
     /**
+     * 处理数据库唯一键冲突等数据完整性约束异常。
+     */
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException::class)
+    fun handleDataIntegrityViolationException(e: org.springframework.dao.DataIntegrityViolationException): ResponseResult {
+        LOGGER.error("数据完整性约束冲突: ", e)
+        return ResponseResult.fail("数据已存在或操作冲突，请重试", 500)
+    }
+
+    /**
      * 处理兜底异常。
      *
      * @param e 未分类异常对象。

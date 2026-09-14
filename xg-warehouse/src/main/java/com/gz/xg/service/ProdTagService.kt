@@ -65,28 +65,33 @@ class ProdTagService(
     fun batchAdd(dto: ProdTagDto, count: Int): ByteArray? {
         val printCount = if (count <= 0) 1 else count
 
+        val prodOrder = productionOrderPlusService.findById(dto.prodOrderId)
+            ?: throw WebException("关联的生产单不存在")
+
+        val userInfo = UserContext.require()
+
+        // 1. 在事务外一次性申请批量流水号（内部基于 CAS 乐观锁 + 重试保证高并发不冲突，且不占用长事务锁）
+        val tagNos = sysSequenceService.generateCartons(printCount)
+
         val def = DefaultTransactionDefinition().apply {
             propagationBehavior = TransactionDefinition.PROPAGATION_REQUIRED
         }
         val status = pmt.getTransaction(def)
 
+        val prodTagList = mutableListOf<ProdTag>()
         try {
-            val prodOrder = productionOrderPlusService.findById(dto.prodOrderId)
-                ?: throw WebException("关联的生产单不存在")
-
-            val userInfo = UserContext.require()
-            val prodTagList = mutableListOf<ProdTag>()
-
+            val now = LocalDateTime.now()
             for (i in 0 until printCount) {
-                val prodTag = prodTagMapStruct.toEntity(dto)
-                val tagNo = sysSequenceService.generateCarton()
-                prodTag.id = IdUtil.generateId()
-                prodTag.userId = userInfo.userId
-                prodTag.username = userInfo.username
-                prodTag.realName = userInfo.realName
-                prodTag.tagNo = tagNo
-                prodTag.createTime = LocalDateTime.now()
-                prodTag.deleted = 0
+                val tagNo = tagNos[i]
+                val prodTag = prodTagMapStruct.toEntity(dto).apply {
+                    id = IdUtil.generateId()
+                    userId = userInfo.userId
+                    username = userInfo.username
+                    realName = userInfo.realName
+                    this.tagNo = tagNo
+                    createTime = now
+                    deleted = 0
+                }
 
                 prodTagPlusService.save(prodTag)
 
@@ -106,20 +111,24 @@ class ProdTagService(
 
             pmt.commit(status)
             log.info("批量生成纸箱标签成功: prodNo={}, count={}, qty={}, userId={}", prodOrder.prodNo, printCount, dto.qty, userInfo.userId)
-
-            if (prodOrder.tempId != null) {
-                return if (printCount == 1) {
-                    generateExcel(prodTagList[0], prodOrder)
-                } else {
-                    generateBatchExcel(prodTagList, prodOrder)
-                }
-            }
-
-            return null
         } catch (e: Exception) {
             pmt.rollback(status)
-            throw WebException(e.message)
+            log.error("批量生成纸箱标签失败: prodNo={}, count={}", prodOrder.prodNo, printCount, e)
+            if (e is org.springframework.dao.DuplicateKeyException) {
+                throw WebException("生成标签失败：标签号存在冲突，请重试", e)
+            }
+            throw if (e is WebException) e else WebException("生成纸箱标签失败: ${e.message}", e)
         }
+
+        if (prodOrder.tempId != null) {
+            return if (printCount == 1) {
+                generateExcel(prodTagList[0], prodOrder)
+            } else {
+                generateBatchExcel(prodTagList, prodOrder)
+            }
+        }
+
+        return null
     }
 
     /**
