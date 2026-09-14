@@ -53,6 +53,7 @@ class ShipRecordService(
                     record.shipOrder = addStockOrder.no
                     val orderDetail = orderDetails.find { oIt -> oIt.inventoryCode == it.inventoryCode }
                         ?: throw WebException("【${it.tagNo}】存货编码【${it.inventoryCode}】不在发货指令清单中")
+
                     record.loc = orderDetail.warehouseName
                     record.inventoryCode = it.inventoryCode
                     record.inventoryName = it.inventoryName

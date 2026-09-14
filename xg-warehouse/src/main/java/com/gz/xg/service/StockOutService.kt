@@ -136,6 +136,9 @@ class StockOutService(
                 inventoryByTagNo.mapValues { it.value.locCode },
                 inventoryByTagNo.mapValues { it.value.u8Batch ?: "" }
             )
+            if (!syncResult.errorMessage.isNullOrBlank()) {
+                throw WebException("U8出库同步失败: ${syncResult.errorMessage}")
+            }
             // 将 U8 同步状态回写到出库明细，供前端展示与后续补偿查询
             tags.forEach { it.u8Sync = syncResult.statusMap[it.tagNo] ?: 2 }
 

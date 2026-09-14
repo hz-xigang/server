@@ -90,6 +90,9 @@ class StockMoveService(
             val syncResult = u8StockMoveSyncService.syncStockMove(
                 resolved, originLocMap, stockMove, locArchive
             )
+            if (!syncResult.errorMessage.isNullOrBlank()) {
+                throw WebException("U8移库同步失败: ${syncResult.errorMessage}")
+            }
 
             val tags = resolved.tagNos.map { tagNo ->
                 val originStock = originLocMap[tagNo] ?: throw WebException("【${tagNo}】不在库存中")
@@ -148,6 +151,9 @@ class StockMoveService(
             val syncResult = u8StockMoveSyncService.syncStockMove(
                 resolved, originLocMap, stockMove, locArchive
             )
+            if (!syncResult.errorMessage.isNullOrBlank()) {
+                throw WebException("U8移库同步失败: ${syncResult.errorMessage}")
+            }
 
             val tags = records.map {
                 val originStock = originLocMap[it.tagNo] ?: throw WebException("【${it.tagNo}】不在库存中")

@@ -85,29 +85,35 @@ class U8SalesStockOutSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            // 每个发货标签对应一条出库明细，数据以发货单为准
-            val detailList = eligibleTags.mapIndexed { index, prodTag ->
-                val orderDetail = detailMap[prodTag.inventoryCode]
+            // 按存货编号分组汇总推送 U8 成品出仓单
+            val groupedByInvCode = eligibleTags.groupBy { it.inventoryCode ?: "" }
+            val detailList = groupedByInvCode.entries.mapIndexed { index, (_, tagGroup) ->
+                val firstTag = tagGroup.first()
+                val orderDetail = detailMap[firstTag.inventoryCode]
+                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
+                val totalGrossWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.grossWeight ?: BigDecimal.ZERO) }
+                val totalNetWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.netWeight ?: BigDecimal.ZERO) }
 
                 U8SalesStockOutDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = orderDetail?.inventoryCode ?: prodTag.inventoryCode ?: ""
-                    inventoryName = orderDetail?.inventoryName ?: prodTag.inventoryName ?: ""
-                    spec = orderDetail?.spec ?: prodTag.spec ?: ""
+                    inventoryCode = orderDetail?.inventoryCode ?: firstTag.inventoryCode ?: ""
+                    inventoryName = orderDetail?.inventoryName ?: firstTag.inventoryName ?: ""
+                    spec = orderDetail?.spec ?: firstTag.spec ?: ""
                     material = orderDetail?.material ?: ""
                     packingMethod = orderDetail?.packingMethod ?: ""
                     specWidth = orderDetail?.specWidth ?: ""
                     customerCode = shipOrder.customerCode ?: ""
                     unitWeight = orderDetail?.unitWeight ?: BigDecimal.ZERO
-                    totalWeight = prodTag.grossWeight ?: BigDecimal.ZERO
+                    totalWeight = totalGrossWeight
                     invAddCode = ""
                     unitName = orderDetail?.unit ?: ""
-                    auxiliaryQuantity = prodTag.netWeight ?: BigDecimal.ZERO
-                    quantity = prodTag.qty?.let { BigDecimal.valueOf(it.toLong()) } ?: BigDecimal.ZERO
-                    invPosition = locCodeByTagNo[prodTag.tagNo] ?: ""
-                    // 批次号取库存表 StockInventory.u8Batch（入库时写入的 U8 批次）
-                    batchNo = u8BatchByTagNo[prodTag.tagNo] ?: ""
-                    rowMemo = prodTag.tagNo ?: ""
+                    auxiliaryQuantity = totalNetWeight
+                    quantity = BigDecimal.valueOf(totalQty)
+                    invPosition = locCodeByTagNo[firstTag.tagNo] ?: ""
+                    // 批次号取库存表 StockInventory.u8Batch（以组内第一个标签为准）
+                    batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
+                    // 行备注逗号拼接组内所有箱标签号
+                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
                     // isosid 销售订单行主键，存放在 m5
                     salesOrderDetailId = orderDetail?.m5 ?: ""
                 }
