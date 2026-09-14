@@ -23,8 +23,11 @@ import com.gz.xg.service.plus.ProductionOrderPlusService
 import com.gz.xg.service.plus.StockInPlusService
 import com.gz.xg.service.plus.StockInTagPlusService
 import com.gz.xg.service.plus.StockInventoryPlusService
+import com.gz.xg.util.BarcodeLockUtil
 import com.gz.xg.util.DateUtil
 import com.gz.xg.util.IdUtil
+import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -100,6 +103,17 @@ class StockInService(
     }
 
     private fun addByType(req: AddStockIn, type: String): StockInExecutionResult {
+        return BarcodeLockUtil.withLock(
+            barcodes = req.tagNos,
+            onConflict = { conflictTag ->
+                throw WebException("条码[$conflictTag]正在入库处理中，请勿重复提交")
+            }
+        ) {
+            doAddByType(req, type)
+        }
+    }
+
+    private fun doAddByType(req: AddStockIn, type: String): StockInExecutionResult {
         val locArchive = locArchivePlusService.getById(req.locId)
             ?: throw WebException("该库位不存在")
 
@@ -232,7 +246,15 @@ class StockInService(
                     receiptNo, targetType, targetErpOrderId, groupTagNos.size)
             } catch (e: Exception) {
                 log.error("批次入库失败: erpOrderId={}, 错误: {}", targetErpOrderId, e.message)
-                val errMsg = e.message ?: "入库异常"
+                val rawMsg = e.message ?: ""
+                val errMsg = when {
+                    e is DuplicateKeyException || rawMsg.contains("IX_StockInventory_tagNo") || rawMsg.contains("UNIQUE KEY") ->
+                        "条码已在库存中或并发冲突，请勿重复提交"
+                    e is DataIntegrityViolationException ->
+                        "数据冲突或已存在相同记录，请重试"
+                    !e.message.isNullOrBlank() -> e.message!!
+                    else -> "入库异常"
+                }
                 for (tagNo in groupTagNos) {
                     failTags.add(StockInFailTag(tagNo, errMsg))
                 }
