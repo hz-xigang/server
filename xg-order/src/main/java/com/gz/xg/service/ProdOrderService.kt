@@ -43,6 +43,7 @@ class ProdOrderService(
             .eq(!search.category.isNullOrBlank(), ProdOrder::getProductCategory, search.category)
             .eq(search.type != null, ProdOrder::getType, search.type)
             .eq(!search.customerCode.isNullOrBlank(), ProdOrder::getCustomerCode, search.customerCode)
+            .eq(!search.erpOrderNo.isNullOrBlank(), ProdOrder::getErpOrderNo, search.erpOrderNo)
             .orderByDesc(ProdOrder::getCreateTime)
 
         if (!search.startDate.isNullOrBlank() && !search.endDate.isNullOrBlank()) {
@@ -106,5 +107,11 @@ class ProdOrderService(
     fun customerList(): List<ProdOrder> {
         return plusService.customerList()
     }
+
+    fun pageCustomerOrderNo(orderNo : String? ,page: Int,size: Int)  : Map<String, Any> {
+        val orderPage = plusService.pageCustomerOrderNo(orderNo, page, size)
+        return getPage(orderPage)
+    }
+
 
 }

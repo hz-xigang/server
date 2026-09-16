@@ -66,4 +66,14 @@ open class ProdOrderController(
         return success(service.customerList())
     }
 
+    @PostMapping(value = ["/page/customer/orderNo"])
+    fun pageCustomerOrderNo(
+        @RequestBody search: ProdOrderSearch,
+        @RequestParam(value = "page", defaultValue = "1") page: Int,
+        @RequestParam(value = "size", defaultValue = "1") size: Int,
+    ) : ResponseResult
+    {
+        return success(service.pageCustomerOrderNo(search.erpOrderNo,page,size))
+    }
+
 }

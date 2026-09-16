@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gz.xg.mapper.ProdOrderMapper">
+
+    <select id="pageCustomerOrderNo" resultType="com.gz.xg.domain.entity.ProdOrder">
+        SELECT DISTINCT
+            erpOrderNo,
+            customerCode,
+            customerName,
+            createTime
+        FROM ProdOrder
+                 ${ew.customSqlSegment}
+        OFFSET #{offSet} ROWS FETCH NEXT #{next} ROWS ONLY
+    </select>
+
+    <select id="pageCustomerOrderNoTotal" resultType="long">
+        SELECT COUNT(*)
+        FROM (
+                 SELECT DISTINCT
+                     erpOrderNo,
+                     customerCode,
+                     customerName,
+                     createTime
+                 FROM
+                     ProdOrder
+
+                     ${ew.customSqlSegment}
+             ) t;
+    </select>
+</mapper>

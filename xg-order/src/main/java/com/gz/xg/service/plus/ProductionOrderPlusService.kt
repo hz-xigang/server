@@ -1,5 +1,7 @@
 package com.gz.xg.service.plus
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.github.yulichang.wrapper.MPJLambdaWrapper
 import com.gz.xg.domain.entity.ProdOrder
@@ -45,14 +47,28 @@ open class ProductionOrderPlusService(
         return list
     }
 
+    fun pageCustomerOrderNo(orderNo : String? ,page: Int,size: Int) : Page<ProdOrder> {
+        val wrapper = LambdaQueryWrapper<ProdOrder>()
+            .eq(ProdOrder::getType,0)
+            .like(!orderNo.isNullOrBlank(), ProdOrder::getErpOrderNo, orderNo)
+        val total = super.baseMapper.pageCustomerOrderNoTotal(wrapper)
+
+        wrapper.orderByDesc(ProdOrder::getCreateTime)
+        val prodOrders = super.baseMapper.pageCustomerOrderNo(wrapper, (page - 1) * size, size)
+        val pageObj = Page<ProdOrder>()
+        pageObj.total = total
+        pageObj.records = prodOrders
+
+        return pageObj
+
+    }
+
     fun customerList() : List<ProdOrder> {
         val wrapper = MPJLambdaWrapper<ProdOrder>()
             .select("DISTINCT customerCode,customerName")
             .isNotNull(ProdOrder::getCustomerName)
             .ne(ProdOrder::getCustomerCode, "")
-
         return super.list(wrapper)
-
     }
 
     /**

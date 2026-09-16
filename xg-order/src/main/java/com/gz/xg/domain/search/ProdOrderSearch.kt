@@ -10,4 +10,6 @@ class ProdOrderSearch : BaseSearch() {
 
     var customerCode: String? = null
 
+    var erpOrderNo: String? = null
+
 }
