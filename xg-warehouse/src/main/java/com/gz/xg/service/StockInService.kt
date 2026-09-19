@@ -226,13 +226,13 @@ class StockInService(
             // 构造专属于该批次的销售单反查生产单映射
             val groupMomOrderMap = groupItems.filter { it.momOrder != null }.associate { it.tagNo to it.momOrder!! }
 
-            // 为该批次生成独立的入库单号
             val receiptNo = sysSequenceService.generateStockIn()
-            // 批次号采用条码对应的订单号（若为空则雪花ID兜底）
-            val u8Batch = groupOrderNo.ifBlank { IdUtil.generateId() }
+
+            val u8BatchByTagNo = groupTagNos.associateWith { tagNo ->
+                if (groupOrderNo.isBlank()) tagNo else "$groupOrderNo-$tagNo"
+            }
 
             try {
-                // 单批次内部采用独立事务，保证 WMS 落库与 U8 推送的局部原子性
                 TransactionTemplate(transactionManager).execute {
                     saveSingleBatchStockIn(
                         resolved = groupResolved,
@@ -242,12 +242,12 @@ class StockInService(
                         targetType = targetType,
                         targetErpOrderId = targetErpOrderId,
                         momOrderMap = groupMomOrderMap,
-                        u8Batch = u8Batch
+                        u8BatchByTagNo = u8BatchByTagNo
                     )
                 }
                 successCount += groupTagNos.size
-                log.info("批次入库成功: receiptNo={}, targetType={}, erpOrderId={}, u8Batch={}, 条码数={}",
-                    receiptNo, targetType, targetErpOrderId, u8Batch, groupTagNos.size)
+                log.info("批次入库成功: receiptNo={}, targetType={}, erpOrderId={}, 条码数={}",
+                    receiptNo, targetType, targetErpOrderId, groupTagNos.size)
             } catch (e: Exception) {
                 log.error("批次入库失败: erpOrderId={}, 错误: {}", targetErpOrderId, e.message)
                 val rawMsg = e.message ?: ""
@@ -268,9 +268,6 @@ class StockInService(
         return StockInExecutionResult(successCount, failTags)
     }
 
-    /**
-     * 单个 ERP 订单批次的入库处理：先推 U8，成功后写 WMS 主单、标签流水、库存。
-     */
     private fun saveSingleBatchStockIn(
         resolved: ResolvedTags,
         type: String,
@@ -279,7 +276,7 @@ class StockInService(
         targetType: Int,
         targetErpOrderId: String,
         momOrderMap: Map<String, ProdOrder>,
-        u8Batch: String
+        u8BatchByTagNo: Map<String, String>
     ) {
         val id = IdUtil.generateId()
         val (userId, username, realName) = UserContext.require()
@@ -302,7 +299,7 @@ class StockInService(
             resolved = resolved,
             stockIn = stockIn,
             locArchive = locArchive,
-            u8Batch = u8Batch,
+            u8BatchByTagNo = u8BatchByTagNo,
             targetType = targetType,
             targetErpOrderId = targetErpOrderId,
             momOrderMap = momOrderMap
@@ -311,8 +308,6 @@ class StockInService(
         if (!syncResult.errorMessage.isNullOrBlank()) {
             throw WebException(syncResult.errorMessage)
         }
-
-        val prodTagMap = resolved.prodTags.associateBy { it.tagNo }
 
         val tags = resolved.tagNos.map { tagNo ->
             val syncStatus = syncResult.statusMap[tagNo] ?: 1
@@ -328,7 +323,7 @@ class StockInService(
 
         plusService.save(stockIn)
         stockInTagPlusService.saveBatch(tags)
-        stockInventoryService.addBatch(resolved.prodTags, locArchive, u8Batch)
+        stockInventoryService.addBatch(resolved.prodTags, locArchive, u8BatchByTagNo)
     }
 
 }

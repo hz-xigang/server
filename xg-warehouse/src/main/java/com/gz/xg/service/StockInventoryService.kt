@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service
     /**
      * 按标签批量新增库存记录。
      */
-    fun addBatch(prodTags: List<VProdTag>, loc : LocArchive,u8Batch : String){
+    fun addBatch(prodTags: List<VProdTag>, loc : LocArchive, u8BatchByTagNo: Map<String, String>){
         val list = arrayListOf<StockInventory>()
         prodTags.forEach {
             val stock = StockInventory()
@@ -40,7 +40,7 @@ import org.springframework.stereotype.Service
             stock.qty = it.qty
             stock.grossWeight = it.grossWeight
             stock.netWeight = it.netWeight
-            stock.u8Batch = u8Batch
+            stock.u8Batch = u8BatchByTagNo[it.tagNo] ?: ""
 
             list.add(stock)
         }
