@@ -8,6 +8,7 @@ import com.gz.xg.domain.entity.StockInventory
 import com.gz.xg.domain.entity.StockMove
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.service.plus.ProductionOrderPlusService
+import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.u8.dto.U8StockMoveDetailRequest
 import com.gz.xg.u8.dto.U8StockMoveRequest
 import com.gz.xg.u8.service.U8StockMoveService
@@ -21,6 +22,7 @@ import java.time.format.DateTimeFormatter
 @Service
 class U8StockMoveSyncService(
     private val productionOrderPlusService: ProductionOrderPlusService,
+    private val stockInventoryPlusService: StockInventoryPlusService,
     private val u8StockMoveService: U8StockMoveService
 ) : BaseService() {
 
@@ -87,21 +89,38 @@ class U8StockMoveSyncService(
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val targetLoc = targetLocArchive.locCode
+            val batches = eligibleTags.mapNotNull { originLocMap[it.tagNo]?.u8Batch }
+                .filter { it.isNotBlank() }
+                .distinct()
+            val stocksByBatch = stockInventoryPlusService.listByU8Batches(batches).groupBy { it.u8Batch }
 
-            // 按 inventoryCode 汇总移库明细
             val detailList = eligibleTags.groupBy { prodTag ->
                 val order = orderMap[prodTag.prodOrderId]
-                order?.inventoryCode ?: prodTag.inventoryCode ?: ""
+                val invCode = order?.inventoryCode ?: prodTag.inventoryCode ?: ""
+                val batch = originLocMap[prodTag.tagNo]?.u8Batch ?: ""
+                invCode to batch
             }.values.mapIndexed { index, tagGroup ->
                 val firstTag = tagGroup.first()
                 val order = orderMap[firstTag.prodOrderId]
                 val originStock = originLocMap[firstTag.tagNo]
+                val movedTagNos = tagGroup.map { it.tagNo }.toSet()
+                val batchStocks = originStock?.u8Batch
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { stocksByBatch[it] }
+                    .orEmpty()
+                    .ifEmpty { originLocMap.filterKeys { it in movedTagNos }.values.toList() }
 
                 U8StockMoveDetailRequest().apply {
                     rowNo = index + 1
                     inventoryCode = order?.inventoryCode ?: firstTag.inventoryCode
-                    invPositionOut = originStock?.locCode
-                    invPositionIn = targetLocArchive.locCode
+                    invPositionOut = joinLocCodes(batchStocks.map { it.locCode })
+                    invPositionIn = joinLocCodes(
+                        batchStocks.map { stock ->
+                            if (stock.tagNo in movedTagNos) targetLoc else stock.locCode
+                        },
+                        targetLoc
+                    )
                     packingMethod = order?.packingRequirement
                     specWidth = order?.specWidth
                     batchNo = originStock?.u8Batch ?: order?.prodNo
@@ -134,6 +153,18 @@ class U8StockMoveSyncService(
         } catch (e: Exception) {
             log.error("U8 移库作业接口调用异常: receiptNo={}", stockMove.receiptNo, e)
             "U8移库作业接口调用异常: ${e.message}"
+        }
+    }
+
+    private fun joinLocCodes(locCodes: Collection<String?>, head: String? = null): String {
+        val rest = locCodes.filterNotNull()
+            .filter { it.isNotBlank() && it != head }
+            .distinct()
+            .sorted()
+        return if (head.isNullOrBlank()) {
+            rest.joinToString(",")
+        } else {
+            (listOf(head) + rest).joinToString(",")
         }
     }
 }
