@@ -12,6 +12,7 @@ import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.u8.dto.U8StockMoveDetailRequest
 import com.gz.xg.u8.dto.U8StockMoveRequest
 import com.gz.xg.u8.service.U8StockMoveService
+import com.gz.xg.util.LocUtil
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -114,8 +115,8 @@ class U8StockMoveSyncService(
                 U8StockMoveDetailRequest().apply {
                     rowNo = index + 1
                     inventoryCode = order?.inventoryCode ?: firstTag.inventoryCode
-                    invPositionOut = joinLocCodes(batchStocks.map { it.locCode })
-                    invPositionIn = joinLocCodes(
+                    invPositionOut = LocUtil.joinLocCodes(batchStocks.map { it.locCode })
+                    invPositionIn = LocUtil.joinLocCodes(
                         batchStocks.map { stock ->
                             if (stock.tagNo in movedTagNos) targetLoc else stock.locCode
                         },
@@ -153,18 +154,6 @@ class U8StockMoveSyncService(
         } catch (e: Exception) {
             log.error("U8 移库作业接口调用异常: receiptNo={}", stockMove.receiptNo, e)
             "U8移库作业接口调用异常: ${e.message}"
-        }
-    }
-
-    private fun joinLocCodes(locCodes: Collection<String?>, head: String? = null): String {
-        val rest = locCodes.filterNotNull()
-            .filter { it.isNotBlank() && it != head }
-            .distinct()
-            .sorted()
-        return if (head.isNullOrBlank()) {
-            rest.joinToString(",")
-        } else {
-            (listOf(head) + rest).joinToString(",")
         }
     }
 }

@@ -5,9 +5,11 @@ import com.gz.xg.domain.entity.ShipOrder
 import com.gz.xg.domain.entity.ShipOrderDetail
 import com.gz.xg.domain.entity.StockOut
 import com.gz.xg.domain.view.VProdTag
+import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.u8.dto.U8SalesStockOutDetailRequest
 import com.gz.xg.u8.dto.U8SalesStockOutRequest
 import com.gz.xg.u8.service.U8SalesStockOutService
+import com.gz.xg.util.LocUtil
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -18,7 +20,8 @@ import java.time.format.DateTimeFormatter
  */
 @Service
 class U8SalesStockOutSyncService(
-    private val u8SalesStockOutService: U8SalesStockOutService
+    private val u8SalesStockOutService: U8SalesStockOutService,
+    private val stockInventoryPlusService: StockInventoryPlusService
 ) : BaseService() {
 
     /**
@@ -84,15 +87,28 @@ class U8SalesStockOutSyncService(
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val batches = eligibleTags.mapNotNull { u8BatchByTagNo[it.tagNo] }
+                .filter { it.isNotBlank() }
+                .distinct()
+            val stocksByBatch = stockInventoryPlusService.listByU8Batches(batches).groupBy { it.u8Batch }
 
-            // 按存货编号分组汇总推送 U8 成品出仓单
-            val groupedByInvCode = eligibleTags.groupBy { it.inventoryCode ?: "" }
-            val detailList = groupedByInvCode.entries.mapIndexed { index, (_, tagGroup) ->
+            val detailList = eligibleTags.groupBy { tag ->
+                (tag.inventoryCode ?: "") to (u8BatchByTagNo[tag.tagNo] ?: "")
+            }.values.mapIndexed { index, tagGroup ->
                 val firstTag = tagGroup.first()
                 val orderDetail = detailMap[firstTag.inventoryCode]
                 val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
                 val totalGrossWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.grossWeight ?: BigDecimal.ZERO) }
                 val totalNetWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.netWeight ?: BigDecimal.ZERO) }
+                val batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
+                val batchStocks = batchNo.takeIf { it.isNotBlank() }
+                    ?.let { stocksByBatch[it] }
+                    .orEmpty()
+                val locCodes = if (batchStocks.isNotEmpty()) {
+                    batchStocks.map { it.locCode }
+                } else {
+                    tagGroup.map { locCodeByTagNo[it.tagNo] }
+                }
 
                 U8SalesStockOutDetailRequest().apply {
                     rowNo = index + 1
@@ -109,12 +125,9 @@ class U8SalesStockOutSyncService(
                     unitName = orderDetail?.unit ?: ""
                     auxiliaryQuantity = totalNetWeight
                     quantity = BigDecimal.valueOf(totalQty)
-                    invPosition = locCodeByTagNo[firstTag.tagNo] ?: ""
-                    // 批次号取库存表 StockInventory.u8Batch（以组内第一个标签为准）
-                    batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
-                    // 行备注逗号拼接组内所有箱标签号
+                    invPosition = LocUtil.joinLocCodes(locCodes)
+                    this.batchNo = batchNo
                     rowMemo = tagGroup.joinToString(",") { it.tagNo }
-                    // isosid 销售订单行主键，存放在 m5
                     salesOrderDetailId = orderDetail?.m5 ?: ""
                 }
             }

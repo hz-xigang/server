@@ -26,16 +26,39 @@ import org.springframework.stereotype.Service
         return getOne(wrapper)
     }
 
+    private fun listByTagNosInternal(
+        tagNos: List<String>,
+        includeDeleted: Boolean
+    ): List<StockInventory> {
+        if (tagNos.isEmpty()) return emptyList()
+
+        val wrapper = LambdaQueryWrapper<StockInventory>()
+            .`in`(StockInventory::getTagNo, tagNos)
+
+        if (!includeDeleted) {
+            wrapper.eq(StockInventory::getDeleted, 0)
+        }
+
+        return list(wrapper)
+    }
+
     /**
      * 根据标签号批量查询库存记录。
      */
     fun listByTagNos(tagNos: List<String>): List<StockInventory> {
-        if (tagNos.isEmpty()) return emptyList()
-        val wrapper = LambdaQueryWrapper<StockInventory>()
-            .`in`(StockInventory::getTagNo, tagNos)
-            .eq(StockInventory::getDeleted,0)
-        return list(wrapper)
+        return listByTagNosInternal(tagNos, false)
     }
+
+    /**
+     * 根据标签号批量查询库存记录。(包含已经出库的)
+     */
+    fun listByTagNosWithDeleted(tagNos: List<String>): List<StockInventory> {
+        return listByTagNosInternal(tagNos, true)
+    }
+
+
+
+
 
     fun listByU8Batches(batches: List<String>): List<StockInventory> {
         if (batches.isEmpty()) return emptyList()
