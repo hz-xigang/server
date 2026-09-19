@@ -12,4 +12,7 @@ class ShipOrderDetailService(
     private val plusService: ShipOrderDetailPlusService
 ) {
 
+    fun listByPid(pid: String): List<ShipOrderDetail> {
+        return plusService.listByPId(pid)
+    }
 }

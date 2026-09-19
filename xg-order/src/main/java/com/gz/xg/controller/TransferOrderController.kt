@@ -3,6 +3,7 @@ package com.gz.xg.controller
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.search.TransferOrderSearch
 import com.gz.xg.exception.ResponseResult
+import com.gz.xg.service.TransferOrderDetailService
 import com.gz.xg.service.TransferOrderService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,7 +14,10 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("api/transfer/order")
-class TransferOrderController(private val service: TransferOrderService) : BaseController() {
+class TransferOrderController(
+    private val service: TransferOrderService,
+    private val detailService: TransferOrderDetailService
+) : BaseController() {
 
     @PostMapping("page")
     fun page(
@@ -30,5 +34,9 @@ class TransferOrderController(private val service: TransferOrderService) : BaseC
         return success(service.list())
     }
 
+    @GetMapping("detail")
+    fun listByPId(@RequestParam pId: String): ResponseResult {
+        return success(detailService.listByPid(pId))
+    }
 
 }

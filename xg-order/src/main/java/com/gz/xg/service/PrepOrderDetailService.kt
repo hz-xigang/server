@@ -36,4 +36,8 @@ open class PrepOrderDetailService(
         log.info("更新备料单明细: id={}", entity.id)
         return plusService.updateById(entity)
     }
+
+    fun listByPid(pid: String): List<PrepOrderDetail> {
+        return plusService.listByPId(pid)
+    }
 }

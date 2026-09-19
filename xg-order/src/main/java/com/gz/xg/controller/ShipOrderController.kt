@@ -3,6 +3,7 @@ package com.gz.xg.controller
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.search.ShipOrderSearch
 import com.gz.xg.exception.ResponseResult
+import com.gz.xg.service.ShipOrderDetailService
 import com.gz.xg.service.ShipOrderService
 import com.gz.xg.service.ShipOrderSyncService
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,7 +18,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("api/ship/order")
 class ShipOrderController(
     private val service: ShipOrderService,
-    private val shipOrderSyncService: ShipOrderSyncService
+    private val shipOrderSyncService: ShipOrderSyncService,
+    private val detailService: ShipOrderDetailService
 ) : BaseController()
 {
 
@@ -34,6 +36,11 @@ class ShipOrderController(
     @GetMapping("")
     fun list() : ResponseResult {
         return success(service.list())
+    }
+
+    @GetMapping("detail")
+    fun listByPId(@RequestParam pId: String): ResponseResult {
+        return success(detailService.listByPid(pId))
     }
 
     /**

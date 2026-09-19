@@ -6,6 +6,7 @@ import com.gz.xg.domain.dto.PrepOrderDto
 import com.gz.xg.domain.search.PrepOrderSearch
 import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
+import com.gz.xg.service.PrepOrderDetailService
 import com.gz.xg.service.PrepOrderService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("api/prep/order")
 class PrepOrderController(
-    private val service: PrepOrderService
+    private val service: PrepOrderService,
+    private val detailService: PrepOrderDetailService
 ) : BaseController() {
 
 
@@ -46,6 +48,11 @@ class PrepOrderController(
     @GetMapping("")
     fun list() : ResponseResult {
         return success(service.list())
+    }
+
+    @GetMapping("detail")
+    fun listByPId(@RequestParam pId: String): ResponseResult {
+        return success(detailService.listByPid(pId))
     }
 
 }

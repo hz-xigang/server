@@ -36,4 +36,8 @@ open class TransferOrderDetailService(
         log.info("更新调拨单明细: id={}", entity.id)
         return plusService.updateById(entity)
     }
+
+    fun listByPid(pid: String): List<TransferOrderDetail> {
+        return plusService.listById(pid)
+    }
 }
