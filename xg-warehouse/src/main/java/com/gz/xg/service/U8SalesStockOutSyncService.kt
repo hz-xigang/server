@@ -5,11 +5,9 @@ import com.gz.xg.domain.entity.ShipOrder
 import com.gz.xg.domain.entity.ShipOrderDetail
 import com.gz.xg.domain.entity.StockOut
 import com.gz.xg.domain.view.VProdTag
-import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.u8.dto.U8SalesStockOutDetailRequest
 import com.gz.xg.u8.dto.U8SalesStockOutRequest
 import com.gz.xg.u8.service.U8SalesStockOutService
-import com.gz.xg.util.LocUtil
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -20,8 +18,7 @@ import java.time.format.DateTimeFormatter
  */
 @Service
 class U8SalesStockOutSyncService(
-    private val u8SalesStockOutService: U8SalesStockOutService,
-    private val stockInventoryPlusService: StockInventoryPlusService
+    private val u8SalesStockOutService: U8SalesStockOutService
 ) : BaseService() {
 
     /**
@@ -87,47 +84,28 @@ class U8SalesStockOutSyncService(
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            val batches = eligibleTags.mapNotNull { u8BatchByTagNo[it.tagNo] }
-                .filter { it.isNotBlank() }
-                .distinct()
-            val stocksByBatch = stockInventoryPlusService.listByU8Batches(batches).groupBy { it.u8Batch }
 
-            val detailList = eligibleTags.groupBy { tag ->
-                (tag.inventoryCode ?: "") to (u8BatchByTagNo[tag.tagNo] ?: "")
-            }.values.mapIndexed { index, tagGroup ->
-                val firstTag = tagGroup.first()
-                val orderDetail = detailMap[firstTag.inventoryCode]
-                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
-                val totalGrossWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.grossWeight ?: BigDecimal.ZERO) }
-                val totalNetWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.netWeight ?: BigDecimal.ZERO) }
-                val batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
-                val batchStocks = batchNo.takeIf { it.isNotBlank() }
-                    ?.let { stocksByBatch[it] }
-                    .orEmpty()
-                val locCodes = if (batchStocks.isNotEmpty()) {
-                    batchStocks.map { it.locCode }
-                } else {
-                    tagGroup.map { locCodeByTagNo[it.tagNo] }
-                }
+            val detailList = eligibleTags.mapIndexed { index, tag ->
+                val orderDetail = detailMap[tag.inventoryCode]
 
                 U8SalesStockOutDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = orderDetail?.inventoryCode ?: firstTag.inventoryCode ?: ""
-                    inventoryName = orderDetail?.inventoryName ?: firstTag.inventoryName ?: ""
-                    spec = orderDetail?.spec ?: firstTag.spec ?: ""
+                    inventoryCode = orderDetail?.inventoryCode ?: tag.inventoryCode ?: ""
+                    inventoryName = orderDetail?.inventoryName ?: tag.inventoryName ?: ""
+                    spec = orderDetail?.spec ?: tag.spec ?: ""
                     material = orderDetail?.material ?: ""
                     packingMethod = orderDetail?.packingMethod ?: ""
                     specWidth = orderDetail?.specWidth ?: ""
                     customerCode = shipOrder.customerCode ?: ""
                     unitWeight = orderDetail?.unitWeight ?: BigDecimal.ZERO
-                    totalWeight = totalGrossWeight
+                    totalWeight = tag.grossWeight ?: BigDecimal.ZERO
                     invAddCode = ""
                     unitName = orderDetail?.unit ?: ""
-                    auxiliaryQuantity = totalNetWeight
-                    quantity = BigDecimal.valueOf(totalQty)
-                    invPosition = LocUtil.joinLocCodes(locCodes)
-                    this.batchNo = batchNo
-                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
+                    auxiliaryQuantity = tag.netWeight ?: BigDecimal.ZERO
+                    quantity = BigDecimal.valueOf((tag.qty ?: 0).toLong())
+                    invPosition = locCodeByTagNo[tag.tagNo] ?: ""
+                    batchNo = u8BatchByTagNo[tag.tagNo] ?: ""
+                    rowMemo = tag.tagNo
                     salesOrderDetailId = orderDetail?.m5 ?: ""
                 }
             }

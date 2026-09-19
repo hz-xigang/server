@@ -60,14 +60,6 @@ import org.springframework.stereotype.Service
 
 
 
-    fun listByU8Batches(batches: List<String>): List<StockInventory> {
-        if (batches.isEmpty()) return emptyList()
-        val wrapper = LambdaQueryWrapper<StockInventory>()
-            .`in`(StockInventory::getU8Batch, batches)
-            .eq(StockInventory::getDeleted, 0)
-        return list(wrapper)
-    }
-
     fun assertNotExists(tagNo: String) {
         if (findByTagNo(tagNo) != null) throw WebException("【$tagNo】该条码未出库")
     }
