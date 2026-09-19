@@ -8,11 +8,9 @@ import com.gz.xg.domain.entity.StockInventory
 import com.gz.xg.domain.entity.StockMove
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.service.plus.ProductionOrderPlusService
-import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.u8.dto.U8StockMoveDetailRequest
 import com.gz.xg.u8.dto.U8StockMoveRequest
 import com.gz.xg.u8.service.U8StockMoveService
-import com.gz.xg.util.LocUtil
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -23,7 +21,6 @@ import java.time.format.DateTimeFormatter
 @Service
 class U8StockMoveSyncService(
     private val productionOrderPlusService: ProductionOrderPlusService,
-    private val stockInventoryPlusService: StockInventoryPlusService,
     private val u8StockMoveService: U8StockMoveService
 ) : BaseService() {
 
@@ -91,41 +88,20 @@ class U8StockMoveSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val targetLoc = targetLocArchive.locCode
-            val batches = eligibleTags.mapNotNull { originLocMap[it.tagNo]?.u8Batch }
-                .filter { it.isNotBlank() }
-                .distinct()
-            val stocksByBatch = stockInventoryPlusService.listByU8Batches(batches).groupBy { it.u8Batch }
 
-            val detailList = eligibleTags.groupBy { prodTag ->
+            val detailList = eligibleTags.mapIndexed { index, prodTag ->
                 val order = orderMap[prodTag.prodOrderId]
-                val invCode = order?.inventoryCode ?: prodTag.inventoryCode ?: ""
-                val batch = originLocMap[prodTag.tagNo]?.u8Batch ?: ""
-                invCode to batch
-            }.values.mapIndexed { index, tagGroup ->
-                val firstTag = tagGroup.first()
-                val order = orderMap[firstTag.prodOrderId]
-                val originStock = originLocMap[firstTag.tagNo]
-                val movedTagNos = tagGroup.map { it.tagNo }.toSet()
-                val batchStocks = originStock?.u8Batch
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { stocksByBatch[it] }
-                    .orEmpty()
-                    .ifEmpty { originLocMap.filterKeys { it in movedTagNos }.values.toList() }
+                val originStock = originLocMap[prodTag.tagNo]
 
                 U8StockMoveDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = order?.inventoryCode ?: firstTag.inventoryCode
-                    invPositionOut = LocUtil.joinLocCodes(batchStocks.map { it.locCode })
-                    invPositionIn = LocUtil.joinLocCodes(
-                        batchStocks.map { stock ->
-                            if (stock.tagNo in movedTagNos) targetLoc else stock.locCode
-                        },
-                        targetLoc
-                    )
+                    inventoryCode = order?.inventoryCode ?: prodTag.inventoryCode
+                    invPositionOut = originStock?.locCode
+                    invPositionIn = targetLoc
                     packingMethod = order?.packingRequirement
                     specWidth = order?.specWidth
                     batchNo = originStock?.u8Batch ?: order?.prodNo
-                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
+                    rowMemo = prodTag.tagNo
                 }
             }
 
