@@ -41,7 +41,7 @@ class PrepRecordService(
         val status = pmt.getTransaction(definition)
 
         try {
-            val packLoc = locArchivePlusService.byId(addStockOrder.locCode)
+            val packLoc = locArchivePlusService.byCode(addStockOrder.locCode)
 
             prodTags.forEach { it ->
                 run {

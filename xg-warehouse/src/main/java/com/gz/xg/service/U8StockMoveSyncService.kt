@@ -116,10 +116,9 @@ class U8StockMoveSyncService(
                 details = detailList
 
             }
-            System.err.println(Gson().toJson(u8Request))
-            System.err.println(222)
+
             val response = u8StockMoveService.pushStockMove(u8Request)
-            System.err.println(response.toString())
+
             if (response.isSuccess) {
                 log.info("U8 移库作业推送成功: receiptNo={}, 明细数量={}", stockMove.receiptNo, detailList.size)
                 null
