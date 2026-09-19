@@ -34,4 +34,5 @@ public class U8SalesOrderConvertResult {
     private String erpOrderId;
     private BigDecimal qty;
     private BigDecimal inNum;
+    private String spec;
 }

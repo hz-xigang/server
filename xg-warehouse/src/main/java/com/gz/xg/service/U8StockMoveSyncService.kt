@@ -1,5 +1,6 @@
 package com.gz.xg.service
 
+import com.google.gson.Gson
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdOrder
@@ -25,7 +26,7 @@ class U8StockMoveSyncService(
 
     /**
      * 同步移库数据至 U8 货位调整单。
-     * 每个标签一条明细，仅对 ProdOrder.type == 2 的标签发起推送。
+     * 每个标签一条明细，仅对 ProdOrder.type == 2 (生产订单) 或 ProdOrder.type == 0 (销售订单) 的标签发起推送。
      *
      * @param resolved 解析后的标签结果
      * @param originLocMap 标签原库位映射 (tagNo -> originStockInventory)
@@ -51,23 +52,21 @@ class U8StockMoveSyncService(
         val syncStatusByTagNo = mutableMapOf<String, Int>()
         var errorMsg: String? = null
 
-        // 筛选出 type == 2 的标签项
+        // 筛选出 type == 2 或 type == 0 的标签项
         val eligibleTags = mutableListOf<VProdTag>()
         resolved.tagNos.forEach { tagNo ->
             val prodTag = tagMap[tagNo]
             val order = prodTag?.prodOrderId?.let { orderMap[it] }
-            if (order != null && order.type == 2) {
+            if (order != null && (order.type == 2 || order.type == 0)) {
                 eligibleTags.add(prodTag)
             } else {
                 syncStatusByTagNo[tagNo] = 2 // 不需同步
             }
         }
-
         if (eligibleTags.isEmpty()) {
             return U8SyncResult(statusMap = syncStatusByTagNo)
         }
-
-        // 针对 type == 2 的标签执行 U8 推送
+        // 针对符合条件的标签执行 U8 推送
         errorMsg = trySyncStockMove(eligibleTags, orderMap, originLocMap, stockMove, targetLocArchive)
         val status = if (errorMsg == null) 1 else 0
         eligibleTags.forEach { syncStatusByTagNo[it.tagNo] = status }
@@ -121,8 +120,10 @@ class U8StockMoveSyncService(
                 details = detailList
 
             }
-
+            System.err.println(Gson().toJson(u8Request))
+            System.err.println(222)
             val response = u8StockMoveService.pushStockMove(u8Request)
+            System.err.println(response.toString())
             if (response.isSuccess) {
                 log.info("U8 移库作业推送成功: receiptNo={}, 明细数量={}", stockMove.receiptNo, detailList.size)
                 null

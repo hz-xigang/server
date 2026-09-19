@@ -50,4 +50,9 @@ public class FileTemp {
      */
     private String path;
 
+    /**
+     * 默认模板
+     */
+    private Boolean isDefault;
+
 }

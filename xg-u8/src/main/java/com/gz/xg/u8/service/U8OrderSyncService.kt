@@ -65,6 +65,7 @@ class U8OrderSyncService(
                     erpOrderId = detail.detailId.toString()
                     qty = detail.quantity
                     inNum = detail.auxiliaryQuantity
+                    spec = detail.customerMaterialNo
                 }
 
                 results.add(result)

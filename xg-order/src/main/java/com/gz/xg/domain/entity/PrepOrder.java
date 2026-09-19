@@ -104,4 +104,6 @@ public class PrepOrder {
 
     private String realName;
 
+    private String erpOrderNo;
+
 }

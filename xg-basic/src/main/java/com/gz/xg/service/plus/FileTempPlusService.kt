@@ -48,4 +48,21 @@ class FileTempPlusService : ServiceImpl<FileTempMapper, FileTemp>() {
             .orderByDesc(FileTemp::getId)
         return list(wrapper)
     }
+
+    fun byDefault(type : Int) : String{
+        val defaultWrapper = MPJLambdaWrapper<FileTemp>()
+            .eq(FileTemp::getType, type)
+            .eq(FileTemp::getIsDefault, true)
+            .select("top 1 *")
+
+        val fileTemp = super.getOne(defaultWrapper)
+            ?: super.getOne(
+                MPJLambdaWrapper<FileTemp>()
+                    .eq(FileTemp::getType, type)
+                    .select("top 1 *")
+            )
+        return fileTemp.id
+
+    }
+
 }

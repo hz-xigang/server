@@ -139,13 +139,14 @@ class StockInService(
         // 缓存销售单反查到的生产订单：key: "$invCode:${customerCode ?: ""}" -> ProdOrder?
         val momOrderCache = mutableMapOf<String, ProdOrder?>()
 
-        // 为每个标签计算目标 ERP 类型与订单号 (targetType: 1-采购, 2-生产, targetErpOrderId: String)
+        // 为每个标签计算目标 ERP 类型与订单号 (targetType: 1-采购, 2-生产, targetErpOrderId: String, erpOrderNo: String)
         data class TagOrderTarget(
             val tagNo: String,
             val prodTag: VProdTag,
             val targetType: Int,
             val targetErpOrderId: String,
-            val momOrder: ProdOrder? = null
+            val momOrder: ProdOrder? = null,
+            val erpOrderNo: String = ""
         )
 
         val validTargets = mutableListOf<TagOrderTarget>()
@@ -170,14 +171,14 @@ class StockInService(
                 if (erpOrderId.isNullOrBlank()) {
                     failTags.add(StockInFailTag(tagNo, "采购订单[${orderNo}]未关联有效的U8采购订单号"))
                 } else {
-                    validTargets.add(TagOrderTarget(tagNo, prodTag, 1, erpOrderId))
+                    validTargets.add(TagOrderTarget(tagNo, prodTag, 1, erpOrderId, null, orderNo))
                 }
             } else if (orderType == 2) {
                 // 生产订单：必须有 erpOrderId
                 if (erpOrderId.isNullOrBlank()) {
                     failTags.add(StockInFailTag(tagNo, "生产订单[${orderNo}]未关联有效的U8生产订单号"))
                 } else {
-                    validTargets.add(TagOrderTarget(tagNo, prodTag, 2, erpOrderId))
+                    validTargets.add(TagOrderTarget(tagNo, prodTag, 2, erpOrderId, null, orderNo))
                 }
             } else if (orderType == 0) {
                 // 销售订单：通过 inventoryCode + customerCode 反查生产订单 (type == 2)
@@ -197,21 +198,21 @@ class StockInService(
                     }
                     failTags.add(StockInFailTag(tagNo, detailReason))
                 } else {
-                    validTargets.add(TagOrderTarget(tagNo, prodTag, 2, momOrder.erpOrderId, momOrder))
+                    validTargets.add(TagOrderTarget(tagNo, prodTag, 2, momOrder.erpOrderId, momOrder, orderNo))
                 }
             } else {
                 failTags.add(StockInFailTag(tagNo, "未知订单类型[${orderType}]，无法入库"))
             }
         }
 
-        // 按 (业务分类, 目标ERP单号) 分组
-        val groupedTargets = validTargets.groupBy { Pair(it.targetType, it.targetErpOrderId) }
+        // 按 (业务分类, 目标ERP单号, 批次订单号) 分组
+        val groupedTargets = validTargets.groupBy { Triple(it.targetType, it.targetErpOrderId, it.erpOrderNo) }
 
         var successCount = 0
 
         // 逐批次独立循环执行：每组对应一次独立的 U8 推送和 WMS 入库
         for ((groupKey, groupItems) in groupedTargets) {
-            val (targetType, targetErpOrderId) = groupKey
+            val (targetType, targetErpOrderId, groupOrderNo) = groupKey
             val groupTagNos = groupItems.map { it.tagNo }
             val groupProdTags = groupItems.map { it.prodTag }
 
@@ -227,6 +228,8 @@ class StockInService(
 
             // 为该批次生成独立的入库单号
             val receiptNo = sysSequenceService.generateStockIn()
+            // 批次号采用条码对应的订单号（若为空则雪花ID兜底）
+            val u8Batch = groupOrderNo.ifBlank { IdUtil.generateId() }
 
             try {
                 // 单批次内部采用独立事务，保证 WMS 落库与 U8 推送的局部原子性
@@ -238,12 +241,13 @@ class StockInService(
                         locArchive = locArchive,
                         targetType = targetType,
                         targetErpOrderId = targetErpOrderId,
-                        momOrderMap = groupMomOrderMap
+                        momOrderMap = groupMomOrderMap,
+                        u8Batch = u8Batch
                     )
                 }
                 successCount += groupTagNos.size
-                log.info("批次入库成功: receiptNo={}, targetType={}, erpOrderId={}, 条码数={}",
-                    receiptNo, targetType, targetErpOrderId, groupTagNos.size)
+                log.info("批次入库成功: receiptNo={}, targetType={}, erpOrderId={}, u8Batch={}, 条码数={}",
+                    receiptNo, targetType, targetErpOrderId, u8Batch, groupTagNos.size)
             } catch (e: Exception) {
                 log.error("批次入库失败: erpOrderId={}, 错误: {}", targetErpOrderId, e.message)
                 val rawMsg = e.message ?: ""
@@ -274,7 +278,8 @@ class StockInService(
         locArchive: LocArchive,
         targetType: Int,
         targetErpOrderId: String,
-        momOrderMap: Map<String, ProdOrder>
+        momOrderMap: Map<String, ProdOrder>,
+        u8Batch: String
     ) {
         val id = IdUtil.generateId()
         val (userId, username, realName) = UserContext.require()
@@ -291,8 +296,6 @@ class StockInService(
             this.username = username
             this.realName = realName
         }
-
-        val u8Batch = IdUtil.generateId()
 
         // 调用 U8 同步，获取 U8 同步结果
         val syncResult = u8StockInSyncService.syncSingleBatch(

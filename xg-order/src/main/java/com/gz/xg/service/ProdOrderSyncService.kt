@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import com.gz.xg.service.plus.FileTempPlusService
 
 /**
  * 生产订单同步服务
@@ -21,7 +22,8 @@ import java.time.format.DateTimeFormatter
 class ProdOrderSyncService(
     private val u8OrderSyncService: U8OrderSyncService,
     private val productionOrderPlusService: ProductionOrderPlusService,
-    private val sysSequenceService: SysSequenceService
+    private val sysSequenceService: SysSequenceService,
+    private val fileTempPlusService: FileTempPlusService
 ) {
     private val log = LoggerFactory.getLogger(ProdOrderSyncService::class.java)
 
@@ -48,6 +50,8 @@ class ProdOrderSyncService(
             datePrefix,
             convertResults.size
         )
+
+        val fileTempId = fileTempPlusService.byDefault(1)
 
         val prodOrders = convertResults.mapIndexed { index, result ->
             ProdOrder().apply {
@@ -80,6 +84,8 @@ class ProdOrderSyncService(
                 erpOrderId = result.erpOrderId
                 qty = result.qty
                 inNum = result.inNum
+                tempId = fileTempId
+                spec = result.spec
             }
         }
 
@@ -112,6 +118,8 @@ class ProdOrderSyncService(
             convertResults.size
         )
 
+        val fileTempId = fileTempPlusService.byDefault(1)
+
         val prodOrders = convertResults.mapIndexed { index, result ->
             ProdOrder().apply {
                 id = IdWorker.getIdStr()
@@ -142,6 +150,7 @@ class ProdOrderSyncService(
                 erpOrderId = result.erpOrderId
                 qty = result.qty
                 inNum = result.inNum
+                tempId = fileTempId
             }
         }
 
@@ -174,6 +183,8 @@ class ProdOrderSyncService(
             convertResults.size
         )
 
+        val fileTempId = fileTempPlusService.byDefault(1)
+
         val prodOrders = convertResults.mapIndexed { index, result ->
             ProdOrder().apply {
                 id = IdWorker.getIdStr()
@@ -203,6 +214,8 @@ class ProdOrderSyncService(
                 m3 = result.m3
                 m4 = result.m4
                 m5 = result.m5
+
+                tempId = fileTempId
             }
         }
 

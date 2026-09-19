@@ -23,6 +23,11 @@
 
         <dependency>
             <groupId>com.gz</groupId>
+            <artifactId>xg-basic</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.gz</groupId>
             <artifactId>xg-u8</artifactId>
         </dependency>
 

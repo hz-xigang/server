@@ -167,6 +167,7 @@ class U8StockInSyncService(
             }
 
             val response = u8PurchaseStockInService.pushPurchaseStockIn(u8Request)
+
             if (response.isSuccess) {
                 log.info("U8 采购入库推送成功: receiptNo={}, erpOrderId={}, 明细行数={}", stockIn.receiptNo, prodOrder.erpOrderId, detailList.size)
                 null

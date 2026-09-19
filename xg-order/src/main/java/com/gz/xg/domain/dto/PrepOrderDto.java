@@ -97,4 +97,6 @@ public class PrepOrderDto {
     private String userId;
 
     private String realName;
+
+    private String erpOrderNo;
 }

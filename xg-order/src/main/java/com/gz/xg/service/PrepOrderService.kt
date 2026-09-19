@@ -44,6 +44,7 @@ class PrepOrderService(
         prepOrder.userId = userId
         prepOrder.username = username
         prepOrder.realName = realName
+        prepOrder.erpOrderNo = prepOrderDto.erpOrderNo
 
         details.forEach {
             it.id = IdUtil.generateId()

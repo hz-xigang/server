@@ -2,6 +2,7 @@ package com.gz.xg.service
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
+import com.google.gson.Gson
 import com.gz.xg.UserContext
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
@@ -86,7 +87,6 @@ class StockMoveService(
                 this.username = username
                 this.realName = realName
             }
-
             val syncResult = u8StockMoveSyncService.syncStockMove(
                 resolved, originLocMap, stockMove, locArchive
             )
