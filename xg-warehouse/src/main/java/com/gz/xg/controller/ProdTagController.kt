@@ -3,10 +3,12 @@ package com.gz.xg.controller
 import com.gz.xg.annotation.OpLog
 import com.gz.xg.base.BaseController
 import com.gz.xg.domain.dto.ProdTagDto
+import com.gz.xg.domain.req.UnpackTagReq
 import com.gz.xg.domain.search.ProdTagSearch
 import com.gz.xg.enums.BusinessType
 import com.gz.xg.exception.ResponseResult
 import com.gz.xg.service.ProdTagService
+import com.gz.xg.service.UnpackService
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -25,7 +27,8 @@ import java.time.format.DateTimeFormatter
 @RestController
 @RequestMapping("/api/productionTag")
  class ProdTagController(
-    private val prodTagService: ProdTagService
+    private val prodTagService: ProdTagService,
+    private val unpackService: UnpackService
 )  : BaseController() {
 
     @OpLog(title = "标签管理", opName = "生成纸箱标签", businessType = BusinessType.INSERT)
@@ -121,6 +124,12 @@ import java.time.format.DateTimeFormatter
     fun softDelById(@PathVariable id: String) : ResponseResult{
         prodTagService.softDelById(id)
         return success()
+    }
+
+    @OpLog(title = "标签管理", opName = "拆箱", businessType = BusinessType.UPDATE)
+    @PostMapping("unpack")
+    fun unpack(@RequestBody @Validated req: UnpackTagReq): ResponseResult {
+        return success(unpackService.unpack(req))
     }
 
     @OpLog(title = "标签管理", opName = "补打纸箱标签", businessType = BusinessType.OTHER)

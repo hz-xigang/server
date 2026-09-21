@@ -326,4 +326,74 @@ class StockInService(
         stockInventoryService.addBatch(resolved.prodTags, locArchive, u8BatchByTagNo)
     }
 
+    fun addUnpack(tagNos: List<String>, locId: String, receiptNo: String) {
+        val locArchive = locArchivePlusService.getById(locId)
+            ?: throw WebException("该库位不存在")
+
+        val alreadyIn = stockInventoryPlusService.listByTagNos(tagNos).map { it.tagNo }.toSet()
+        val pending = tagNos.filter { it !in alreadyIn }
+        if (pending.isEmpty()) return
+
+        if (plusService.findByReceiptNo(receiptNo) != null) {
+            val resolved = billTagResolver.resolve(pending)
+            val u8BatchByTagNo = buildUnpackBatchNos(resolved)
+            stockInventoryService.addBatch(resolved.prodTags, locArchive, u8BatchByTagNo)
+            return
+        }
+
+        val resolved = billTagResolver.resolve(pending)
+        val firstTag = resolved.prodTags.first()
+        val prodOrder = firstTag.prodOrderId?.let { productionOrderPlusService.getById(it) }
+            ?: throw WebException("未找到该标签对应的订单记录")
+
+        val orderNo = prodOrder.erpOrderNo ?: prodOrder.prodNo ?: ""
+        var targetType = prodOrder.type ?: throw WebException("未知订单类型，无法入库")
+        var targetErpOrderId = prodOrder.erpOrderId ?: ""
+        val momOrderMap = mutableMapOf<String, ProdOrder>()
+
+        when (targetType) {
+            1, 2 -> {
+                if (targetErpOrderId.isBlank()) {
+                    throw WebException("订单[${orderNo}]未关联有效的U8订单号")
+                }
+            }
+            0 -> {
+                val invCode = prodOrder.inventoryCode ?: firstTag.inventoryCode ?: ""
+                val momOrder = productionOrderPlusService.findLatestMomOrderByInvCodeAndCustomerCode(
+                    invCode, prodOrder.customerCode ?: firstTag.customerCode
+                ) ?: throw WebException("存货[${invCode}]未找到关联的有效生产订单(已下发U8)")
+                targetType = 2
+                targetErpOrderId = momOrder.erpOrderId
+                resolved.prodTags.forEach { momOrderMap[it.tagNo] = momOrder }
+            }
+            else -> throw WebException("未知订单类型[${targetType}]，无法入库")
+        }
+
+        val u8BatchByTagNo = resolved.tagNos.associateWith { tagNo ->
+            if (orderNo.isBlank()) tagNo else "$orderNo-$tagNo"
+        }
+
+        TransactionTemplate(transactionManager).execute {
+            saveSingleBatchStockIn(
+                resolved = resolved,
+                type = "拆箱入库",
+                receiptNo = receiptNo,
+                locArchive = locArchive,
+                targetType = targetType,
+                targetErpOrderId = targetErpOrderId,
+                momOrderMap = momOrderMap,
+                u8BatchByTagNo = u8BatchByTagNo
+            )
+        }
+    }
+
+    private fun buildUnpackBatchNos(resolved: ResolvedTags): Map<String, String> {
+        val firstTag = resolved.prodTags.first()
+        val prodOrder = firstTag.prodOrderId?.let { productionOrderPlusService.getById(it) }
+        val orderNo = prodOrder?.erpOrderNo ?: prodOrder?.prodNo ?: ""
+        return resolved.tagNos.associateWith { tagNo ->
+            if (orderNo.isBlank()) tagNo else "$orderNo-$tagNo"
+        }
+    }
+
 }

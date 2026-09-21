@@ -172,6 +172,40 @@ class PalletService(
         }
     }
 
+    fun replaceTag(oldTagNo: String, newTagNos: List<String>) {
+        val palletTag = palletTagPlusService.findByTagNo(oldTagNo) ?: return
+        val pallet = palletPlusService.getById(palletTag.pId) ?: return
+        if (pallet.deleted != null && pallet.deleted != 0) return
+
+        val occupied = palletTagPlusService.listByTagNos(newTagNos)
+        if (occupied.isNotEmpty()) {
+            throw WebException("【${occupied.joinToString(",") { it.tagNo }}】已打包")
+        }
+
+        LambdaUpdateChainWrapper(palletTagPlusService.baseMapper)
+            .set(PalletTag::getDeleted, 1)
+            .eq(PalletTag::getDeleted, 0)
+            .eq(PalletTag::getPId, pallet.id)
+            .eq(PalletTag::getTagNo, oldTagNo)
+            .update()
+
+        val tags = newTagNos.map { tagNo ->
+            PalletTag().apply {
+                pId = pallet.id
+                this.tagNo = tagNo
+                deleted = 0
+            }
+        }
+        palletTagPlusService.saveBatch(tags)
+
+        val remainingTagNos = palletTagPlusService.listByPId(pallet.id).map { it.tagNo }
+        val resolved = billTagResolver.resolve(remainingTagNos)
+        pallet.qty = resolved.total.qty
+        pallet.grossWeight = resolved.total.grossWeight
+        pallet.netWeight = resolved.total.netWeight
+        palletPlusService.updateById(pallet)
+    }
+
     /**
      * 根据托盘号查询关联的纸箱标签详情，并执行占用校验
      *

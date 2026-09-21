@@ -99,4 +99,19 @@ import org.springframework.stereotype.Service
         val vProdTag = vProTagMapper.selectById(id)
         return vProdTag ?: throw WebException("该纸箱标签不存在")
     }
+
+    fun findEntityByTagNo(tagNo: String): ProdTag? {
+        val wrapper = LambdaQueryWrapper<ProdTag>()
+            .eq(ProdTag::getTagNo, tagNo)
+            .eq(ProdTag::getDeleted, 0)
+        return getOne(wrapper)
+    }
+
+    fun listByParentTagNo(parentTagNo: String): List<ProdTag> {
+        val wrapper = LambdaQueryWrapper<ProdTag>()
+            .eq(ProdTag::getM1, parentTagNo)
+            .eq(ProdTag::getDeleted, 0)
+            .orderByAsc(ProdTag::getCreateTime)
+        return list(wrapper)
+    }
 }

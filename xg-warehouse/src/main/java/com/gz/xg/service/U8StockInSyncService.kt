@@ -167,7 +167,7 @@ class U8StockInSyncService(
 
             val response = u8PurchaseStockInService.pushPurchaseStockIn(u8Request)
 
-            if (response.isSuccess) {
+            if (response.isSuccess || isDuplicate(response.returnMessage)) {
                 log.info("U8 采购入库推送成功: receiptNo={}, erpOrderId={}, 明细行数={}", stockIn.receiptNo, prodOrder.erpOrderId, detailList.size)
                 null
             } else {
@@ -175,6 +175,10 @@ class U8StockInSyncService(
                 response.returnMessage ?: "U8采购入库推送失败"
             }
         } catch (e: Exception) {
+            if (isDuplicate(e.message)) {
+                log.warn("U8 采购入库单已存在，视为成功: receiptNo={}, erpOrderId={}", stockIn.receiptNo, prodOrder.erpOrderId)
+                return null
+            }
             log.error("U8 采购入库接口调用异常: receiptNo={}, erpOrderId={}", stockIn.receiptNo, prodOrder.erpOrderId, e)
             "U8采购入库接口调用异常: ${e.message}"
         }
@@ -222,7 +226,7 @@ class U8StockInSyncService(
             }
 
             val response = u8MomStockInService.pushMomStockIn(u8Request)
-            if (response.isSuccess) {
+            if (response.isSuccess || isDuplicate(response.returnMessage)) {
                 log.info("U8 产成品入库推送成功: receiptNo={}, erpOrderId={}, 明细行数={}", stockIn.receiptNo, momOrder.erpOrderId, detailList.size)
                 null
             } else {
@@ -230,6 +234,10 @@ class U8StockInSyncService(
                 response.returnMessage ?: "U8产成品入库推送失败"
             }
         } catch (e: Exception) {
+            if (isDuplicate(e.message)) {
+                log.warn("U8 产成品入库单已存在，视为成功: receiptNo={}, erpOrderId={}", stockIn.receiptNo, momOrder.erpOrderId)
+                return null
+            }
             log.error("U8 产成品入库接口调用异常: receiptNo={}, erpOrderId={}", stockIn.receiptNo, momOrder.erpOrderId, e)
             "U8产成品入库接口调用异常: ${e.message}"
         }
@@ -274,6 +282,11 @@ class U8StockInSyncService(
             failCount = if (errorMsg == null) 0 else prodTags.size,
             errorMessage = errorMsg
         )
+    }
+
+    private fun isDuplicate(message: String?): Boolean {
+        if (message.isNullOrBlank()) return false
+        return message.contains("已存在") || message.contains("重复") || message.contains("duplicate", ignoreCase = true)
     }
 
     private fun tagAuxiliaryQty(tag: VProdTag): BigDecimal {

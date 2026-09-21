@@ -46,7 +46,8 @@ class StockOutService(
     private val stockInventoryService: StockInventoryService,
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
-    private val u8SalesStockOutSyncService: U8SalesStockOutSyncService
+    private val u8SalesStockOutSyncService: U8SalesStockOutSyncService,
+    private val u8OtherStockOutSyncService: U8OtherStockOutSyncService
 ) : BaseService() {
 
     /**
@@ -152,6 +153,57 @@ class StockOutService(
         }
         // 空串表示同步成功；非空则透传 U8 错误信息给前端
         return u8Result?.errorMessage ?: ""
+    }
+
+    fun addByUnpack(tagNo: String, receiptNo: String) {
+        TransactionTemplate(transactionManager).execute {
+            if (plusService.findByReceiptNo(receiptNo) != null) {
+                stockInventoryService.changeDelByTagNos(listOf(tagNo))
+                return@execute
+            }
+
+            val resolved = billTagResolver.resolve(listOf(tagNo))
+            val inventory = stockInventoryPlusService.findByTagNo(tagNo)
+                ?: throw WebException("【$tagNo】不在库存中，无法出库")
+            if (inventory.locCode.isNullOrBlank() || inventory.locId.isNullOrBlank()) {
+                throw WebException("【$tagNo】库存库位信息缺失，无法出库")
+            }
+
+            val id = IdUtil.generateId()
+            val (userId, username, realName) = UserContext.require()
+            val tag = resolved.prodTags.first()
+
+            val stockOut = StockOut().apply {
+                this.id = id
+                this.receiptNo = receiptNo
+                qty = inventory.qty ?: tag.qty
+                grossWeight = inventory.grossWeight ?: tag.grossWeight
+                netWeight = inventory.netWeight ?: tag.netWeight
+                this.userId = userId
+                this.username = username
+                this.realName = realName
+                type = "拆箱出库"
+                loc = inventory.locCode
+            }
+
+            val stockOutTag = StockOutTag().apply {
+                pId = id
+                this.tagNo = tagNo
+                locCode = inventory.locCode
+                locId = inventory.locId
+            }
+
+            val syncResult = u8OtherStockOutSyncService.syncOtherStockOut(tag, inventory, stockOut)
+            if (!syncResult.errorMessage.isNullOrBlank()) {
+                throw WebException("U8出库同步失败: ${syncResult.errorMessage}")
+            }
+            stockOutTag.u8Sync = syncResult.statusMap[tagNo] ?: 1
+
+            plusService.save(stockOut)
+            stockOutTagPlusService.saveBatch(listOf(stockOutTag))
+            stockInventoryService.changeDelByTagNos(listOf(tagNo))
+            log.info("拆箱出库完成: receiptNo={}, tagNo={}", receiptNo, tagNo)
+        }
     }
 
     /**
