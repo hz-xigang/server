@@ -13,6 +13,7 @@ import com.gz.xg.domain.mapstruct.StockOutMapStruct
 import com.gz.xg.domain.search.StockSearch
 import com.gz.xg.exception.WebException
 import com.gz.xg.service.plus.ProdTagPlusService
+import com.gz.xg.service.plus.ProductionOrderPlusService
 import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.service.plus.StockOutPlusService
 import com.gz.xg.service.plus.StockOutTagPlusService
@@ -47,7 +48,7 @@ class StockOutService(
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
     private val u8SalesStockOutSyncService: U8SalesStockOutSyncService,
-    private val u8OtherStockOutSyncService: U8OtherStockOutSyncService
+    private val productionOrderPlusService: ProductionOrderPlusService
 ) : BaseService() {
 
     /**
@@ -172,6 +173,8 @@ class StockOutService(
             val id = IdUtil.generateId()
             val (userId, username, realName) = UserContext.require()
             val tag = resolved.prodTags.first()
+            val prodOrder = tag.prodOrderId?.let { productionOrderPlusService.getById(it) }
+                ?: throw WebException("未找到该标签对应的订单记录")
 
             val stockOut = StockOut().apply {
                 this.id = id
@@ -193,7 +196,7 @@ class StockOutService(
                 locId = inventory.locId
             }
 
-            val syncResult = u8OtherStockOutSyncService.syncOtherStockOut(tag, inventory, stockOut)
+            val syncResult = u8SalesStockOutSyncService.syncUnpackStockOut(tag, inventory, stockOut, prodOrder)
             if (!syncResult.errorMessage.isNullOrBlank()) {
                 throw WebException("U8出库同步失败: ${syncResult.errorMessage}")
             }

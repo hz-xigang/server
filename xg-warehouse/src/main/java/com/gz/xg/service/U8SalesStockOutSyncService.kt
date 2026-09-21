@@ -1,8 +1,10 @@
 package com.gz.xg.service
 
 import com.gz.xg.base.BaseService
+import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.domain.entity.ShipOrder
 import com.gz.xg.domain.entity.ShipOrderDetail
+import com.gz.xg.domain.entity.StockInventory
 import com.gz.xg.domain.entity.StockOut
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.u8.dto.U8SalesStockOutDetailRequest
@@ -133,5 +135,87 @@ class U8SalesStockOutSyncService(
             log.error("U8 成品出仓接口调用异常: receiptNo={}, shipNo={}", stockOut.receiptNo, shipOrder.shipNo, e)
             "U8成品出仓接口调用异常: ${e.message}"
         }
+    }
+
+    fun syncUnpackStockOut(
+        tag: VProdTag,
+        inventory: StockInventory,
+        stockOut: StockOut,
+        prodOrder: ProdOrder
+    ): U8SyncResult {
+        val errorMsg = trySyncUnpackStockOut(tag, inventory, stockOut, prodOrder)
+        val status = if (errorMsg == null) 1 else 0
+        return U8SyncResult(
+            statusMap = mapOf(tag.tagNo to status),
+            failCount = if (errorMsg == null) 0 else 1,
+            errorMessage = errorMsg
+        )
+    }
+
+    private fun trySyncUnpackStockOut(
+        tag: VProdTag,
+        inventory: StockInventory,
+        stockOut: StockOut,
+        prodOrder: ProdOrder
+    ): String? {
+        return try {
+            val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val qty = inventory.qty ?: tag.qty ?: 0
+            val netWeight = inventory.netWeight ?: tag.netWeight ?: BigDecimal.ZERO
+            val grossWeight = inventory.grossWeight ?: tag.grossWeight ?: BigDecimal.ZERO
+
+            val detail = U8SalesStockOutDetailRequest().apply {
+                rowNo = 1
+                inventoryCode = tag.inventoryCode ?: prodOrder.inventoryCode ?: ""
+                inventoryName = tag.inventoryName ?: prodOrder.inventoryName ?: ""
+                spec = tag.spec ?: prodOrder.spec ?: ""
+                material = prodOrder.material ?: ""
+                packingMethod = prodOrder.packingRequirement ?: ""
+                specWidth = prodOrder.specWidth ?: ""
+                customerCode = tag.customerCode ?: prodOrder.customerCode ?: ""
+                unitWeight = prodOrder.unitWeight ?: BigDecimal.ZERO
+                totalWeight = grossWeight
+                invAddCode = ""
+                unitName = ""
+                auxiliaryQuantity = netWeight
+                quantity = BigDecimal.valueOf(qty.toLong())
+                invPosition = inventory.locCode ?: ""
+                batchNo = inventory.u8Batch ?: ""
+                rowMemo = tag.tagNo
+                salesOrderDetailId = prodOrder.m5 ?: ""
+            }
+
+            val u8Request = U8SalesStockOutRequest().apply {
+                orderCode = stockOut.receiptNo
+                orderDate = todayStr
+                warehouseCode = "01"
+                handler = "曾伟生"
+                verifyDate = todayStr
+                maker = stockOut.realName ?: stockOut.username
+                memo = stockOut.type
+                details = listOf(detail)
+            }
+
+            val response = u8SalesStockOutService.pushSalesStockOut(u8Request)
+            if (response.isSuccess || isDuplicate(response.returnMessage)) {
+                log.info("U8 成品出仓推送成功: receiptNo={}, tagNo={}", stockOut.receiptNo, tag.tagNo)
+                null
+            } else {
+                log.error("U8 成品出仓推送失败: receiptNo={}, tagNo={}, 原因={}", stockOut.receiptNo, tag.tagNo, response.returnMessage)
+                response.returnMessage ?: "U8成品出仓推送失败"
+            }
+        } catch (e: Exception) {
+            if (isDuplicate(e.message)) {
+                log.warn("U8 成品出仓单已存在，视为成功: receiptNo={}, tagNo={}", stockOut.receiptNo, tag.tagNo)
+                return null
+            }
+            log.error("U8 成品出仓接口调用异常: receiptNo={}, tagNo={}", stockOut.receiptNo, tag.tagNo, e)
+            "U8成品出仓接口调用异常: ${e.message}"
+        }
+    }
+
+    private fun isDuplicate(message: String?): Boolean {
+        if (message.isNullOrBlank()) return false
+        return message.contains("已存在") || message.contains("重复") || message.contains("duplicate", ignoreCase = true)
     }
 }

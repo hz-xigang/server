@@ -89,7 +89,7 @@ public class U8Test {
 
     @Test
     void qrExcelTest() throws Exception {
-        String[] contents = {"1260916010011", "1260916010188", "1260916010230"};
+        String[] contents = {"1260921011246", "1260921011326"};
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("QR");
         sheet.setColumnWidth(0, 24 * 256);
