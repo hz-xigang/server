@@ -48,4 +48,9 @@ class TransferOrderService(
         return dtoList
     }
 
+    fun listByOrderNo(orderNo: String?): List<TransferOrderDto> {
+        if (orderNo.isNullOrBlank()) return emptyList()
+        return mapStruct.toDtoList(plusService.listByOrderNo(orderNo))
+    }
+
 }

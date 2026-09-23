@@ -176,10 +176,11 @@ class StockMoveService(
     }
 
     /**
-     * 调拨移库。不走 U8 同步，将标签对应的库存移至目标库位。
+     * 调拨移库。将标签对应的库存移至目标库位，并推送 U8 货位调整单。
+     * 返回 U8 同步错误信息（空字符串表示同步成功）。
      */
-    fun addByTransfer(records: List<TransferRecord>, locArchive: LocArchive, orderNo: String) {
-        TransactionTemplate(transactionManager).execute {
+    fun addByTransfer(records: List<TransferRecord>, locArchive: LocArchive, orderNo: String): String {
+        val u8Result = TransactionTemplate(transactionManager).execute {
             val tagNos = records.map { it.tagNo }
             val resolved = billTagResolver.resolve(tagNos)
 
@@ -210,6 +211,13 @@ class StockMoveService(
                 m1 = orderNo // 记录调拨指令单号
             }
 
+            val syncResult = u8StockMoveSyncService.syncStockMove(
+                resolved, originLocMap, stockMove, locArchive
+            )
+            if (!syncResult.errorMessage.isNullOrBlank()) {
+                throw WebException("U8移库同步失败: ${syncResult.errorMessage}")
+            }
+
             val tags = records.map {
                 val originStock = originLocMap[it.tagNo] ?: throw WebException("【${it.tagNo}】不在库存中")
                 StockMoveTag().apply {
@@ -217,7 +225,7 @@ class StockMoveService(
                     tagNo = it.tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
-                    u8Sync = 2 // 调拨不走 U8，标记为无需同步
+                    u8Sync = syncResult.statusMap[it.tagNo] ?: 2
                 }
             }
 
@@ -225,7 +233,9 @@ class StockMoveService(
             stockMoveTagPlusService.saveBatch(tags)
             stockInventoryService.editLocByTagNo(tagNos, locArchive)
             log.info("调拨移库完成: receiptNo={}, orderNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, orderNo, locArchive.locCode, tags.size)
+            syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
+        return u8Result?.errorMessage ?: ""
     }
 
     fun page(search: StockSearch,current: Long, size: Long): Map<String, Any> {

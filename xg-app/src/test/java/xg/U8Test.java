@@ -2,8 +2,10 @@ package xg;
 
 import com.google.gson.Gson;
 import com.gz.xg.XgApplication;
+import com.gz.xg.domain.enums.SequenceType;
 import com.gz.xg.service.ProdOrderSyncService;
 import com.gz.xg.service.ShipOrderSyncService;
+import com.gz.xg.service.SysSequenceService;
 import com.gz.xg.service.TransferOrderSyncService;
 import com.gz.xg.u8.dto.*;
 import com.gz.xg.u8.service.U8MomOrderService;
@@ -11,6 +13,7 @@ import com.gz.xg.u8.service.U8PurchaseOrderService;
 import com.gz.xg.u8.service.U8SalesOrderService;
 import com.gz.xg.u8.service.U8TransferOrderService;
 import com.gz.xg.util.BarcodeUtil;
+import com.gz.xg.util.IdUtil;
 import jakarta.annotation.Resource;
 import org.apache.poi.ss.usermodel.ClientAnchor;
 import org.apache.poi.ss.usermodel.CreationHelper;
@@ -26,6 +29,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 
@@ -62,9 +67,9 @@ public class U8Test {
         /*List<U8PurchaseOrderMain> data = response.getData();
         System.out.println(new Gson().toJson(data));*/
 
-        //prodOrderSyncService.syncPurchaseOrders("108");
+        prodOrderSyncService.syncMomOrders("108");
         //transferOrderSyncService.syncTransferOrders("108");
-        shipOrderSyncService.syncShipOrders("108");
+        //shipOrderSyncService.syncShipOrders("108");
     }
 
     @Test
@@ -118,6 +123,22 @@ public class U8Test {
         }
         workbook.close();
         System.out.println("excel: " + file.getAbsolutePath());
+    }
+
+    @Resource
+    private SysSequenceService  sysSequenceService;
+
+    @Test
+    void tt() {
+        String format = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        List< String> list = sysSequenceService.generateSequences(SequenceType.PRODUCTION_ORDER, format, 1);
+        System.err.println(list.get(0));
+
+    }
+
+    public static void main(String[] args) {
+        System.err.println(IdUtil.INSTANCE.generateId());
     }
 
 }

@@ -136,4 +136,8 @@ public class U8MomOrderDetail {
      */
     @SerializedName("cbmemo")
     private String rowMemo;
+
+    @SerializedName("erpOrderNo")
+    private String erpOrderNo;
+
 }

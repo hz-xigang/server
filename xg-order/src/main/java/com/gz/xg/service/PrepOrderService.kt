@@ -93,4 +93,9 @@ class PrepOrderService(
         return dtoList
     }
 
+    fun listByErpOrderNo(erpOrderNo: String?): List<PrepOrderDto> {
+        if (erpOrderNo.isNullOrBlank()) return emptyList()
+        return mapStruct.toDtoList(plusService.listByErpOrderNo(erpOrderNo))
+    }
+
 }

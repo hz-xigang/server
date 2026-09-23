@@ -34,6 +34,11 @@ class TransferOrderController(
         return success(service.list())
     }
 
+    @GetMapping("search")
+    fun search(@RequestParam(required = false) orderNo: String?): ResponseResult {
+        return success(service.listByOrderNo(orderNo))
+    }
+
     @GetMapping("detail")
     fun listByPId(@RequestParam pId: String): ResponseResult {
         return success(detailService.listByPid(pId))

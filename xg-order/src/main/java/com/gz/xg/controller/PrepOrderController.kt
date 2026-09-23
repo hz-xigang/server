@@ -50,6 +50,11 @@ class PrepOrderController(
         return success(service.list())
     }
 
+    @GetMapping("search")
+    fun search(@RequestParam(required = false) erpOrderNo: String?): ResponseResult {
+        return success(service.listByErpOrderNo(erpOrderNo))
+    }
+
     @GetMapping("detail")
     fun listByPId(@RequestParam pId: String): ResponseResult {
         return success(detailService.listByPid(pId))

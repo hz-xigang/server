@@ -63,12 +63,12 @@ class TransferRecordService(
 
             plusService.saveBatch(records)
 
-            // 执行移库操作：更新库存库位至目标库位，生成移库记录（不走 U8）
-            stockMoveService.addByTransfer(records, targetLoc, order.orderNo)
+            // 执行移库并回传 U8 货位调整单，失败则整体回滚
+            val u8ErrorMsg = stockMoveService.addByTransfer(records, targetLoc, order.orderNo)
 
             pmt.commit(status)
             log.info("调拨移库确认成功: orderNo={}, 目标库位={}, 条数={}", order.orderNo, targetLoc.locCode, records.size)
-            return ""
+            return u8ErrorMsg
         } catch (e: Exception) {
             pmt.rollback(status)
             throw WebException(e.message ?: "调拨失败", e)

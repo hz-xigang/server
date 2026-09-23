@@ -23,6 +23,14 @@ class ShipOrderPlusService : MPJBaseServiceImpl<ShipOrderMapper, ShipOrder>(){
         return this.list(wrapper)
     }
 
+    fun listByErpOrderNo(erpOrderNo: String): List<ShipOrder> {
+        val wrapper = LambdaQueryWrapper<ShipOrder>()
+            .like(ShipOrder::getErpOrderNo, erpOrderNo)
+            .eq(ShipOrder::getStatus, 0)
+            .orderByDesc(ShipOrder::getId)
+        return this.list(wrapper)
+    }
+
 
     fun findByNo(no : String?) :ShipOrder{
         val wrapper = LambdaQueryWrapper<ShipOrder>()

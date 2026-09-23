@@ -66,4 +66,9 @@ class ShipOrderService(
         val dtoList = mapStruct.toDtoList(list)
         return dtoList
     }
+
+    fun listByErpOrderNo(erpOrderNo: String?): List<ShipOrderDto> {
+        if (erpOrderNo.isNullOrBlank()) return emptyList()
+        return mapStruct.toDtoList(plusService.listByErpOrderNo(erpOrderNo))
+    }
 }

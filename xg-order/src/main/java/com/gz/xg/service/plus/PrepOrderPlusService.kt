@@ -23,6 +23,14 @@ class PrepOrderPlusService : ServiceImpl<PrepOrderMapper, PrepOrder>(){
         return this.list(wrapper)
     }
 
+    fun listByErpOrderNo(erpOrderNo: String): List<PrepOrder> {
+        val wrapper = LambdaQueryWrapper<PrepOrder>()
+            .like(PrepOrder::getErpOrderNo, erpOrderNo)
+            .eq(PrepOrder::getStatus, 0)
+            .orderByDesc(PrepOrder::getId)
+        return this.list(wrapper)
+    }
+
     fun findByNo(no : String?) : PrepOrder{
         val wrapper = LambdaQueryWrapper<PrepOrder>()
             .eq(PrepOrder::getPrepNo,no)

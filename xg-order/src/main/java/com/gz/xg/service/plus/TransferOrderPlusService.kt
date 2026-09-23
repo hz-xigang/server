@@ -42,6 +42,14 @@ class TransferOrderPlusService : ServiceImpl<TransferOrderMapper, TransferOrder>
         return this.list(wrapper)
     }
 
+    fun listByOrderNo(orderNo: String): List<TransferOrder> {
+        val wrapper = LambdaQueryWrapper<TransferOrder>()
+            .like(TransferOrder::getOrderNo, orderNo)
+            .eq(TransferOrder::getStatus, 0)
+            .orderByDesc(TransferOrder::getId)
+        return this.list(wrapper)
+    }
+
     fun findByNo(no : String?) :TransferOrder {
         val wrapper = LambdaQueryWrapper<TransferOrder>()
             .eq(TransferOrder::getOrderNo, no)

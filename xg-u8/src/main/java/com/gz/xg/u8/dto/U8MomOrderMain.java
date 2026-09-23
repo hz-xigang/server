@@ -64,4 +64,9 @@ public class U8MomOrderMain {
      */
     @SerializedName("DataDetail")
     private List<U8MomOrderDetail> details;
+
+    @SerializedName("erpOrderNo")
+    private String erpOrderNo;
+
+
 }

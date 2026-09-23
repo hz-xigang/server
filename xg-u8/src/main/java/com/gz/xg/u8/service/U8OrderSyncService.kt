@@ -174,7 +174,7 @@ class U8OrderSyncService(
 
                     m1 = detail.departmentName ?: detail.departmentCode
                     m2 = detail.warehouseName ?: detail.warehouseCode
-                    m3 = detail.rowMemo
+                    m3 = detail.erpOrderNo
                     m4 = main.memo
                 }
 
