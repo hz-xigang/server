@@ -95,7 +95,7 @@ class ShipOrderSyncService(
                 deleted = 0
                 createTime = parseDateToLocalDateTime(u8Order.orderDate) ?: LocalDateTime.now()
             }
-            erpOrderNo = orderCode
+            erpOrderNo = u8Order.erpOrderNo
             salesType = u8Order.salesTypeName ?: u8Order.salesTypeCode
             salesDept = u8Order.departmentName ?: u8Order.departmentCode
             customerCode = u8Order.customerCode

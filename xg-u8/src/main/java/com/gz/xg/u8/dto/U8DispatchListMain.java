@@ -148,4 +148,7 @@ public class U8DispatchListMain {
      */
     @SerializedName("DataDetail")
     private List<U8DispatchListDetail> details;
+
+    @SerializedName("erpOrderNo")
+    private String erpOrderNo;
 }

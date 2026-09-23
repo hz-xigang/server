@@ -136,7 +136,7 @@ class StockInService(
             emptyMap()
         }
 
-        // 缓存销售单反查到的生产订单：key: "$invCode:${customerCode ?: ""}" -> ProdOrder?
+        // 缓存销售单反查到的生产订单：key: "$invCode:$salesOrderNo" -> ProdOrder?
         val momOrderCache = mutableMapOf<String, ProdOrder?>()
 
         // 为每个标签计算目标 ERP 类型与订单号 (targetType: 1-采购, 2-生产, targetErpOrderId: String, erpOrderNo: String)
@@ -181,20 +181,20 @@ class StockInService(
                     validTargets.add(TagOrderTarget(tagNo, prodTag, 2, erpOrderId, null, orderNo))
                 }
             } else if (orderType == 0) {
-                // 销售订单：通过 inventoryCode + customerCode 反查生产订单 (type == 2)
+                // 销售订单：通过 inventoryCode + 生产单 m3（关联销售单号）反查生产订单 (type == 2)
                 val invCode = prodOrder.inventoryCode ?: prodTag.inventoryCode ?: ""
-                val custCode = prodOrder.customerCode ?: prodTag.customerCode
-                val cacheKey = "$invCode:${custCode ?: ""}"
+                val salesOrderNo = prodOrder.erpOrderNo
+                val cacheKey = "$invCode:${salesOrderNo ?: ""}"
 
                 val momOrder = momOrderCache.getOrPut(cacheKey) {
-                    productionOrderPlusService.findLatestMomOrderByInvCodeAndCustomerCode(invCode, custCode)
+                    productionOrderPlusService.findLatestMomOrderByInvCodeAndSalesOrderNo(invCode, salesOrderNo)
                 }
 
                 if (momOrder == null || momOrder.erpOrderId.isNullOrBlank()) {
-                    val detailReason = if (invCode.isBlank()) {
-                        "销售单缺少存货编码"
-                    } else {
-                        "存货[${invCode}]${if (!custCode.isNullOrBlank()) "、客户[${custCode}]" else ""}未找到关联的有效生产订单(已下发U8)"
+                    val detailReason = when {
+                        invCode.isBlank() -> "销售单缺少存货编码"
+                        salesOrderNo.isNullOrBlank() -> "销售单缺少销售单号"
+                        else -> "存货[${invCode}]、销售单[${salesOrderNo}]未找到关联的有效生产订单(已下发U8)"
                     }
                     failTags.add(StockInFailTag(tagNo, detailReason))
                 } else {
@@ -359,9 +359,10 @@ class StockInService(
             }
             0 -> {
                 val invCode = prodOrder.inventoryCode ?: firstTag.inventoryCode ?: ""
-                val momOrder = productionOrderPlusService.findLatestMomOrderByInvCodeAndCustomerCode(
-                    invCode, prodOrder.customerCode ?: firstTag.customerCode
-                ) ?: throw WebException("存货[${invCode}]未找到关联的有效生产订单(已下发U8)")
+                val salesOrderNo = prodOrder.erpOrderNo
+                val momOrder = productionOrderPlusService.findLatestMomOrderByInvCodeAndSalesOrderNo(
+                    invCode, salesOrderNo
+                ) ?: throw WebException("存货[${invCode}]、销售单[${salesOrderNo ?: ""}]未找到关联的有效生产订单(已下发U8)")
                 targetType = 2
                 targetErpOrderId = momOrder.erpOrderId
                 resolved.prodTags.forEach { momOrderMap[it.tagNo] = momOrder }

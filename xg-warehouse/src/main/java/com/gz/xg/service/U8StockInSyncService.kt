@@ -73,7 +73,7 @@ class U8StockInSyncService(
 
         // 2. 成品入库包含两类标签：
         //    A. 生产订单直接入库 (type == 2 且有 erpOrderId)
-        //    B. 销售订单入库 (type == 0)，需根据 inventoryCode 反查最新的有效生产订单 (type == 2)
+        //    B. 销售订单入库 (type == 0)，按存货编码 + 生产单 m3（关联销售单号）反查生产订单
         val momDirectTags = resolved.prodTags.filter { tag ->
             val po = orderMap[tag.prodOrderId]
             po != null && po.type == 2 && !po.erpOrderId.isNullOrBlank()
@@ -84,21 +84,23 @@ class U8StockInSyncService(
             po != null && po.type == 0
         }
 
-        // 处理销售订单标签：按存货编码与客户编号反查生产单
         val momResolvedOrdersByTag = mutableMapOf<String, ProdOrder>()
-        val salesInvCodeCache = mutableMapOf<String, ProdOrder>()
+        val salesMomCache = mutableMapOf<String, ProdOrder>()
 
         salesTags.forEach { tag ->
             val so = orderMap[tag.prodOrderId]
             val invCode = so?.inventoryCode ?: tag.inventoryCode ?: ""
-            val customerCode = so?.customerCode
+            val salesOrderNo = so?.erpOrderNo
             if (invCode.isBlank()) {
                 throw WebException("标签条码[${tag.tagNo}]缺少存货编码，无法反查生产订单推送到U8")
             }
-            val cacheKey = "$invCode:${customerCode ?: ""}"
-            val momOrder = salesInvCodeCache.getOrPut(cacheKey) {
-                productionOrderPlusService.findLatestMomOrderByInvCodeAndCustomerCode(invCode, customerCode)
-                    ?: throw WebException("存货[${invCode}]${if (!customerCode.isNullOrBlank()) "、客户[${customerCode}]" else ""}未找到对应的有效生产订单(已下发U8)，无法回传U8成品入库")
+            if (salesOrderNo.isNullOrBlank()) {
+                throw WebException("标签条码[${tag.tagNo}]缺少销售单号，无法反查生产订单推送到U8")
+            }
+            val cacheKey = "$invCode:$salesOrderNo"
+            val momOrder = salesMomCache.getOrPut(cacheKey) {
+                productionOrderPlusService.findLatestMomOrderByInvCodeAndSalesOrderNo(invCode, salesOrderNo)
+                    ?: throw WebException("存货[${invCode}]、销售单[${salesOrderNo}]未找到对应的有效生产订单(已下发U8)，无法回传U8成品入库")
             }
             momResolvedOrdersByTag[tag.tagNo] = momOrder
         }
@@ -113,7 +115,8 @@ class U8StockInSyncService(
             }
             val errorMsg = syncSingleMomOrder(
                 allMomTags, firstMomOrder, stockIn, locArchive,
-                allMomTags.associate { it.tagNo to u8Batch }
+                allMomTags.associate { it.tagNo to u8Batch },
+                salesTags.associate { it.tagNo to orderMap[it.prodOrderId]!! }
             )
             val status = if (errorMsg == null) 1 else 0
             allMomTags.mapNotNull { it.prodOrderId }.distinct().forEach { syncStatusByOrderId[it] = status }
@@ -194,12 +197,14 @@ class U8StockInSyncService(
         momOrder: ProdOrder,
         stockIn: StockIn,
         locArchive: LocArchive,
-        u8BatchByTagNo: Map<String, String>
+        u8BatchByTagNo: Map<String, String>,
+        attrOrderByTagNo: Map<String, ProdOrder> = emptyMap()
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
             val detailList = momTags.mapIndexed { index, tag ->
+                val attrOrder = attrOrderByTagNo[tag.tagNo] ?: momOrder
                 U8MomStockInDetailRequest().apply {
                     rowNo = index + 1
                     inventoryCode = tag.inventoryCode ?: momOrder.inventoryCode ?: ""
@@ -208,8 +213,8 @@ class U8StockInSyncService(
                     momOrderDetailId = momOrder.erpOrderId ?: ""
                     invPosition = locArchive.locCode
                     batchNo = u8BatchByTagNo[tag.tagNo] ?: ""
-                    packingMethod = momOrder.packingRequirement
-                    specWidth = momOrder.specWidth
+                    packingMethod = attrOrder.packingRequirement
+                    specWidth = attrOrder.specWidth
                     rowMemo = tag.tagNo
                 }
             }
@@ -271,7 +276,18 @@ class U8StockInSyncService(
                     this.erpOrderId = targetErpOrderId
                     this.inventoryCode = prodTags.firstOrNull()?.inventoryCode
                 }
-            errorMsg = syncSingleMomOrder(prodTags, momOrder, stockIn, locArchive, u8BatchByTagNo)
+            val originalOrderIds = prodTags.mapNotNull { it.prodOrderId }.distinct()
+            val originalOrders = if (originalOrderIds.isEmpty()) {
+                emptyMap()
+            } else {
+                productionOrderPlusService.listByIds(originalOrderIds).associateBy { it.id }
+            }
+            val attrOrderByTagNo = prodTags.mapNotNull { tag ->
+                originalOrders[tag.prodOrderId]?.let { tag.tagNo to it }
+            }.toMap()
+            errorMsg = syncSingleMomOrder(
+                prodTags, momOrder, stockIn, locArchive, u8BatchByTagNo, attrOrderByTagNo
+            )
         }
 
         val status = if (errorMsg == null) 1 else 0
