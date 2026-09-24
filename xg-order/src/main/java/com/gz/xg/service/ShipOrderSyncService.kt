@@ -126,7 +126,7 @@ class ShipOrderSyncService(
                 ShipOrderDetail().apply {
                     id = IdWorker.getIdStr()
                     pId = orderId
-                    orderNo = orderCode
+                    orderNo = u8Order.erpOrderNo
                     inventoryCode = d.inventoryCode
                     inventoryName = d.inventoryName
                     spec = d.spec

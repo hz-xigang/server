@@ -236,6 +236,7 @@ class ProdTagService(
 
         val tag = prodTagPlusService.findVoByTagNo(tagNo)
             ?: throw WebException("条码【${tagNo}】不存在")
+        
 
         val details = shipOrderDetailPlusService.listByPId(shipOrder.id)
         val matched = details.any { d -> d.inventoryCode != null && d.inventoryCode == tag.inventoryCode }
