@@ -8,9 +8,12 @@ import com.gz.xg.domain.entity.StockInventory
 import com.gz.xg.domain.view.VLocInventorySummary
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.domain.view.VStockTag
+import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.VLocInventorySummaryMapper
 import com.gz.xg.mapper.VProTagMapper
 import com.gz.xg.mapper.VStockTagMapper
+import com.gz.xg.service.plus.LocArchivePlusService
+import com.gz.xg.service.plus.ProdTagPlusService
 import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.util.IdUtil
 import org.springframework.stereotype.Service
@@ -22,7 +25,9 @@ import org.springframework.stereotype.Service
  class StockInventoryService(
     private val plusService: StockInventoryPlusService,
      private val vLocInventorySummaryMapper: VLocInventorySummaryMapper,
-     private val vStockTagMapper: VStockTagMapper
+     private val vStockTagMapper: VStockTagMapper,
+     private val prodTagPlusService: ProdTagPlusService,
+     private val locArchivePlusService: LocArchivePlusService
 ) : BaseService()
 {
 
@@ -90,6 +95,31 @@ import org.springframework.stereotype.Service
     fun findTagByLocId(locId : String) : List<VStockTag>{
         return LambdaQueryChainWrapper(vStockTagMapper)
             .eq(VStockTag::getLocId,locId)
+            .list()
+    }
+
+    /**
+     * 根据扫描的纸箱标签号，查询相同存货编码的所有在库条码明细。
+     */
+    fun findTagsByTagNo(tagNo: String): List<VStockTag> {
+        val tag = prodTagPlusService.findVoByTagNo(tagNo)
+        val inventoryCode = tag.inventoryCode
+        if (inventoryCode.isNullOrBlank()) {
+            return emptyList()
+        }
+        return LambdaQueryChainWrapper(vStockTagMapper)
+            .eq(VProdTag::getInventoryCode, inventoryCode)
+            .list()
+    }
+
+    /**
+     * 根据扫描的库位编码，查询该库位当前存放的所有在库条码明细。
+     */
+    fun findTagsByLocCode(locCode: String): List<VStockTag> {
+        locArchivePlusService.exitsByCode(locCode)
+            ?: throw WebException("【${locCode}】该库位不存在")
+        return LambdaQueryChainWrapper(vStockTagMapper)
+            .eq(VStockTag::getLocCode, locCode)
             .list()
     }
 

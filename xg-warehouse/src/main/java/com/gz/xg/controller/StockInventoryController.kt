@@ -25,4 +25,14 @@ class StockInventoryController(
         return success(service.findTagByLocId(locId))
     }
 
+    @GetMapping("tags/byTag/{tagNo}")
+    fun findTagsByTagNo(@PathVariable tagNo: String): ResponseResult {
+        return success(service.findTagsByTagNo(tagNo))
+    }
+
+    @GetMapping("tags/byLocCode/{locCode}")
+    fun findTagsByLocCode(@PathVariable locCode: String): ResponseResult {
+        return success(service.findTagsByLocCode(locCode))
+    }
+
 }
