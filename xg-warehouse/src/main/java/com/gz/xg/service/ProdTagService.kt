@@ -10,6 +10,7 @@ import com.gz.xg.domain.entity.ProdTag
 import com.gz.xg.domain.mapstruct.ProdTagMapStruct
 import com.gz.xg.domain.search.ProdTagSearch
 import com.gz.xg.domain.view.VProdTag
+import com.gz.xg.domain.view.VStockTag
 import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.PrintLogMapper
 import com.gz.xg.report.ProdTagReport
@@ -357,4 +358,9 @@ class ProdTagService(
         }
         log.info("删除/作废纸箱标签: id={}, tagNo={}", id, tag.tagNo)
     }
+
+    fun listByPrep(prepId : String) : List<VStockTag>{
+        return prodTagPlusService.baseMapper.listByPrep(prepId)
+    }
+
 }

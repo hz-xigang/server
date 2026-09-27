@@ -148,4 +148,9 @@ import java.time.format.DateTimeFormatter
         }
     }
 
+    @GetMapping("prep/{id}")
+    fun listByPrep(@PathVariable id: String) : ResponseResult{
+        return success(prodTagService.listByPrep(id))
+    }
+
 }

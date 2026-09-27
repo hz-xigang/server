@@ -36,9 +36,17 @@ open class ProductionOrderPlusService(
     }
 
 
-    fun listByErpOrderNo(erpOrderNo: String): List<ProdOrder> {
+    fun listByErpOrderNo(erpOrderNo: String?): List<ProdOrder> {
+
+        if (erpOrderNo.isNullOrEmpty()) {
+            throw WebException("单号不能为空")
+        }
+
         val wrapper = MPJLambdaWrapper<ProdOrder>()
-            .eq(ProdOrder::getErpOrderNo, erpOrderNo)
+            .like(ProdOrder::getErpOrderNo, erpOrderNo)
+            .or()
+            .like(ProdOrder::getCustomerOrderNo, erpOrderNo)
+
 
         val list = super.list(wrapper)
         if (list.isEmpty()){

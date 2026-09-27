@@ -1,7 +1,10 @@
 package com.gz.xg.service
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper
+import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper
 import com.gz.xg.base.BaseService
+import com.gz.xg.domain.entity.ShipOrder
 import com.gz.xg.domain.entity.ShipRecord
 import com.gz.xg.domain.req.AddStockOrder
 import com.gz.xg.exception.WebException
@@ -80,6 +83,11 @@ class ShipRecordService(
             }
             plusService.saveBatch(shipRecords)
             val u8ErrorMsg = stockOutService.addByShip(shipRecords, outNo, shipOrder, orderDetails)
+
+            LambdaUpdateChainWrapper(shipOrderPlusService.baseMapper)
+                .set(ShipOrder::getStatus,2)
+                .eq(ShipOrder::getId,shipOrder.id)
+
             pmt.commit(status)
             log.info("发货确认成功: shipNo={}, 出库单号={}, 发货条数={}", shipOrder.shipNo, outNo, shipRecords.size)
             return u8ErrorMsg

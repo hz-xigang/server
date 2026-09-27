@@ -1,6 +1,9 @@
 package com.gz.xg.service
 
+import com.github.yulichang.wrapper.MPJLambdaWrapper
+import com.gz.xg.domain.entity.PrepOrder
 import com.gz.xg.domain.entity.PrepOrderDetail
+import com.gz.xg.domain.entity.ProdOrder
 import com.gz.xg.service.plus.PrepOrderDetailPlusService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service

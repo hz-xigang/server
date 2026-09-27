@@ -48,6 +48,8 @@ class ShipOrderController(
         return success(detailService.listByPid(pId))
     }
 
+
+
     /**
      * 手动触发同步 U8 发货单
      */
