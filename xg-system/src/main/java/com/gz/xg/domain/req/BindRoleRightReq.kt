@@ -9,5 +9,6 @@ data class BindRoleRightReq(
 
     val menuIds: List<String>,
 
+    val pdaMenuIds: List<String>
 
 )

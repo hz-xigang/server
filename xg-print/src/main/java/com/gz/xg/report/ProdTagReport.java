@@ -37,7 +37,7 @@ public class ProdTagReport {
         if (tagNoObj != null) {
             String tagNo = String.valueOf(tagNoObj).trim();
             if (!tagNo.isEmpty()) {
-                byte[] barcodeBytes = BarcodeUtil.generateCode128(tagNo, 360, 60);
+                byte[] barcodeBytes = BarcodeUtil.generateCode128WithText(tagNo, 360, 70);
                 if (barcodeBytes != null) {
                     imageReplacements.put("条码", barcodeBytes);
                 }
@@ -78,7 +78,7 @@ public class ProdTagReport {
             if (tagNoObj != null) {
                 String tagNo = String.valueOf(tagNoObj).trim();
                 if (!tagNo.isEmpty()) {
-                    byte[] barcodeBytes = BarcodeUtil.generateCode128(tagNo, 360, 60);
+                    byte[] barcodeBytes = BarcodeUtil.generateCode128WithText(tagNo, 360, 70);
                     if (barcodeBytes != null) {
                         imageReplacements.put("条码", barcodeBytes);
                     }

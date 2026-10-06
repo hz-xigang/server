@@ -22,5 +22,5 @@ static:
   tmp: tmp
 
 u8:
-  #url: http://127.0.0.1:3001/U8_API/
+  #url: http://192.168.3.8:3040/U8_API/
   url: http://119.29.241.24:8052/U8_API/

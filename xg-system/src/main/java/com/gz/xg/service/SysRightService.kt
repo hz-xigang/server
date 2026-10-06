@@ -28,6 +28,68 @@ class SysRightService(
     }
 
     /**
+     * PDA 权限集合（type=4）
+     */
+    fun pdaList() : List<SysRight> = plusService.pdaList()
+
+    /**
+     * 按用户查询 PDA 模块权限。
+     *
+     * 链路：用户 -> SysUserRole(角色) -> SysRoleRight(rightType=4) -> SysRight(type=4)。
+     */
+    fun pdaListByUserId(userId: String): List<SysRight> {
+        val roleIds: List<String> = sysUserRolePlusService.list(
+            LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId)
+        ).map { it.roleId }
+
+        if (roleIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val rightIds: List<String> = sysRoleRightPlusService.list(
+            LambdaQueryWrapper<SysRoleRight>().eq(SysRoleRight::getRightType, 4)
+        )
+            .filter { roleIds.contains(it.roleId) }
+            .map { it.rightId }
+            .distinct()
+
+        if (rightIds.isEmpty()) {
+            return emptyList()
+        }
+
+        return plusService.list(
+            LambdaQueryWrapper<SysRight>()
+                .eq(SysRight::getDeleted, 0)
+                .eq(SysRight::getType, 4)
+                .orderByAsc(SysRight::getSortNo)
+        ).filter { rightIds.contains(it.id) }
+    }
+
+    /**
+     * 按角色查询 PDA 模块权限。
+     *
+     * 链路：角色 -> SysRoleRight(rightType=4) -> SysRight(type=4)。
+     */
+    fun pdaListByRoleId(roleId: String): List<SysRight> {
+        val rightIds: List<String> = sysRoleRightPlusService.list(
+            LambdaQueryWrapper<SysRoleRight>()
+                .eq(SysRoleRight::getRoleId, roleId)
+                .eq(SysRoleRight::getRightType, 4)
+        ).map { it.rightId }.distinct()
+
+        if (rightIds.isEmpty()) {
+            return emptyList()
+        }
+
+        return plusService.list(
+            LambdaQueryWrapper<SysRight>()
+                .eq(SysRight::getDeleted, 0)
+                .eq(SysRight::getType, 4)
+                .orderByAsc(SysRight::getSortNo)
+        ).filter { rightIds.contains(it.id) }
+    }
+
+    /**
      * 菜单树（全量）
      */
     fun menuTree() : List<MenuTree>{

@@ -10,10 +10,10 @@ import org.springframework.stereotype.Service
 @Service
 class SysRoleRightPlusService: ServiceImpl<SysRoleRightMapper, SysRoleRight>(){
 
-    fun dropRoleMenu(roleId : String){
+    fun dropRoleRight(roleId : String){
         val wrapper = LambdaQueryWrapper<SysRoleRight>()
             .eq(SysRoleRight::getRoleId, roleId)
-            .eq(SysRoleRight::getRightType, 1)
+
 
         this.remove(wrapper)
 

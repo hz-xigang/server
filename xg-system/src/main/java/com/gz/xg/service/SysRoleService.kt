@@ -82,8 +82,8 @@ class SysRoleService(
         val status = pmt.getTransaction(definition)
 
         try {
-            sysRoleRightPlusService.dropRoleMenu(req.roleId)
-            val list = req.menuIds.map {
+            sysRoleRightPlusService.dropRoleRight(req.roleId)
+            val menuList = req.menuIds.map {
                 SysRoleRight().apply {
                     roleId = req.roleId
                     rightId = it
@@ -91,7 +91,16 @@ class SysRoleService(
                 }
             }.toList()
 
-            sysRoleRightPlusService.saveBatch(list)
+            val pdaMenuList = req.pdaMenuIds.map {
+                SysRoleRight().apply {
+                    roleId = req.roleId
+                    rightId = it
+                    rightType = 4
+                }
+            }.toList()
+
+
+            sysRoleRightPlusService.saveBatch(menuList + pdaMenuList)
             pmt.commit(status)
             log.info("角色分配权限成功: roleId={}, menuCount={}", req.roleId, req.menuIds.size)
         } catch (e: Exception) {

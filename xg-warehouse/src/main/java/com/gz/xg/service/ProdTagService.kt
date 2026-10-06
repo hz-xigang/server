@@ -174,8 +174,8 @@ class ProdTagService(
     private fun prepareReportData(prodTag: ProdTag, prodOrder: ProdOrder): Map<String, Any> {
         val data = HashMap<String, Any>()
         data["客户编号"] = prodOrder.customerCode ?: ""
-        data["工单号"] = prodOrder.prodNo ?: ""
-        data["客户订单号"] = prodOrder.erpOrderNo ?: ""
+        data["工单号"] = prodOrder.erpOrderNo ?: ""
+        data["客户订单号"] = prodOrder.customerOrderNo ?: ""
         data["产品类别"] = prodOrder.productCategory ?: ""
         data["规格型号"] = prodOrder.spec ?: ""
         data["数量"] = prodTag.qty.toString()

@@ -3,6 +3,7 @@ package xg;
 import com.google.gson.Gson;
 import com.gz.xg.XgApplication;
 import com.gz.xg.domain.enums.SequenceType;
+import com.gz.xg.mapper.SysRightMapper;
 import com.gz.xg.service.ProdOrderSyncService;
 import com.gz.xg.service.ShipOrderSyncService;
 import com.gz.xg.service.SysSequenceService;
@@ -128,17 +129,13 @@ public class U8Test {
     @Resource
     private SysSequenceService  sysSequenceService;
 
+    @Resource
+    private SysRightMapper sysRightMapper;
+
     @Test
     void tt() {
-        String format = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-
-        List< String> list = sysSequenceService.generateSequences(SequenceType.PRODUCTION_ORDER, format, 1);
-        System.err.println(list.get(0));
 
     }
 
-    public static void main(String[] args) {
-        System.err.println(IdUtil.INSTANCE.generateId());
-    }
 
 }
