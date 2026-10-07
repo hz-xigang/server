@@ -1,6 +1,5 @@
 package com.gz.xg.service
 
-import com.google.gson.Gson
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdOrder
@@ -8,9 +7,11 @@ import com.gz.xg.domain.entity.StockInventory
 import com.gz.xg.domain.entity.StockMove
 import com.gz.xg.domain.view.VProdTag
 import com.gz.xg.service.plus.ProductionOrderPlusService
+import com.gz.xg.service.plus.StockInventoryPlusService
 import com.gz.xg.u8.dto.U8StockMoveDetailRequest
 import com.gz.xg.u8.dto.U8StockMoveRequest
 import com.gz.xg.u8.service.U8StockMoveService
+import com.gz.xg.util.LocUtil
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -21,12 +22,15 @@ import java.time.format.DateTimeFormatter
 @Service
 class U8StockMoveSyncService(
     private val productionOrderPlusService: ProductionOrderPlusService,
+    private val stockInventoryPlusService: StockInventoryPlusService,
     private val u8StockMoveService: U8StockMoveService
 ) : BaseService() {
 
     /**
      * 同步移库数据至 U8 货位调整单。
-     * 每个标签一条明细，仅对 ProdOrder.type == 2 (生产订单) 或 ProdOrder.type == 0 (销售订单) 的标签发起推送。
+     * 明细按 (存货编码, 批次号) 汇总。同批次仍有货留在原库位时，转入货位为「目标库位 + 未移动库位」，
+     * 例如批次当前在 A01、部分移到 A02 时，转出 A01、转入 A02,A01。
+     * 仅对 ProdOrder.type == 2 (生产订单) 或 ProdOrder.type == 0 (销售订单) 的标签发起推送。
      *
      * @param resolved 解析后的标签结果
      * @param originLocMap 标签原库位映射 (tagNo -> originStockInventory)
@@ -88,20 +92,41 @@ class U8StockMoveSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val targetLoc = targetLocArchive.locCode
+            val batches = eligibleTags.mapNotNull { originLocMap[it.tagNo]?.u8Batch }
+                .filter { it.isNotBlank() }
+                .distinct()
+            val stocksByBatch = stockInventoryPlusService.listByU8Batches(batches).groupBy { it.u8Batch }
 
-            val detailList = eligibleTags.mapIndexed { index, prodTag ->
+            val detailList = eligibleTags.groupBy { prodTag ->
                 val order = orderMap[prodTag.prodOrderId]
-                val originStock = originLocMap[prodTag.tagNo]
+                val invCode = order?.inventoryCode ?: prodTag.inventoryCode ?: ""
+                val batch = originLocMap[prodTag.tagNo]?.u8Batch ?: ""
+                invCode to batch
+            }.values.mapIndexed { index, tagGroup ->
+                val firstTag = tagGroup.first()
+                val order = orderMap[firstTag.prodOrderId]
+                val originStock = originLocMap[firstTag.tagNo]
+                val movedTagNos = tagGroup.map { it.tagNo }.toSet()
+                val batchStocks = originStock?.u8Batch
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { stocksByBatch[it] }
+                    .orEmpty()
+                    .ifEmpty { originLocMap.filterKeys { it in movedTagNos }.values.toList() }
 
                 U8StockMoveDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = order?.inventoryCode ?: prodTag.inventoryCode
-                    invPositionOut = originStock?.locCode
-                    invPositionIn = targetLoc
+                    inventoryCode = order?.inventoryCode ?: firstTag.inventoryCode
+                    invPositionOut = LocUtil.joinLocCodes(batchStocks.map { it.locCode })
+                    invPositionIn = LocUtil.joinLocCodes(
+                        batchStocks.map { stock ->
+                            if (stock.tagNo in movedTagNos) targetLoc else stock.locCode
+                        },
+                        targetLoc
+                    )
                     packingMethod = order?.packingRequirement
                     specWidth = order?.specWidth
                     batchNo = originStock?.u8Batch ?: order?.prodNo
-                    rowMemo = prodTag.tagNo
+                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
                 }
             }
 

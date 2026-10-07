@@ -25,7 +25,8 @@ class U8SalesStockOutSyncService(
 
     /**
      * 同步发货出库数据至 U8 成品出仓单。
-     * 以发货单 (ShipOrder/ShipOrderDetail) 数据为准构造推送明细。
+     * 以发货单 (ShipOrder/ShipOrderDetail) 数据为准构造推送明细，
+     * 明细按 (存货编码, 批次号) 汇总数量、重量与货位。
      *
      * @param resolved 解析后的标签结果
      * @param stockOut 出库主单
@@ -87,27 +88,43 @@ class U8SalesStockOutSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            val detailList = eligibleTags.mapIndexed { index, tag ->
-                val orderDetail = detailMap[tag.inventoryCode]
+            val detailList = eligibleTags.groupBy { tag ->
+                (tag.inventoryCode ?: "") to (u8BatchByTagNo[tag.tagNo] ?: "")
+            }.values.mapIndexed { index, tagGroup ->
+                val firstTag = tagGroup.first()
+                val orderDetail = detailMap[firstTag.inventoryCode]
+                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
+                val totalGrossWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t ->
+                    acc.add(t.grossWeight ?: BigDecimal.ZERO)
+                }
+                val totalNetWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t ->
+                    acc.add(t.netWeight ?: BigDecimal.ZERO)
+                }
+                val batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
+                val invPosition = tagGroup.mapNotNull { locCodeByTagNo[it.tagNo] }
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .sorted()
+                    .joinToString(",")
 
                 U8SalesStockOutDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = orderDetail?.inventoryCode ?: tag.inventoryCode ?: ""
-                    inventoryName = orderDetail?.inventoryName ?: tag.inventoryName ?: ""
-                    spec = orderDetail?.spec ?: tag.spec ?: ""
+                    inventoryCode = orderDetail?.inventoryCode ?: firstTag.inventoryCode ?: ""
+                    inventoryName = orderDetail?.inventoryName ?: firstTag.inventoryName ?: ""
+                    spec = orderDetail?.spec ?: firstTag.spec ?: ""
                     material = orderDetail?.material ?: ""
                     packingMethod = orderDetail?.packingMethod ?: ""
                     specWidth = orderDetail?.specWidth ?: ""
                     customerCode = shipOrder.customerCode ?: ""
                     unitWeight = orderDetail?.unitWeight ?: BigDecimal.ZERO
-                    totalWeight = tag.grossWeight ?: BigDecimal.ZERO
+                    totalWeight = totalGrossWeight
                     invAddCode = ""
                     unitName = orderDetail?.unit ?: ""
-                    auxiliaryQuantity = tag.netWeight ?: BigDecimal.ZERO
-                    quantity = BigDecimal.valueOf((tag.qty ?: 0).toLong())
-                    invPosition = locCodeByTagNo[tag.tagNo] ?: ""
-                    batchNo = u8BatchByTagNo[tag.tagNo] ?: ""
-                    rowMemo = tag.tagNo
+                    auxiliaryQuantity = totalNetWeight
+                    quantity = BigDecimal.valueOf(totalQty)
+                    this.invPosition = invPosition
+                    this.batchNo = batchNo
+                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
                     salesOrderDetailId = orderDetail?.m5 ?: ""
                 }
             }

@@ -56,6 +56,14 @@ import org.springframework.stereotype.Service
         return listByTagNosInternal(tagNos, true)
     }
 
+    fun listByU8Batches(batches: List<String>): List<StockInventory> {
+        if (batches.isEmpty()) return emptyList()
+        val wrapper = LambdaQueryWrapper<StockInventory>()
+            .`in`(StockInventory::getU8Batch, batches)
+            .eq(StockInventory::getDeleted, 0)
+        return list(wrapper)
+    }
+
 
 
     fun assertNotExists(tagNo: String) {

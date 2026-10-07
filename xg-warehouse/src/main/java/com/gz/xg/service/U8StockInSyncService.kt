@@ -1,5 +1,6 @@
 package com.gz.xg.service
 
+import com.google.gson.Gson
 import com.gz.xg.base.BaseService
 import com.gz.xg.domain.entity.LocArchive
 import com.gz.xg.domain.entity.ProdOrder
@@ -132,7 +133,7 @@ class U8StockInSyncService(
 
     /**
      * 同步单张采购入库单（严格属于同一个采购单 erpOrderId 的标签集合）
-     * 一箱一行明细，每箱独立批次号。
+     * 明细按 (存货编码, 批次号) 汇总数量。
      * @return 错误信息，若成功返回 null
      */
     fun syncSinglePurchaseOrder(
@@ -145,16 +146,21 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            val detailList = purchaseTags.mapIndexed { index, tag ->
+            val detailList = purchaseTags.groupBy { tag ->
+                (tag.inventoryCode ?: "") to (u8BatchByTagNo[tag.tagNo] ?: "")
+            }.values.mapIndexed { index, tagGroup ->
+                val firstTag = tagGroup.first()
+                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
+                val totalAux = tagGroup.fold(BigDecimal.ZERO) { acc, tag -> acc.add(tagAuxiliaryQty(tag)) }
                 U8PurchaseStockInDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = tag.inventoryCode ?: prodOrder.inventoryCode ?: ""
-                    quantity = BigDecimal.valueOf((tag.qty ?: 0).toLong())
-                    auxiliaryQuantity = tagAuxiliaryQty(tag)
+                    inventoryCode = firstTag.inventoryCode ?: prodOrder.inventoryCode ?: ""
+                    quantity = BigDecimal.valueOf(totalQty)
+                    auxiliaryQuantity = totalAux
                     purchaseOrderDetailId = prodOrder.erpOrderId ?: ""
                     invPosition = locArchive.locCode
-                    batchNo = u8BatchByTagNo[tag.tagNo] ?: ""
-                    rowMemo = tag.tagNo
+                    batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
+                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
                 }
             }
 
@@ -167,6 +173,8 @@ class U8StockInSyncService(
                 maker = stockIn.realName ?: stockIn.username
                 details = detailList
             }
+
+            System.err.println(Gson().toJson(u8Request))
 
             val response = u8PurchaseStockInService.pushPurchaseStockIn(u8Request)
 
@@ -189,7 +197,7 @@ class U8StockInSyncService(
 
     /**
      * 同步单张产成品入库单（严格属于同一个生产单 erpOrderId 的标签集合，包含销售单反查绑定的生产单）
-     * 一箱一行明细，每箱独立批次号。
+     * 明细按 (存货编码, 批次号) 汇总数量。
      * @return 错误信息，若成功返回 null
      */
     fun syncSingleMomOrder(
@@ -203,19 +211,24 @@ class U8StockInSyncService(
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
-            val detailList = momTags.mapIndexed { index, tag ->
-                val attrOrder = attrOrderByTagNo[tag.tagNo] ?: momOrder
+            val detailList = momTags.groupBy { tag ->
+                (tag.inventoryCode ?: "") to (u8BatchByTagNo[tag.tagNo] ?: "")
+            }.values.mapIndexed { index, tagGroup ->
+                val firstTag = tagGroup.first()
+                val attrOrder = attrOrderByTagNo[firstTag.tagNo] ?: momOrder
+                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
+                val totalAux = tagGroup.fold(BigDecimal.ZERO) { acc, tag -> acc.add(tagAuxiliaryQty(tag)) }
                 U8MomStockInDetailRequest().apply {
                     rowNo = index + 1
-                    inventoryCode = tag.inventoryCode ?: momOrder.inventoryCode ?: ""
-                    quantity = BigDecimal.valueOf((tag.qty ?: 0).toLong())
-                    auxiliaryQuantity = tagAuxiliaryQty(tag)
+                    inventoryCode = firstTag.inventoryCode ?: momOrder.inventoryCode ?: ""
+                    quantity = BigDecimal.valueOf(totalQty)
+                    auxiliaryQuantity = totalAux
                     momOrderDetailId = momOrder.erpOrderId ?: ""
                     invPosition = locArchive.locCode
-                    batchNo = u8BatchByTagNo[tag.tagNo] ?: ""
+                    batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
                     packingMethod = attrOrder.packingRequirement
                     specWidth = attrOrder.specWidth
-                    rowMemo = tag.tagNo
+                    rowMemo = tagGroup.joinToString(",") { it.tagNo }
                 }
             }
 
