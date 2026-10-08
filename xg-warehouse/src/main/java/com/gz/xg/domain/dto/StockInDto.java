@@ -26,7 +26,7 @@ public class StockInDto {
     /**
      * 本次扫描入库的物料总数量
      */
-    private Integer qty;
+    private BigDecimal qty;
 
 
     /**

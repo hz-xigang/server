@@ -26,7 +26,7 @@ public class StockMoveDto {
     /**
      * 本次扫描移库的物料总数量
      */
-    private Integer qty;
+    private BigDecimal qty;
 
 
     /**

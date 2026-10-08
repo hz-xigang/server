@@ -2,6 +2,7 @@ package com.gz.xg.domain.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -23,7 +24,7 @@ public class PalletDto {
     /**
      * 该托盘内包含的纸箱总件数
      */
-    private Integer qty;
+    private BigDecimal qty;
 
 
 

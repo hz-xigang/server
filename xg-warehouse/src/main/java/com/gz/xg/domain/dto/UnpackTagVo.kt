@@ -11,7 +11,7 @@ data class UnpackTagVo(
     val spec: String?,
     val inventoryCode: String?,
     val inventoryName: String?,
-    val qty: Int?,
+    val qty: BigDecimal?,
     val netWeight: BigDecimal?,
     val grossWeight: BigDecimal?
 )

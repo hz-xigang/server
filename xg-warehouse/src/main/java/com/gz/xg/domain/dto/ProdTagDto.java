@@ -33,7 +33,7 @@ public class ProdTagDto {
      */
     @NotNull(message = "数量不能为空")
     @Positive(message = "数量必须大于0")
-    private Integer qty;
+    private BigDecimal qty;
 
     /**
      * 货品毛重(kg)，保留两位小数

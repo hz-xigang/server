@@ -37,7 +37,7 @@ public class StockInventory  {
     /**
      * 当前库位该条码的在库实物数量
      */
-    private Integer qty;
+    private BigDecimal qty;
 
     /**
      * 单箱货品毛重(kg)

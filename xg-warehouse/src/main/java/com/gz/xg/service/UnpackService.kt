@@ -57,9 +57,12 @@ class UnpackService(
 
         if (children.isEmpty()) {
             if (origin == null) throw WebException("【$tagNo】纸箱标签不存在")
-            if (origin.qty == null || origin.qty <= 0) throw WebException("【$tagNo】原条码数量无效")
-            if (qtys.sum() != origin.qty) {
-                throw WebException("拆分数量合计[${qtys.sum()}]必须等于原条码数量[${origin.qty}]")
+            val splitQty = qtys.fold(BigDecimal.ZERO) { acc, qty -> acc.add(BigDecimal.valueOf(qty.toLong())) }
+            if (origin.qty == null || origin.qty.compareTo(BigDecimal.ZERO) <= 0) {
+                throw WebException("【$tagNo】原条码数量无效")
+            }
+            if (splitQty.compareTo(origin.qty) != 0) {
+                throw WebException("拆分数量合计[${splitQty}]必须等于原条码数量[${origin.qty}]")
             }
             if (originInv == null && everOut) {
                 throw WebException("【$tagNo】已出库，不能拆箱")
@@ -83,7 +86,7 @@ class UnpackService(
                         id = IdUtil.generateId()
                         this.tagNo = tagNos[index]
                         prodOrderId = origin.prodOrderId
-                        this.qty = qty
+                        this.qty = BigDecimal.valueOf(qty.toLong())
                         netWeight = weights[index].first
                         grossWeight = weights[index].second
                         userId = userInfo.userId
@@ -114,8 +117,9 @@ class UnpackService(
             }
             children = prodTagPlusService.listByParentTagNo(tagNo)
         } else {
-            val childQtys = children.map { it.qty ?: 0 }.sorted()
-            if (childQtys != qtys.sorted()) {
+            val childQtys = children.map { it.qty ?: BigDecimal.ZERO }.sorted()
+            val requestQtys = qtys.map { BigDecimal.valueOf(it.toLong()) }.sorted()
+            if (childQtys != requestQtys) {
                 throw WebException("【$tagNo】已拆箱，拆分数量与原记录不一致")
             }
         }
@@ -184,10 +188,10 @@ class UnpackService(
     private fun splitWeights(
         originNet: BigDecimal,
         originGross: BigDecimal,
-        originQty: Int,
+        originQty: BigDecimal,
         qtys: List<Int>
     ): List<Pair<BigDecimal, BigDecimal>> {
-        val totalQty = BigDecimal(originQty)
+        val totalQty = originQty
         val nets = mutableListOf<BigDecimal>()
         val grosses = mutableListOf<BigDecimal>()
         var netUsed = BigDecimal.ZERO
@@ -197,7 +201,7 @@ class UnpackService(
                 nets.add(originNet.subtract(netUsed))
                 grosses.add(originGross.subtract(grossUsed))
             } else {
-                val ratio = BigDecimal(qty).divide(totalQty, 10, RoundingMode.HALF_UP)
+                val ratio = BigDecimal.valueOf(qty.toLong()).divide(totalQty, 10, RoundingMode.HALF_UP)
                 val net = originNet.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
                 val gross = originGross.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
                 nets.add(net)

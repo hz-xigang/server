@@ -41,13 +41,16 @@ class BillTagResolver(
         }
 
         // 汇总数量和重量
+        val totalQty = prodTags.fold(BigDecimal.ZERO) { acc, item ->
+            acc.add(item.qty ?: BigDecimal.ZERO)
+        }
         val total = prodTags.fold(
-            ProdTagTotal(0, BigDecimal.ZERO, BigDecimal.ZERO)
+            ProdTagTotal(totalQty, BigDecimal.ZERO, BigDecimal.ZERO)
         ) { acc, item ->
             ProdTagTotal(
-                acc.qty + item.qty,
-                acc.grossWeight + item.grossWeight,
-                acc.netWeight + item.netWeight
+                acc.qty,
+                acc.grossWeight.add(item.grossWeight ?: BigDecimal.ZERO),
+                acc.netWeight.add(item.netWeight ?: BigDecimal.ZERO)
             )
         }
 

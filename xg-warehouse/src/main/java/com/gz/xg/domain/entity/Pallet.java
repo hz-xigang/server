@@ -28,7 +28,7 @@ public class Pallet {
     /**
      * 该托盘内包含的纸箱总件数
      */
-    private Integer qty;
+    private BigDecimal qty;
 
     private BigDecimal grossWeight;
 

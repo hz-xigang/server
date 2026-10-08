@@ -50,7 +50,7 @@ public class ShipRecord {
     /**
      * 计划发货的物料数量
      */
-    private Integer qty;
+    private BigDecimal qty;
 
     /**
      * 计划发货的物料总重量

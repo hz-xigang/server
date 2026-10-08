@@ -93,7 +93,7 @@ class U8SalesStockOutSyncService(
             }.values.mapIndexed { index, tagGroup ->
                 val firstTag = tagGroup.first()
                 val orderDetail = detailMap[firstTag.inventoryCode]
-                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
+                val totalQty = tagGroup.fold(BigDecimal.ZERO) { acc, tag -> acc.add(tag.qty ?: BigDecimal.ZERO) }
                 val totalGrossWeight = tagGroup.fold(BigDecimal.ZERO) { acc, t ->
                     acc.add(t.grossWeight ?: BigDecimal.ZERO)
                 }
@@ -121,7 +121,7 @@ class U8SalesStockOutSyncService(
                     invAddCode = ""
                     unitName = orderDetail?.unit ?: ""
                     auxiliaryQuantity = totalNetWeight
-                    quantity = BigDecimal.valueOf(totalQty)
+                    quantity = totalQty
                     this.invPosition = invPosition
                     this.batchNo = batchNo
                     rowMemo = tagGroup.joinToString(",") { it.tagNo }
@@ -177,7 +177,7 @@ class U8SalesStockOutSyncService(
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            val qty = inventory.qty ?: tag.qty ?: 0
+            val qty = inventory.qty ?: tag.qty ?: BigDecimal.ZERO
             val netWeight = inventory.netWeight ?: tag.netWeight ?: BigDecimal.ZERO
             val grossWeight = inventory.grossWeight ?: tag.grossWeight ?: BigDecimal.ZERO
 
@@ -195,7 +195,7 @@ class U8SalesStockOutSyncService(
                 invAddCode = ""
                 unitName = ""
                 auxiliaryQuantity = netWeight
-                quantity = BigDecimal.valueOf(qty.toLong())
+                quantity = qty
                 invPosition = inventory.locCode ?: ""
                 batchNo = inventory.u8Batch ?: ""
                 rowMemo = tag.tagNo

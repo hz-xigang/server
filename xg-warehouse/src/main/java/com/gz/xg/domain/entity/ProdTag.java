@@ -32,7 +32,7 @@ public class ProdTag {
     /**
      * 单箱物料数量
      */
-    private Integer qty;
+    private BigDecimal qty;
 
     /**
      * 货品毛重(kg)，保留两位小数

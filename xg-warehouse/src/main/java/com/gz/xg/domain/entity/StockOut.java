@@ -28,7 +28,7 @@ public class StockOut {
     /**
      * 本次扫描入库的物料总数量
      */
-    private Integer qty;
+    private BigDecimal qty;
 
     /**
      * PDA端确认提交出库的时间

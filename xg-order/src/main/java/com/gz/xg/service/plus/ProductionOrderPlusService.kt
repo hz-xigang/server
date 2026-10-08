@@ -44,8 +44,7 @@ open class ProductionOrderPlusService(
 
         val wrapper = MPJLambdaWrapper<ProdOrder>()
             .like(ProdOrder::getErpOrderNo, erpOrderNo)
-            .or()
-            .like(ProdOrder::getCustomerOrderNo, erpOrderNo)
+            .`in`(ProdOrder::getType,arrayListOf(0,1))
 
 
         val list = super.list(wrapper)

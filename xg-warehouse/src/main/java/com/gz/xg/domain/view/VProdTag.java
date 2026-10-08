@@ -24,7 +24,7 @@ public class VProdTag {
 
     private String productCategory;
 
-    private Integer qty;
+    private BigDecimal qty;
 
     private String prodNo;
 

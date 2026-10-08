@@ -217,7 +217,9 @@ class StockInService(
             val groupProdTags = groupItems.map { it.prodTag }
 
             // 计算该组的统计汇总
-            val sumQty = groupProdTags.sumOf { it.qty ?: 0 }
+            val sumQty = groupProdTags.fold(BigDecimal.ZERO) { acc, tag ->
+                acc.add(tag.qty ?: BigDecimal.ZERO)
+            }
             val sumGross = groupProdTags.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.grossWeight ?: BigDecimal.ZERO) }
             val sumNet = groupProdTags.fold(BigDecimal.ZERO) { acc, t -> acc.add(t.netWeight ?: BigDecimal.ZERO) }
             val groupTotal = ProdTagTotal(sumQty, sumGross, sumNet)

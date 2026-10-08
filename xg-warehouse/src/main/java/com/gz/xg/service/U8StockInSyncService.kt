@@ -150,12 +150,12 @@ class U8StockInSyncService(
                 (tag.inventoryCode ?: "") to (u8BatchByTagNo[tag.tagNo] ?: "")
             }.values.mapIndexed { index, tagGroup ->
                 val firstTag = tagGroup.first()
-                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
+                val totalQty = tagGroup.fold(BigDecimal.ZERO) { acc, tag -> acc.add(tag.qty ?: BigDecimal.ZERO) }
                 val totalAux = tagGroup.fold(BigDecimal.ZERO) { acc, tag -> acc.add(tagAuxiliaryQty(tag)) }
                 U8PurchaseStockInDetailRequest().apply {
                     rowNo = index + 1
                     inventoryCode = firstTag.inventoryCode ?: prodOrder.inventoryCode ?: ""
-                    quantity = BigDecimal.valueOf(totalQty)
+                    quantity = totalQty
                     auxiliaryQuantity = totalAux
                     purchaseOrderDetailId = prodOrder.erpOrderId ?: ""
                     invPosition = locArchive.locCode
@@ -217,12 +217,12 @@ class U8StockInSyncService(
             }.values.mapIndexed { index, tagGroup ->
                 val firstTag = tagGroup.first()
                 val attrOrder = attrOrderByTagNo[firstTag.tagNo] ?: momOrder
-                val totalQty = tagGroup.sumOf { (it.qty ?: 0).toLong() }
+                val totalQty = tagGroup.fold(BigDecimal.ZERO) { acc, tag -> acc.add(tag.qty ?: BigDecimal.ZERO) }
                 val totalAux = tagGroup.fold(BigDecimal.ZERO) { acc, tag -> acc.add(tagAuxiliaryQty(tag)) }
                 U8MomStockInDetailRequest().apply {
                     rowNo = index + 1
                     inventoryCode = firstTag.inventoryCode ?: momOrder.inventoryCode ?: ""
-                    quantity = BigDecimal.valueOf(totalQty)
+                    quantity = totalQty
                     auxiliaryQuantity = totalAux
                     momOrderDetailId = momOrder.erpOrderId ?: ""
                     invPosition = locArchive.locCode
