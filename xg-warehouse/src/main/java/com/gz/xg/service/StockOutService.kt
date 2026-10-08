@@ -48,6 +48,7 @@ class StockOutService(
     private val billTagResolver: BillTagResolver,
     private val transactionManager: PlatformTransactionManager,
     private val u8SalesStockOutSyncService: U8SalesStockOutSyncService,
+    private val u8StockMoveSyncService: U8StockMoveSyncService,
     private val productionOrderPlusService: ProductionOrderPlusService
 ) : BaseService() {
 
@@ -131,12 +132,14 @@ class StockOutService(
                 }
             }
 
-            // 推送 U8 成品出仓单：仅推送存货编码能匹配发货单明细的标签，
-            // 返回每个 tagNo 的同步状态（statusMap）与错误信息
-            val syncResult = u8SalesStockOutSyncService.syncSalesStockOut(
-                resolved, stockOut, shipOrder, orderDetails,
-                inventoryByTagNo.mapValues { it.value.locCode },
-                inventoryByTagNo.mapValues { it.value.u8Batch ?: "" }
+            // 原成品出仓推送。U8 侧该接口只清货位，发货改为推货位调整单，转入货位为同批次未出库货位。
+            // val syncResult = u8SalesStockOutSyncService.syncSalesStockOut(
+            //     resolved, stockOut, shipOrder, orderDetails,
+            //     inventoryByTagNo.mapValues { it.value.locCode },
+            //     inventoryByTagNo.mapValues { it.value.u8Batch ?: "" }
+            // )
+            val syncResult = u8StockMoveSyncService.syncShipStockMove(
+                resolved, inventoryByTagNo, stockOut
             )
             if (!syncResult.errorMessage.isNullOrBlank()) {
                 throw WebException("U8出库同步失败: ${syncResult.errorMessage}")

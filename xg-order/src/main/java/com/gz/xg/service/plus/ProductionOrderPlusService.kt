@@ -97,4 +97,21 @@ open class ProductionOrderPlusService(
         return this.list(wrapper).firstOrNull()
     }
 
+    /**
+     * 根据存货编码和销售单号查询最新一条销售订单（type=0）。
+     * 生产单 m3 存的是关联销售单号。
+     */
+    fun findSalesOrderByInvCodeAndErpOrderNo(inventoryCode: String, erpOrderNo: String?): ProdOrder? {
+        if (inventoryCode.isBlank() || erpOrderNo.isNullOrBlank()) {
+            return null
+        }
+        val wrapper = MPJLambdaWrapper<ProdOrder>()
+            .eq(ProdOrder::getInventoryCode, inventoryCode)
+            .eq(ProdOrder::getType, 0)
+            .eq(ProdOrder::getErpOrderNo, erpOrderNo)
+            .orderByDesc(ProdOrder::getCreateTime)
+
+        return this.list(wrapper).firstOrNull()
+    }
+
 }

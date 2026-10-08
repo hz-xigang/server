@@ -210,6 +210,7 @@ class U8StockInSyncService(
     ): String? {
         return try {
             val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            val salesPackingCache = mutableMapOf<String, String?>()
 
             val detailList = momTags.groupBy { tag ->
                 (tag.inventoryCode ?: "") to (u8BatchByTagNo[tag.tagNo] ?: "")
@@ -226,8 +227,8 @@ class U8StockInSyncService(
                     momOrderDetailId = momOrder.erpOrderId ?: ""
                     invPosition = locArchive.locCode
                     batchNo = u8BatchByTagNo[firstTag.tagNo] ?: ""
-                    packingMethod = attrOrder.packingRequirement
-                    specWidth = attrOrder.specWidth
+                    packingMethod = resolveSalesPacking(attrOrder, firstTag, salesPackingCache)
+                    specWidth = attrOrder.specWidth?.takeIf { it.isNotBlank() } ?: "0"
                     rowMemo = tagGroup.joinToString(",") { it.tagNo }
                 }
             }
@@ -311,6 +312,32 @@ class U8StockInSyncService(
             failCount = if (errorMsg == null) 0 else prodTags.size,
             errorMessage = errorMsg
         )
+    }
+
+    /**
+     * 销售单直接用自身包装；生产单按 m3 + 存货编码取关联销售单包装。
+     * 查不到销售单时退回当前订单自身的包装要求。
+     */
+    private fun resolveSalesPacking(
+        attrOrder: ProdOrder,
+        tag: VProdTag,
+        cache: MutableMap<String, String?>
+    ): String? {
+        if (attrOrder.type == 0) {
+            return attrOrder.packingRequirement
+        }
+        val salesOrderNo = attrOrder.m3
+        val invCode = tag.inventoryCode ?: attrOrder.inventoryCode ?: ""
+        if (salesOrderNo.isNullOrBlank() || invCode.isBlank()) {
+            return attrOrder.packingRequirement
+        }
+        val cacheKey = "$invCode:$salesOrderNo"
+        if (!cache.containsKey(cacheKey)) {
+            cache[cacheKey] = productionOrderPlusService
+                .findSalesOrderByInvCodeAndErpOrderNo(invCode, salesOrderNo)
+                ?.packingRequirement
+        }
+        return cache[cacheKey] ?: attrOrder.packingRequirement
     }
 
     private fun isDuplicate(message: String?): Boolean {

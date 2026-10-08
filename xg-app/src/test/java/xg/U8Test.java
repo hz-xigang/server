@@ -67,10 +67,10 @@ public class U8Test {
         //U8Response<U8PurchaseOrderMain> response = purchaseOrderService.queryPurchaseOrderMain("108");
         /*List<U8PurchaseOrderMain> data = response.getData();
         System.out.println(new Gson().toJson(data));*/
-        prodOrderSyncService.syncMomOrders("108");
+        //prodOrderSyncService.syncMomOrders("108");
         //prodOrderSyncService.syncSalesOrders("108");
         //transferOrderSyncService.syncTransferOrders("108");
-        //shipOrderSyncService.syncShipOrders("108");
+        shipOrderSyncService.syncShipOrders("108");
     }
 
     @Test
@@ -95,7 +95,7 @@ public class U8Test {
 
     @Test
     void qrExcelTest() throws Exception {
-        String[] contents = {"1261006017768", "1261006017802"};
+        String[] contents = {"1261007017980", "1261007018033"};
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("QR");
         sheet.setColumnWidth(0, 24 * 256);

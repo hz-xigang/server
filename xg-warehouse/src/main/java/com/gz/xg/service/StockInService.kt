@@ -212,7 +212,7 @@ class StockInService(
 
         // 逐批次独立循环执行：每组对应一次独立的 U8 推送和 WMS 入库
         for ((groupKey, groupItems) in groupedTargets) {
-            val (targetType, targetErpOrderId, groupOrderNo) = groupKey
+            val (targetType, targetErpOrderId, _) = groupKey
             val groupTagNos = groupItems.map { it.tagNo }
             val groupProdTags = groupItems.map { it.prodTag }
 
@@ -228,8 +228,9 @@ class StockInService(
 
             val receiptNo = sysSequenceService.generateStockIn()
 
-            val u8BatchByTagNo = groupTagNos.associateWith { tagNo ->
-                if (groupOrderNo.isBlank()) tagNo else "$groupOrderNo-$tagNo"
+            val u8BatchByTagNo = groupItems.associate { item ->
+                val order = item.prodTag.prodOrderId?.let { orderMap[it] }
+                item.tagNo to u8BatchOf(order)
             }
 
             try {
@@ -370,9 +371,7 @@ class StockInService(
             else -> throw WebException("未知订单类型[${targetType}]，无法入库")
         }
 
-        val u8BatchByTagNo = resolved.tagNos.associateWith { tagNo ->
-            if (orderNo.isBlank()) tagNo else "$orderNo-$tagNo"
-        }
+        val u8BatchByTagNo = buildUnpackBatchNos(resolved)
 
         TransactionTemplate(transactionManager).execute {
             saveSingleBatchStockIn(
@@ -389,11 +388,25 @@ class StockInService(
     }
 
     private fun buildUnpackBatchNos(resolved: ResolvedTags): Map<String, String> {
-        val firstTag = resolved.prodTags.first()
-        val prodOrder = firstTag.prodOrderId?.let { productionOrderPlusService.getById(it) }
-        val orderNo = prodOrder?.erpOrderNo ?: prodOrder?.prodNo ?: ""
-        return resolved.tagNos.associateWith { tagNo ->
-            if (orderNo.isBlank()) tagNo else "$orderNo-$tagNo"
+        val orderIds = resolved.prodTags.mapNotNull { it.prodOrderId }.distinct()
+        val orderMap = if (orderIds.isEmpty()) {
+            emptyMap()
+        } else {
+            productionOrderPlusService.listByIds(orderIds).associateBy { it.id }
+        }
+        return resolved.prodTags.associate { tag ->
+            tag.tagNo to u8BatchOf(tag.prodOrderId?.let { orderMap[it] })
+        }
+    }
+
+    /**
+     * 采购单、销售单用 erpOrderNo；生产单用 m3（关联销售单号）。
+     */
+    private fun u8BatchOf(prodOrder: ProdOrder?): String {
+        if (prodOrder == null) return ""
+        return when (prodOrder.type) {
+            2 -> prodOrder.m3 ?: ""
+            else -> prodOrder.erpOrderNo ?: ""
         }
     }
 
