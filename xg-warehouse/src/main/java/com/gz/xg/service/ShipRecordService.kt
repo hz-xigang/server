@@ -85,8 +85,9 @@ class ShipRecordService(
             val u8ErrorMsg = stockOutService.addByShip(shipRecords, outNo, shipOrder, orderDetails)
 
             LambdaUpdateChainWrapper(shipOrderPlusService.baseMapper)
-                .set(ShipOrder::getStatus,2)
+                .set(ShipOrder::getStatus,1)
                 .eq(ShipOrder::getId,shipOrder.id)
+                .update()
 
             pmt.commit(status)
             log.info("发货确认成功: shipNo={}, 出库单号={}, 发货条数={}", shipOrder.shipNo, outNo, shipRecords.size)

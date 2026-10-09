@@ -50,7 +50,7 @@ public class TransferRecord {
     /**
      * 单项计划调拨的物料数量
      */
-    private Integer qty;
+    private BigDecimal qty;
 
     /**
      * 单项计划调拨的物料总重量

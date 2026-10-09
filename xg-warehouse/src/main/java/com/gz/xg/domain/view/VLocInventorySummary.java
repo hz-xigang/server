@@ -3,6 +3,8 @@ package com.gz.xg.domain.view;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 库位物料汇总视图
  * 对应数据库视图：v_LocInventorySummary
@@ -30,7 +32,7 @@ public class VLocInventorySummary {
      * 库存总数量（纸箱数）
      * 来源：StockInventory 表 qty 字段求和
      */
-    private Integer qty;
+    private BigDecimal qty;
 
     /**
      * 生产单数量（不同生产单号的数量）
