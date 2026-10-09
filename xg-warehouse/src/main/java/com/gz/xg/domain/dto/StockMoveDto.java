@@ -80,6 +80,10 @@ public class StockMoveDto {
      */
     private String locCode;
 
+    private String warehouseCode;
+
+    private String oWarehouseCode;
+
     private String username;
 
     private String userId;

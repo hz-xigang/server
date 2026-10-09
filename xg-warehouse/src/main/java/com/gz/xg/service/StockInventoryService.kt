@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service
     /**
      * 按标签批量新增库存记录。
      */
-    fun addBatch(prodTags: List<VProdTag>, loc : LocArchive, u8BatchByTagNo: Map<String, String>){
+    fun addBatch(prodTags: List<VProdTag>, loc: LocArchive, u8BatchByTagNo: Map<String, String>, warehouseCode: String? = null){
         val list = arrayListOf<StockInventory>()
         prodTags.forEach {
             val stock = StockInventory()
@@ -42,6 +42,7 @@ import org.springframework.stereotype.Service
             stock.tagNo = it.tagNo
             stock.locCode = loc.locCode
             stock.locId = loc.id
+            stock.warehouseCode = warehouseCode
             stock.qty = it.qty
             stock.grossWeight = it.grossWeight
             stock.netWeight = it.netWeight
@@ -56,20 +57,22 @@ import org.springframework.stereotype.Service
      * 按标签批量更新库存所在库位。
      */
 
-    fun editLoc(prodTags: List<VProdTag>, loc : LocArchive){
+    fun editLoc(prodTags: List<VProdTag>, loc: LocArchive, targetWarehouseCode: String? = null){
         val tagNos = prodTags.map { it.tagNo }
         LambdaUpdateChainWrapper(plusService.baseMapper)
             .set(StockInventory::getLocId,loc.id)
             .set(StockInventory::getLocCode,loc.locCode)
+            .set(!targetWarehouseCode.isNullOrBlank(), StockInventory::getWarehouseCode, targetWarehouseCode)
             .eq(StockInventory::getDeleted, 0)
             .`in`(StockInventory::getTagNo,tagNos)
             .update()
     }
 
-    fun editLocByTagNo(tagNos: List<String>, loc : LocArchive){
+    fun editLocByTagNo(tagNos: List<String>, loc: LocArchive, targetWarehouseCode: String? = null){
         LambdaUpdateChainWrapper(plusService.baseMapper)
             .set(StockInventory::getLocId,loc.id)
             .set(StockInventory::getLocCode,loc.locCode)
+            .set(!targetWarehouseCode.isNullOrBlank(), StockInventory::getWarehouseCode, targetWarehouseCode)
             .eq(StockInventory::getDeleted, 0)
             .`in`(StockInventory::getTagNo,tagNos)
             .update()

@@ -248,7 +248,7 @@ class U8StockMoveSyncService(
             val u8Request = U8StockMoveRequest().apply {
                 orderCode = stockMove.receiptNo
                 orderDate = todayStr
-                warehouseCode = "01"                  // 固定为 01
+                warehouseCode = stockMove.warehouseCode?.takeIf { it.isNotBlank() } ?: "01"
                 handler = "曾伟生"                    // 固定为 曾伟生
                 verifyDate = todayStr
                 maker = stockMove.realName ?: stockMove.username

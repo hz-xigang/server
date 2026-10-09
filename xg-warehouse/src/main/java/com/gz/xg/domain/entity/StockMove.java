@@ -85,6 +85,16 @@ public class StockMove {
      */
     private String locCode;
 
+    /**
+     * 目标仓库编码(如: 01)
+     */
+    private String warehouseCode;
+
+    /**
+     * 原仓库编码(如: 01)
+     */
+    private String oWarehouseCode;
+
     private String username;
 
     private String userId;

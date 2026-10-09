@@ -76,6 +76,7 @@ class StockInService(
         val wrapper = MPJLambdaWrapper<StockIn>()
             .like(!search.no.isNullOrBlank(), StockIn::getReceiptNo, search.no)
             .like(!search.locCode.isNullOrBlank(), StockIn::getLoc, search.locCode)
+            .eq(!search.warehouseCode.isNullOrBlank(), StockIn::getWarehouseCode, search.warehouseCode)
             .between(StockIn::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(StockIn::getId)
 
@@ -116,6 +117,7 @@ class StockInService(
     private fun doAddByType(req: AddStockIn, type: String): StockInExecutionResult {
         val locArchive = locArchivePlusService.getById(req.locId)
             ?: throw WebException("该库位不存在")
+        val warehouseCode = req.warehouseCode
 
         val resolved = billTagResolver.resolve(req.tagNos)
 
@@ -245,7 +247,8 @@ class StockInService(
                         targetType = targetType,
                         targetErpOrderId = targetErpOrderId,
                         momOrderMap = groupMomOrderMap,
-                        u8BatchByTagNo = u8BatchByTagNo
+                        u8BatchByTagNo = u8BatchByTagNo,
+                        warehouseCode = warehouseCode
                     )
                 }
                 successCount += groupTagNos.size
@@ -279,7 +282,8 @@ class StockInService(
         targetType: Int,
         targetErpOrderId: String,
         momOrderMap: Map<String, ProdOrder>,
-        u8BatchByTagNo: Map<String, String>
+        u8BatchByTagNo: Map<String, String>,
+        warehouseCode: String? = null
     ) {
         val id = IdUtil.generateId()
         val (userId, username, realName) = UserContext.require()
@@ -295,6 +299,7 @@ class StockInService(
             this.userId = userId
             this.username = username
             this.realName = realName
+            this.warehouseCode = warehouseCode
         }
 
         // 调用 U8 同步，获取 U8 同步结果
@@ -326,7 +331,7 @@ class StockInService(
 
         plusService.save(stockIn)
         stockInTagPlusService.saveBatch(tags)
-        stockInventoryService.addBatch(resolved.prodTags, locArchive, u8BatchByTagNo)
+        stockInventoryService.addBatch(resolved.prodTags, locArchive, u8BatchByTagNo, warehouseCode)
     }
 
     fun addUnpack(tagNos: List<String>, locId: String, receiptNo: String) {
@@ -337,10 +342,11 @@ class StockInService(
         val pending = tagNos.filter { it !in alreadyIn }
         if (pending.isEmpty()) return
 
-        if (plusService.findByReceiptNo(receiptNo) != null) {
+        val existingStockIn = plusService.findByReceiptNo(receiptNo)
+        if (existingStockIn != null) {
             val resolved = billTagResolver.resolve(pending)
             val u8BatchByTagNo = buildUnpackBatchNos(resolved)
-            stockInventoryService.addBatch(resolved.prodTags, locArchive, u8BatchByTagNo)
+            stockInventoryService.addBatch(resolved.prodTags, locArchive, u8BatchByTagNo, existingStockIn.warehouseCode)
             return
         }
 

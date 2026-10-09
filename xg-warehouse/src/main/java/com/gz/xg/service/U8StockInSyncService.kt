@@ -167,7 +167,7 @@ class U8StockInSyncService(
             val u8Request = U8PurchaseStockInRequest().apply {
                 orderCode = stockIn.receiptNo
                 orderDate = todayStr
-                warehouseCode = "01"
+                warehouseCode = stockIn.warehouseCode?.takeIf { it.isNotBlank() } ?: "01"
                 handler = "曾伟生"
                 verifyDate = todayStr
                 maker = stockIn.realName ?: stockIn.username
@@ -237,7 +237,7 @@ class U8StockInSyncService(
                 orderCode = stockIn.receiptNo
                 orderDate = todayStr
                 rdCode = "102"
-                warehouseCode = "01"
+                warehouseCode = stockIn.warehouseCode?.takeIf { it.isNotBlank() } ?: "01"
                 handler = "曾伟生"
                 verifyDate = todayStr
                 maker = stockIn.realName ?: stockIn.username

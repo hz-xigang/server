@@ -93,4 +93,9 @@ public class StockIn {
      */
     private String loc;
 
+    /**
+     * 仓库编码(如: 01)
+     */
+    private String warehouseCode;
+
 }

@@ -71,6 +71,8 @@ class StockMoveService(
             }
 
             val originLocMap = originStocks.associateBy { it.tagNo }
+            val originWhCode = originStocks.mapNotNull { it.warehouseCode }.firstOrNull { it.isNotBlank() }
+            val targetWarehouseCode = req.warehouseCode
             val id = IdUtil.generateId()
             val (userId, username, realName) = UserContext.require()
 
@@ -86,6 +88,8 @@ class StockMoveService(
                 this.userId = userId
                 this.username = username
                 this.realName = realName
+                this.warehouseCode = targetWarehouseCode
+                this.oWarehouseCode = originWhCode
             }
             val syncResult = u8StockMoveSyncService.syncStockMove(
                 resolved, originLocMap, stockMove, locArchive
@@ -101,13 +105,14 @@ class StockMoveService(
                     this.tagNo = tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
+                    this.oWarehouseCode = originStock.warehouseCode
                     u8Sync = syncResult.statusMap[tagNo] ?: 2
                 }
             }
 
             plusService.save(stockMove)
             stockMoveTagPlusService.saveBatch(tags)
-            stockInventoryService.editLoc(resolved.prodTags, locArchive)
+            stockInventoryService.editLoc(resolved.prodTags, locArchive, targetWarehouseCode)
             log.info("普通移库完成: receiptNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, locArchive.locCode, tags.size)
             syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
@@ -131,6 +136,7 @@ class StockMoveService(
             }
 
             val originLocMap = originStocks.associateBy { it.tagNo }
+            val originWhCode = originStocks.mapNotNull { it.warehouseCode }.firstOrNull { it.isNotBlank() }
             val id = IdUtil.generateId()
             val (userId, username, realName) = UserContext.require()
 
@@ -146,6 +152,8 @@ class StockMoveService(
                 type = "备料移库"
                 locCode = locArchive.locCode
                 locId = locArchive.id
+                this.warehouseCode = originWhCode
+                this.oWarehouseCode = originWhCode
             }
 
             val syncResult = u8StockMoveSyncService.syncStockMove(
@@ -162,13 +170,14 @@ class StockMoveService(
                     tagNo = it.tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
+                    this.oWarehouseCode = originStock.warehouseCode
                     u8Sync = syncResult.statusMap[it.tagNo] ?: 2
                 }
             }
 
             plusService.save(stockMove)
             stockMoveTagPlusService.saveBatch(tags)
-            stockInventoryService.editLocByTagNo(tagNos, locArchive)
+            stockInventoryService.editLocByTagNo(tagNos, locArchive, originWhCode)
             log.info("备料移库完成: receiptNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, locArchive.locCode, tags.size)
             syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
@@ -193,6 +202,7 @@ class StockMoveService(
             }
 
             val originLocMap = originStocks.associateBy { it.tagNo }
+            val originWhCode = originStocks.mapNotNull { it.warehouseCode }.firstOrNull { it.isNotBlank() }
             val id = IdUtil.generateId()
             val (userId, username, realName) = UserContext.require()
 
@@ -209,6 +219,8 @@ class StockMoveService(
                 locCode = locArchive.locCode
                 locId = locArchive.id
                 m1 = orderNo // 记录调拨指令单号
+                this.warehouseCode = originWhCode
+                this.oWarehouseCode = originWhCode
             }
 
             val syncResult = u8StockMoveSyncService.syncStockMove(
@@ -225,13 +237,14 @@ class StockMoveService(
                     tagNo = it.tagNo
                     oLocId = originStock.locId
                     oLocCode = originStock.locCode
+                    this.oWarehouseCode = originStock.warehouseCode
                     u8Sync = syncResult.statusMap[it.tagNo] ?: 2
                 }
             }
 
             plusService.save(stockMove)
             stockMoveTagPlusService.saveBatch(tags)
-            stockInventoryService.editLocByTagNo(tagNos, locArchive)
+            stockInventoryService.editLocByTagNo(tagNos, locArchive, stockMove.warehouseCode)
             log.info("调拨移库完成: receiptNo={}, orderNo={}, 目标库位={}, 移动标签数={}", stockMove.receiptNo, orderNo, locArchive.locCode, tags.size)
             syncResult.copy(failCount = tags.count { it.u8Sync == 0 })
         }
@@ -245,6 +258,7 @@ class StockMoveService(
         val wrapper = LambdaQueryWrapper<StockMove>()
             .like(!search.no.isNullOrBlank(), StockMove::getReceiptNo, search.no)
             .like(!search.locCode.isNullOrBlank(), StockMove::getLocCode, search.locCode)
+            .eq(!search.warehouseCode.isNullOrBlank(), StockMove::getWarehouseCode, search.warehouseCode)
             .between(StockMove::getCreateTime, search.startDate, search.endDate)
             .orderByDesc(StockMove::getId)
 

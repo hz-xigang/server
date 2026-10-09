@@ -35,6 +35,11 @@ public class StockInventory  {
     private String locId;
 
     /**
+     * 所在仓库编码(如: 01)
+     */
+    private String warehouseCode;
+
+    /**
      * 当前库位该条码的在库实物数量
      */
     private BigDecimal qty;
