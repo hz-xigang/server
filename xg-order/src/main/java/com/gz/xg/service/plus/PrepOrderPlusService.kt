@@ -18,7 +18,7 @@ class PrepOrderPlusService : ServiceImpl<PrepOrderMapper, PrepOrder>(){
     fun getList() : List<PrepOrder>{
         val wrapper = LambdaQueryWrapper<PrepOrder>()
             .orderByDesc(PrepOrder::getId)
-            .eq(PrepOrder::getStatus,0)
+            .`in`(PrepOrder::getStatus, listOf(0, 1))
 
         return this.list(wrapper)
     }
@@ -26,7 +26,7 @@ class PrepOrderPlusService : ServiceImpl<PrepOrderMapper, PrepOrder>(){
     fun listByErpOrderNo(erpOrderNo: String): List<PrepOrder> {
         val wrapper = LambdaQueryWrapper<PrepOrder>()
             .like(PrepOrder::getErpOrderNo, erpOrderNo)
-            .eq(PrepOrder::getStatus, 0)
+            .`in`(PrepOrder::getStatus, listOf(0, 1))
             .orderByDesc(PrepOrder::getId)
         return this.list(wrapper)
     }
