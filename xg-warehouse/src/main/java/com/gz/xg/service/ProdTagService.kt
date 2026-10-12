@@ -21,6 +21,7 @@ import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.support.DefaultTransactionDefinition
 import java.io.File
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -46,7 +47,8 @@ class ProdTagService(
     private val transferOrderPlusService: TransferOrderPlusService,
     private val transferOrderDetailPlusService: TransferOrderDetailPlusService,
     private val prepOrderPlusService: PrepOrderPlusService,
-    private val prepOrderDetailPlusService: PrepOrderDetailPlusService
+    private val prepOrderDetailPlusService: PrepOrderDetailPlusService,
+    private val prepRecordPlusService: PrepRecordPlusService
 ) : BaseService() {
 
     /**
@@ -274,7 +276,7 @@ class ProdTagService(
     }
 
     /**
-     * 检查条码对应的存货编码是否在备料指令单明细中
+     * 检查条码对应的存货编码是否在备料指令单明细中，并校验数量不超过计划数量
      *
      * @param prepNo 备料指令单号
      * @param tagNo  纸箱条码
@@ -287,10 +289,41 @@ class ProdTagService(
             ?: throw WebException("条码【${tagNo}】不存在")
 
         val details = prepOrderDetailPlusService.listByPId(prepOrder.id)
-        val matched = details.any { d -> d.inventoryCode != null && d.inventoryCode == tag.inventoryCode }
+        val matchedDetails = details.filter { d -> d.inventoryCode != null && d.inventoryCode == tag.inventoryCode }
 
-        if (!matched) {
+        if (matchedDetails.isEmpty()) {
             throw WebException("【${tagNo}】存货编码【${tag.inventoryCode}】不在备料指令清单中")
+        }
+
+        // 1. 检查当前条码是否已在此备料指令单的历史记录中
+        val historyRecords = prepRecordPlusService.listByPrepOrderNo(prepOrder.prepNo)
+        val historyTagNos = historyRecords.mapNotNull { it.tagNo }.filter { it.isNotBlank() }.toSet()
+        if (historyTagNos.contains(tagNo)) {
+            throw WebException("条码【${tagNo}】已在此备料单中备料，请勿重复扫描")
+        }
+
+        // 2. 计算该存货编码的历史已备总数量
+        val historyProdTags = if (historyTagNos.isNotEmpty()) {
+            prodTagPlusService.listByTagNos(historyTagNos.toList())
+        } else {
+            emptyList()
+        }
+        val historyQty = historyProdTags
+            .filter { it.inventoryCode == tag.inventoryCode }
+            .fold(BigDecimal.ZERO) { acc, t -> acc.add(t.qty ?: BigDecimal.ZERO) }
+
+        // 3. 计算该存货编码在指令单中的计划总数量
+        val planQty = matchedDetails.fold(BigDecimal.ZERO) { acc, d ->
+            val itemQty = d.totalQty?.takeIf { it > BigDecimal.ZERO } ?: d.qty ?: BigDecimal.ZERO
+            acc.add(itemQty)
+        }
+
+        // 4. 当前条码数量与超量校验
+        val curQty = tag.qty ?: BigDecimal.ZERO
+        val totalQty = historyQty.add(curQty)
+        if (totalQty > planQty) {
+            val remainQty = planQty.subtract(historyQty).max(BigDecimal.ZERO)
+            throw WebException("存货编码【${tag.inventoryCode}】计划数量为 $planQty，已备数量为 $historyQty，当前条码数量为 $curQty，剩余最多可备 $remainQty，超出计划数量")
         }
 
         return tag

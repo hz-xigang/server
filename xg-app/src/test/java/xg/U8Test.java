@@ -68,9 +68,9 @@ public class U8Test {
         /*List<U8PurchaseOrderMain> data = response.getData();
         System.out.println(new Gson().toJson(data));*/
         //prodOrderSyncService.syncMomOrders("108");
-        //prodOrderSyncService.syncSalesOrders("108");
+        prodOrderSyncService.syncSalesOrders("108");
         //transferOrderSyncService.syncTransferOrders("108");
-        shipOrderSyncService.syncShipOrders("108");
+        //shipOrderSyncService.syncShipOrders("108");
     }
 
     @Test
@@ -95,7 +95,8 @@ public class U8Test {
 
     @Test
     void qrExcelTest() throws Exception {
-        String[] contents = {"1261012019512", "1261012019670", "1261012019850","1261012019926"};
+        //String[] contents = {"1261012019512", "1261012019670", "1261012019850","1261012019926"};
+        String[] contents = {"1261012020048"};
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("QR");
         sheet.setColumnWidth(0, 24 * 256);
@@ -117,7 +118,7 @@ public class U8Test {
             anchor.setRow2(rowIndex + 1);
             drawing.createPicture(anchor, pictureIdx);
         }
-        File file = new File("target/qr-codes.xlsx");
+        File file = new File("target/qr-codes1.xlsx");
         file.getParentFile().mkdirs();
         try (FileOutputStream fos = new FileOutputStream(file)) {
             workbook.write(fos);
