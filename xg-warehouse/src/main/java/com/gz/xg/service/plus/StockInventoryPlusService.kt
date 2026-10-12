@@ -8,6 +8,7 @@ import com.gz.xg.domain.entity.StockInventory
 import com.gz.xg.exception.WebException
 import com.gz.xg.mapper.StockInventoryMapper
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 
 /**
  * 库存底层服务。
@@ -62,6 +63,14 @@ import org.springframework.stereotype.Service
             .`in`(StockInventory::getU8Batch, batches)
             .eq(StockInventory::getDeleted, 0)
         return list(wrapper)
+    }
+
+    /**
+     * 统计某个生产/销售单在指定仓库当前在库（deleted=0）的总数量。
+     */
+    fun sumQtyByProdOrderIdAndWarehouse(prodOrderId: String, warehouseCode: String): BigDecimal {
+        if (prodOrderId.isBlank() || warehouseCode.isBlank()) return BigDecimal.ZERO
+        return baseMapper.sumQtyByProdOrderIdAndWarehouse(prodOrderId, warehouseCode) ?: BigDecimal.ZERO
     }
 
 

@@ -207,6 +207,33 @@ class StockInService(
             }
         }
 
+        val effectiveWarehouseCode = warehouseCode?.takeIf { it.isNotBlank() } ?: "01"
+
+        // 销售单直接入库到 01 仓时，校验入库数量（本次 + 历史在库）不大于销售单的 qty
+        if (type == "直接入库" && effectiveWarehouseCode == "01") {
+            val salesTargets = validTargets.filter {
+                it.prodTag.prodOrderId?.let { id -> orderMap[id]?.type } == 0
+            }
+            if (salesTargets.isNotEmpty()) {
+                val targetsByOrderId = salesTargets.groupBy { it.prodTag.prodOrderId!! }
+                for ((orderId, items) in targetsByOrderId) {
+                    val prodOrder = orderMap[orderId] ?: continue
+                    val planQty = prodOrder.qty ?: BigDecimal.ZERO
+                    val curQty = items.fold(BigDecimal.ZERO) { acc, item ->
+                        acc.add(item.prodTag.qty ?: BigDecimal.ZERO)
+                    }
+                    val historyQty = stockInventoryPlusService.sumQtyByProdOrderIdAndWarehouse(orderId, effectiveWarehouseCode)
+                    val totalQty = historyQty.add(curQty)
+                    if (totalQty > planQty) {
+                        val remainQty = planQty.subtract(historyQty).max(BigDecimal.ZERO)
+                        val salesOrderNo = prodOrder.erpOrderNo ?: prodOrder.prodNo ?: ""
+                        val invCode = prodOrder.inventoryCode ?: ""
+                        throw WebException("销售单【$salesOrderNo】存货【$invCode】计划数量为 $planQty，01仓历史已入库 $historyQty，本次尝试入库 $curQty，剩余最多可入 $remainQty，超出计划数量")
+                    }
+                }
+            }
+        }
+
         // 按 (业务分类, 目标ERP单号, 批次订单号) 分组
         val groupedTargets = validTargets.groupBy { Triple(it.targetType, it.targetErpOrderId, it.erpOrderNo) }
 
